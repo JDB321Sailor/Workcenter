@@ -40,6 +40,8 @@ const defaults = {
     systemInfo: '/system-info',
     corsProxy: '/cors-proxy',
     getUser: '/get-user',
+    // Composed integration health for the switcher's status indicators.
+    brokerHealth: '/api/broker/health',
   },
   /* List of built-in themes, to be displayed within the theme-switcher dropdown */
   builtInThemes: [

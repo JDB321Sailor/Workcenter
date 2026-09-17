@@ -1,130 +1,106 @@
 # Authentication
 
-- [Built-In Auth](#built-in-auth)
-- [Header Authentication](#header-authentication)
-- [OIDC Auth](#oidc)
-  - [Authentik](./authentication/authentik.md)
-- [Zero-Trust Tunnels](#zero-trust-tunnels)
-- [Alternative Authentication Methods](#alternative-authentication-methods)
-  - [Reverse Proxy Auth](./authentication/other-auth-methods.md#reverse-proxy-auth)
-  - [VPN](./authentication/other-auth-methods.md#vpn)
-  - [IP-Based Access](./authentication/other-auth-methods.md#ip-based-access)
-  - [Web Server Authentication](./authentication/other-auth-methods.md#web-server-authentication)
-  - [Client Certificates (mTLS)](./authentication/other-auth-methods.md#client-certificates-mtls)
-  - [SSO / OAuth Providers](./authentication/other-auth-methods.md#sso--oauth-providers)
-  - [Cloud Hosting Providers](./authentication/other-auth-methods.md#cloud-hosting-providers)
+Workcenter renders one page: the workspace, which embeds three applications as panes. Authentication
+means two things at once. The shell must know who is using it, and the integrated applications —
+FileBrowser Quantum, Zulip and Mailcow/SOGo — must authenticate the same person against the same
+identity provider. One identity for the whole workspace, not one login per pane.
 
+Authentik over OIDC is the supported path for that integrated workspace: it is the only mechanism in
+this set that the shell and all three applications can share. The other mechanisms exist, and are
+documented, but each of them stops at the shell. See [What the mechanisms cover](#what-the-mechanisms-cover).
 
-> [!IMPORTANT]
-> It is your responsibility to properly secure your Workcenter instance.
-> Never expose your Workcenter instance to the public internet or untrusted users without sufficient authentication and authorization in place.
+## Options
 
-## Built-In Auth
+| Option | Enabled by | Guide |
+| --- | --- | --- |
+| OIDC | `appConfig.auth.enableOidc` with an `appConfig.auth.oidc` block | [`oidc.md`](./authentication/oidc.md) |
+| Authentik over OIDC | The OIDC mechanism, configured against Authentik | [`authentik.md`](./authentication/authentik.md) |
+| Header auth | `appConfig.auth.enableHeaderAuth` — the mechanism behind a forward-auth proxy such as Traefik with Authentik | [`header-auth.md`](./authentication/header-auth.md) |
+| Built-in user list | `appConfig.auth.users` | [`built-in.md`](./authentication/built-in.md) |
+| Keycloak | `appConfig.auth.enableKeycloak` with an `appConfig.auth.keycloak` block | [`other-auth-methods.md`](./authentication/other-auth-methods.md) |
+| Nothing in front of it | A proxy, VPN or network that authenticates before the request arrives | [`other-auth-methods.md`](./authentication/other-auth-methods.md) |
 
-Workcenter includes a built-in username/password login, with optional server-side HTTP Basic Auth. This is the easiest way to get a login page, without needing to spin up any other services. The full guide, covering password hashing, env-var passwords, guest access, user roles, visibility controls and security notes, is in the [Built-In Auth guide](./authentication/built-in.md).
+**Authentik over OIDC is the recommended configuration.** Deploying it once gives the shell, Files,
+Chat and Mail the same sign-in and the same group membership. Read [`OIDC.md`](../OIDC.md) for the
+full stack, and [`authentik.md`](./authentication/authentik.md) for the walkthrough.
 
-To enable, simply add an array of users under `appConfig.auth.users`, each with a username (`user`) and a SHA256 hash of their password (`hash`).
-
-```yaml
-appConfig:
-  disableConfigurationForNonAdmin: true
-  auth:
-    users:
-      - user: alicia
-        hash: 5994471ABB01112AFCC18159F6CC74B4F511B99806DA59B3CAF5A9C173CACFC5
-        type: admin
-```
-
-Optionally set this env var to enforce this on the server-side too
-```env
-ENABLE_HTTP_AUTH=true
-```
-
-## Keycloak
-
-
-```yaml
-appConfig:
-  disableConfigurationForNonAdmin: true
-  auth:
-    enableKeycloak: true
-    keycloak:
-      serverUrl: http://localhost:9100
-      realm: workcenter
-      clientId: workcenter
-      adminRole: workcenter-admin
-```
-
-## Header Authentication
-Workcenter can defer authentication to a reverse proxy that injects the user's identity in a request header. See the [Header Authentication guide](./authentication/header-auth.md).
+## The configuration an OIDC session needs
 
 ```yaml
 appConfig:
   auth:
-    enableHeaderAuth: true
-    users:
-      - user: alice
-        hash: 0a7b1d4c2e...
-        type: admin
-    headerAuth:
-      userHeader: Remote-User
-      proxyWhitelist:
-        - 172.18.0.2
-```
-
-## OIDC
-
-Workcenter has full support for OIDC based auth, with scoped permissions. See either the generic [OIDC](./authentication/oidc.md) docs, or our provider-specific guides:
-- [Authentik](./authentication/authentik.md)
-
-```yaml
-appConfig:
-  disableConfigurationForNonAdmin: true # Hide the config editor from non-admins (recommended)
-  enableGuestAccess: false              # Optional: view the dashboard read-only without signing in
-  enableServiceWorker: true             # Optional: enables the PWA and offline support
-  enableAuthProxyCompat: true           # Recover the PWA after a session expires (needs the service worker)
-  auth:
-    enableOidc: true                    # Turn OIDC on
+    enableOidc: true
     oidc:
-      clientId: workcenter                    # Client ID from your provider
-      endpoint: https://auth.example.com/application/o/workcenter/ # The issuer URL, not the .well-known one
-      scope: openid profile email groups # Scopes to request (groups for adminGroup, roles for adminRole)
-      adminGroup: workcenter-admins           # Members of this group are admins
-      adminRole: workcenter-admin             # Or grant admin by role instead
-      enableSilentRenew: true            # Refresh the session in the background before it expires
+      clientId: workcenter
+      endpoint: https://auth.example.com/application/o/workcenter/
+      adminGroup: workspaceadmin
+      scope: openid profile email groups
+      enableSilentRenew: true
 ```
 
-## Zero-Trust Tunnels
+`clientId` and `endpoint` are required. `endpoint` is the provider's bare issuer URL, without
+`/.well-known/openid-configuration`. `scope` must include `groups` when `adminGroup` is set, or the
+claim that decides admin access never arrives. The full key list is in
+[`oidc.md`](./authentication/oidc.md) and in [`configuring.md`](./configuring.md).
 
-Workcenter works well with third-party tunnel based auth, allowing you to access your dashboard remotely.
+## What a session is
 
-## Alternative Authentication Methods
+| Mechanism | What the browser holds | What the server checks |
+| --- | --- | --- |
+| OIDC | The id_token the provider issued, and the username and admin flag derived from its claims | The bearer token on every protected route, against the provider's published signing keys |
+| Header auth | A token derived from the username and the matching `appConfig.auth.users` entry | That the request came from an address in `proxyWhitelist`, and that it carries the user header |
+| Built-in user list | A cookie derived from the username and password hash | The same derived token, but only when `ENABLE_HTTP_AUTH=true` |
 
-These are alternatives to Workcenter's built-in auth, Keycloak, and OIDC. Most of them sit in front of Workcenter at the network or reverse proxy level, which is generally the better approach for anything internet-facing.
+With OIDC the token is the credential: when it expires, the API calls that carry it fail until the
+session is renewed or the user signs in again. With `enableSilentRenew: true` the client refreshes
+the session in the background using a refresh token, which requires the `offline_access` scope on
+the provider.
 
-- [Reverse Proxy Auth](./authentication/other-auth-methods.md#reverse-proxy-auth) - Authelia, Authentik, or similar sitting in front of Workcenter
-- [VPN](./authentication/other-auth-methods.md#vpn) - Keep Workcenter off the internet entirely
-- [IP-Based Access](./authentication/other-auth-methods.md#ip-based-access) - Restrict by source IP in your web server
-- [Web Server Authentication](./authentication/other-auth-methods.md#web-server-authentication) - HTTP basic auth at the proxy level
-- [Client Certificates (mTLS)](./authentication/other-auth-methods.md#client-certificates-mtls) - Require a client TLS certificate to connect
-- [SSO / OAuth Providers](./authentication/other-auth-methods.md#sso--oauth-providers) - Cloud-hosted identity providers
-- [Cloud Hosting Providers](./authentication/other-auth-methods.md#cloud-hosting-providers) - Built-in auth on hosting platforms
+## What the mechanisms cover
 
-## Comparison of Auth Options
+| Mechanism | Authenticates the shell | Authenticates the embedded applications | Administrative access |
+| --- | --- | --- | --- |
+| OIDC | Yes, and the server verifies every token | Yes, when each application is registered as its own OIDC client | The `adminGroup` or `adminRole` claim |
+| Header auth | Yes, from a header an upstream proxy sets | Yes, through the proxy's own policy | The matched user's `type` in `appConfig.auth.users` |
+| Built-in user list | Yes, client-side, and server-side with `ENABLE_HTTP_AUTH=true` | No — the applications never see it | The matched user's `type` in `appConfig.auth.users` |
+| Keycloak | Yes, through Keycloak's JavaScript adapter | Yes, when each application is registered as its own Keycloak client | The `adminGroup` or `adminRole` claim |
+| Nothing in front of it | No | The application's own login | Not applicable |
 
-| Method | Type | Description | Complexity | Security | Best for |
-|---|---|---|---|---|---|
-| No Auth | Built-in | This is the default state Workcenter ships with | 🟢 Easy | 🔴 Weak | Internal usage |
-| [Built-In Auth](./authentication/built-in.md) | Built-in | Username/password list in your config, optionally enforced server-side | 🟢 Easy | 🟠 Medium | A quick login screen on a trusted LAN |
-| [Header Auth](./authentication/header-auth.md) | Built-in | Trusts a username header from a proxy that already did the login | 🟠 Medium | 🟠 Medium | Reusing an existing proxy or forward-auth session |
-| [OIDC (generic)](./authentication/oidc.md) | OIDC | Any OpenID Connect provider, with server-side token checks and admin roles | 🟠 Medium | 🟢 Strong | Standards-based SSO with any IdP |
-| [Authentik](./authentication/authentik.md) | OIDC | Self-hosted IdP with a full admin UI, MFA and group policies | 🟠 Medium | 🟢 Strong | One login across many self-hosted apps |
-| [Reverse Proxy Auth](./authentication/other-auth-methods.md#reverse-proxy-auth) | Proxy | An auth server (Authelia, Authentik, OAuth2 Proxy) in front via forward-auth | 🟠 Medium | 🟢 Strong | Protecting many apps behind one proxy |
-| [Web Server Auth](./authentication/other-auth-methods.md#web-server-authentication) | Proxy | HTTP basic auth handled by your reverse proxy | 🟢 Easy | 🟠 Medium | A fast password prompt over HTTPS |
-| [Client Certificates (mTLS)](./authentication/other-auth-methods.md#client-certificates-mtls) | Proxy | Require a client TLS certificate to connect, enforced at the proxy | 🔴 Hard | 🟢 Strong | A small fixed set of trusted devices |
-| [IP-Based Access](./authentication/other-auth-methods.md#ip-based-access) | Network | Allow only certain source IPs at the web server | 🟢 Easy | 🟠 Medium | An extra layer on a static IP or VPN |
-| [VPN](./authentication/other-auth-methods.md#vpn) | Network | Keep Workcenter off the internet, reach it over WireGuard, Tailscale or OpenVPN | 🟠 Medium | 🟢 Strong | Private access with zero public exposure |
-| [SSO / OAuth Providers](./authentication/other-auth-methods.md#sso--oauth-providers) | OIDC | Cloud IdPs (Auth0, Okta, Google) wired in through Workcenter's OIDC | 🟠 Medium | 🟢 Strong | Offloading identity to a managed provider |
-| [Cloud Hosting Providers](./authentication/other-auth-methods.md#cloud-hosting-providers) | Platform | Platform-level auth (Cloudflare Access, Netlify, Vercel) outside Workcenter | 🟢 Easy | 🟢 Strong | Dashboards hosted on a cloud platform |
+## Rules
 
-**[⬆️ Back to Top](#authentication)**
+- **The shell cannot authenticate an embedded application.** A pane is an iframe on the
+  application's own origin, so the shell cannot set a cookie or a header inside it. Signing in to the
+  shell and signing in to an application are separate events; a shared identity provider is what
+  makes them feel like one.
+- **Prefer OIDC for anything reachable from outside your network.** Built-in auth puts a login page
+  in front of the shell; it does not protect the applications, and it cannot replace an identity
+  provider.
+- **Bind access to a group as well as authenticating.** Being able to sign in is not the same as
+  being authorised. See [`security.md`](./security.md).
+- **OIDC and Keycloak need an identity provider; header auth needs a proxy.** Only the built-in user
+  list works on its own.
+
+## Ending a session
+
+There is no logout control in the shell. Where a session actually ends depends on the mechanism.
+
+| Mechanism | How the session ends |
+| --- | --- |
+| OIDC | Clear the browser's storage for the Workcenter origin, then use the identity provider's own end-session page |
+| Header auth | End the session at the proxy. Set `appConfig.auth.logoutRedirectUrl` so the shell sends the browser to the proxy's sign-out endpoint |
+| Built-in user list | Clear the cookie and the stored values for the Workcenter origin, or visit `/login` while signed in and use the logout button there |
+| Anything in front of Workcenter | End the session at the proxy, VPN or provider that authenticated the request |
+
+## In this folder
+
+- [`authentik.md`](./authentication/authentik.md) — Authentik as the identity provider for the whole workspace
+- [`oidc.md`](./authentication/oidc.md) — the OIDC client settings, the admin group claim and server-side verification
+- [`header-auth.md`](./authentication/header-auth.md) — trusting a username header from an upstream proxy
+- [`built-in.md`](./authentication/built-in.md) — the user list in `conf.yml`, and what it does and does not cover
+- [`other-auth-methods.md`](./authentication/other-auth-methods.md) — what Workcenter does not implement, and what an operator can put in front of it
+
+## Read next
+
+- [`OIDC.md`](../OIDC.md) — the identity provider setup for the full stack
+- [`configuring.md`](./configuring.md) — the configuration file and the `appConfig.auth` keys
+- [`security.md`](./security.md) — trust boundaries and known limitations

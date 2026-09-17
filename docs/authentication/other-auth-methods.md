@@ -1,148 +1,66 @@
 # Other Auth Methods
 
-If OIDC or our built-in auth doesn't suit your needs, there's plenty of other ways of protecting your dashboard from unauthenticated access.
+Workcenter implements four authentication mechanisms: OIDC, header auth, the built-in user list and
+Keycloak. Anything else belongs in front of it — at the proxy, the tunnel, the VPN or the network.
 
-- [Reverse Proxy Auth](#reverse-proxy-auth) - Authelia, Authentik, or similar sitting in front of Workcenter
-- [Zero-Trust Tunnels](#zero-trust-tunnels) - Cloudflare Tunnel, Tailscale Funnel
-- [VPN](#vpn) - Keep Workcenter off the internet entirely
-- [IP-Based Access](#ip-based-access) - Restrict by source IP in your web server
-- [Web Server Authentication](#web-server-authentication) - HTTP basic auth at the proxy level
-- [Client Certificates (mTLS)](#client-certificates-mtls) - Require a client TLS certificate to connect
-- [SSO / OAuth Providers](#sso--oauth-providers) - Cloud-hosted identity providers
-- [Cloud Hosting Providers](#cloud-hosting-providers) - Built-in auth on hosting platforms
+This page lists what an operator can put there, and what each one does for the workspace.
 
-> [!IMPORTANT]
-> Every method on this page except header auth authenticates at the network or proxy edge, not inside Workcenter. Workcenter's own server stays open to anything that can reach it directly, so don't expose its port publicly: bind it to localhost or an internal network and only let the proxy or tunnel through. If you want app-level auth with per-user roles, use [OIDC](./oidc.md), [built-in auth](./built-in.md), or [header auth](./header-auth.md) instead.
+## What Workcenter does not implement
 
-## Reverse proxy auth
+| Not implemented | Why it matters |
+| --- | --- |
+| SAML 2.0 | Workcenter speaks OIDC. A SAML identity provider needs a broker in front of it, or a provider that also speaks OIDC. |
+| LDAP and Active Directory directly | No bind, no directory lookup. Authentik's LDAP outpost is for Mailcow, not for the shell. |
+| Local two-factor authentication | MFA belongs to the identity provider. Authentik does it; the `users` list cannot. |
+| Certificate authentication | No client-certificate handling in the shell or the server. |
+| Rate limiting and account lockout | Neither the login form nor the server throttles attempts. |
 
-The most common setup for self-hosters running multiple services. Your reverse proxy delegates login to an auth server (forward auth), which handles login, 2FA, and sessions for everything behind it. You configure it once, and all your apps get protected.
+## Putting something in front
 
-Workcenter has [Header Authentication](./header-auth.md) support, so when your proxy authenticates a user and forwards their identity via a header, Workcenter picks up the username and maps it to a configured user automatically. No separate Workcenter login needed.
+**Workcenter is a single page that embeds three applications as iframes.** That shapes which proxy
+and tunnel options fit, and it is the reason some of the usual recommendations do not apply here.
 
-**Authelia** is lightweight and Docker-friendly. It supports 2FA, per-path access rules, and multiple user backends. To get started quickly:
+| Method | Fits | Notes |
+| --- | --- | --- |
+| Forward auth | Yes | Traefik with Authentik, nginx with `auth_request`, Caddy with `forward_auth`. Pair it with [header auth](./header-auth.md) so the shell learns who the proxy authenticated. This is the shape to use for an internet-facing deployment. |
+| Proxy basic auth | Yes | A password prompt for the whole workspace, for example nginx `auth_basic` or Caddy `basicauth`. Nothing inside the shell knows the username. |
+| IP allow-listing | Yes | Cheap extra layer, and the only one that needs no user interaction. Use it on top of a real mechanism, not instead of one. |
+| VPN | Yes | The strongest reduction in attack surface: nothing is exposed. Remote users need the tunnel before they can load anything. |
+| Client certificates (mTLS) | Partly | The proxy can require a certificate. A browser prompts for the certificate on a top-level navigation, so the prompt may not appear for a pane's own requests. |
+| Cloud tunnel with an access policy | Yes | Cloudflare Access and similar gate the request before it reaches the host. |
+| Platform password protection | No | Host-level password features on a managed static host have no equivalent here: Workcenter is served by its own Express server, and a pane is a frame on another origin. |
+| An identity provider that only speaks SAML or plain OAuth 2.0 | Needs a bridge | Put Authentik, Keycloak or Authelia in front of it and let the shell use the OIDC it provides. |
 
-1. `git clone https://github.com/authelia/authelia.git`
-2. `cd authelia/examples/compose/lite`
-3. Edit `users_database.yml`, `configuration.yml`, and `docker-compose.yml` for your domain and users
-4. `docker compose up -d`
+## One layer, or two
 
-See the [Authelia docs](https://www.authelia.com/docs/) for the full setup guide.
+An edge mechanism protects the shell. It does not sign anyone in to the three applications, because a
+pane is a separate origin with its own session. Two layers are therefore normal:
 
-**Authentik** is heavier but gives you a proper admin UI, built-in OIDC/SAML support, and user self-service (password resets, enrollment flows, etc). Good if you want a single identity provider across many apps. See the [authentik Docker Compose install](https://docs.goauthentik.io/docs/installation/docker-compose) to get started, and the [authentik guide](./authentik.md) for Workcenter-specific OIDC config.
+1. **The edge** keeps unauthenticated traffic away from the host.
+2. **Authentik over OIDC** gives the shell and each application the same identity.
 
-**OAuth2 Proxy** ([docs](https://oauth2-proxy.github.io/oauth2-proxy/)) is a thin forward-auth layer that puts any OIDC or OAuth2 provider (Google, GitHub, your own IdP) in front of apps that can't do it themselves. Point it at Workcenter's [header auth](./header-auth.md) and it forwards the authenticated username, so you get provider login without Workcenter needing to reach the provider directly. See the [oauth2-proxy example](./header-auth.md#example-oauth2-proxy-and-nginx) for the full nginx setup.
+Configuring only the edge leaves three independent logins inside the workspace. Configuring only
+Authentik leaves the shell exposed to anyone who can reach it. See [`authentik.md`](./authentik.md)
+and [`OIDC.md`](../../OIDC.md) for the second layer.
 
-## Zero-trust tunnels
+## Avoiding the framing traps
 
-These let you expose Workcenter to the internet without opening inbound ports or configuring port forwarding. Auth is handled by the tunnel provider before traffic ever reaches your server.
+The three applications are embedded as iframes, so an edge device must not break framing:
 
+- **Do not inject an authentication interstitial into an application's responses.** A pane that
+  receives a login page instead of the application shows as unavailable, and the session inside it
+  never starts.
+- **Do not strip the applications' own security headers.** Each application decides who may frame it;
+  Workcenter does not and cannot override that.
+- **Give each application its own hostname.** Workcenter expects FileBrowser Quantum, Zulip and SOGo
+  on their own origins, which is also what keeps them isolated from one another.
 
+If a proxy session expires, the shell's panes keep showing their last state until they are reloaded.
+`appConfig.enableAuthProxyCompat` exists for that: with the service worker enabled, it drops the
+cached shell when a proxy redirects, so the proxy can re-authenticate the user.
 
-### Service worker & offline use
+## Read next
 
-If you run Workcenter behind any of the redirect-based proxies or tunnels above and also enable the service worker for offline use (`appConfig.enableServiceWorker: true`), set `appConfig.enableAuthProxyCompat: true` as well. Without it, when your proxy session expires the cached app can get stuck, with the service worker serving the old page instead of letting the proxy redirect you to its login screen. With it enabled, Workcenter detects the expiry on load and reloads so you can sign in again.
-
-## VPN
-
-A VPN keeps Workcenter off the public internet entirely. You connect to your home network remotely and access Workcenter like you're on the LAN. No auth to configure, no attack surface to worry about. The downside: you need the VPN running to see anything, and some networks (corporate WiFi, hotels) block VPN traffic.
-
-[WireGuard](https://www.wireguard.com/) is fast and minimal. Most self-hosters run it through a UI like [wg-easy](https://github.com/wg-easy/wg-easy), which gives you a web interface for managing peers and generating QR codes for mobile.
-
-
-[OpenVPN](https://openvpn.net/) still works fine if you already have it running, but for a new setup WireGuard or Tailscale are easier to get going.
-
-## IP-based access
-
-If you have a static IP or are already on a VPN, you can restrict access to Workcenter by source IP at the web server level. This works well as an extra layer on top of other auth methods.
-
-NGINX:
-```text
-location / {
-    proxy_pass http://workcenter:8080;
-    allow 192.168.1.0/24;
-    allow 203.0.113.50;
-    deny all;
-}
-```
-
-Caddy ([request matchers docs](https://caddyserver.com/docs/caddyfile/matchers)):
-```text
-workcenter.example.com {
-    @blocked not remote_ip 192.168.1.0/24 203.0.113.50
-    respond @blocked "Access denied" 403
-    reverse_proxy workcenter:8080
-}
-```
-
-Apache (2.4+):
-```text
-<Location />
-    Require ip 192.168.1.0/24
-    Require ip 203.0.113.50
-</Location>
-```
-
-## Web server authentication
-
-Your reverse proxy can handle HTTP basic auth directly, no extra services needed. This gives you a browser login prompt in front of Workcenter. Make sure you're using HTTPS, as basic auth sends credentials base64-encoded (not encrypted) with every request.
-
-NGINX ([auth module docs](https://nginx.org/en/docs/http/ngx_http_auth_basic_module.html)):
-```text
-location / {
-    auth_basic "Workcenter";
-    auth_basic_user_file /etc/nginx/conf.d/.htpasswd;
-    proxy_pass http://workcenter:8080;
-}
-```
-
-Generate the password file with `htpasswd -c /etc/nginx/conf.d/.htpasswd alicia`.
-
-Caddy ([basicauth directive](https://caddyserver.com/docs/caddyfile/directives/basicauth)):
-```text
-workcenter.example.com {
-    basicauth {
-        alicia $2a$14$... # generate with: caddy hash-password
-    }
-    reverse_proxy workcenter:8080
-}
-```
-
-Apache:
-```text
-AuthType Basic
-AuthName "Workcenter"
-AuthUserFile /path/to/.htpasswd
-Require valid-user
-```
-
-Generate the password file with `htpasswd -c /path/to/.htpasswd alicia`.
-
-## Client certificates (mTLS)
-
-Instead of a password, you can require a client TLS certificate to reach Workcenter. The browser presents a cert you've issued, the proxy rejects anyone without a valid one. It's strong and can't be phished, but you have to generate, hand out, and occasionally revoke the certs, so it fits a small fixed set of devices better than a large user base.
-
-You'll need your own CA to sign the client certs. [mkcert](https://github.com/FiloSottile/mkcert) is fine for a handful, [step-ca](https://github.com/smallstep/certificates) if you want to manage them properly.
-
-NGINX:
-```text
-server {
-    ssl_client_certificate /etc/nginx/certs/ca.crt;
-    ssl_verify_client on;
-    location / {
-        proxy_pass http://workcenter:8080;
-    }
-}
-```
-
-Caddy and Apache do mTLS too, via `client_auth` and `SSLVerifyClient require` respectively.
-
-## SSO / OAuth providers
-
-Cloud identity providers like [Auth0](https://auth0.com/), [Okta](https://developer.okta.com/), [Ory](https://www.ory.sh/), and [Google Cloud Identity](https://cloud.google.com/identity) can work with Workcenter through its [OIDC support](./oidc.md). If your provider speaks OIDC (most do), just configure it as described in the OIDC section and you're set.
-
-For providers that only support OAuth2 or SAML without an OIDC layer, you'll need something in between to translate. Authentik, Keycloak, and Authelia can all bridge from SAML/OAuth2 to OIDC.
-
-## Cloud hosting providers
-
-If you're running Workcenter on a cloud platform, most have their own auth options you can enable without touching Workcenter's config. See your provider's docs: [Cloudflare Access](https://www.cloudflare.com/teams/access/), [Netlify Password Protection](https://docs.netlify.com/visitor-access/password-protection/), [AWS Cognito](https://aws.amazon.com/cognito/), [Azure App Service Authentication](https://learn.microsoft.com/en-us/azure/app-service/overview-authentication-authorization), and [Vercel Password Protection](https://vercel.com/docs/security/password-protection).
+- [`header-auth.md`](./header-auth.md) — let an upstream proxy identify the user
+- [`authentik.md`](./authentik.md) — the identity provider for the whole workspace
+- [`security.md`](../security.md) — the intended deployment and its trust boundaries

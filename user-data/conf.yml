@@ -8,6 +8,15 @@ pageInfo:
 # Shell settings
 appConfig:
   theme: default
+  # The address of each application the shell embeds. A pane with no address is
+  # shown as unavailable rather than silently blank.
+  applications:
+    files:
+      url: https://filebrowser.example.com
+    chat:
+      url: https://chat.example.com
+    mail:
+      url: https://mail.example.com
   # Workcenter renders one page. The three applications are sidebar sections,
   # each pane deep-linkable at /files, /chat and /mail.
   defaultOpeningMethod: newtab
@@ -22,45 +31,3 @@ appConfig:
       adminGroup: workspaceadmin
       scope: openid profile email groups
       enableSilentRenew: true
-
-# The sidebar. One section per integrated application, plus the admin surfaces.
-sections:
-  - name: Files
-    icon: fas fa-folder-open
-    items:
-      - title: FileBrowser
-        description: Browse, search and edit your files
-        url: https://filebrowser.example.com
-        icon: fas fa-hard-drive
-
-  - name: Chat
-    icon: fas fa-comments
-    items:
-      - title: Zulip
-        description: Team chat, organised by channel and topic
-        url: https://chat.example.com
-        icon: fas fa-comment-dots
-
-  - name: Mail
-    icon: fas fa-envelope
-    items:
-      - title: SOGo
-        description: Mail, calendars and contacts
-        url: https://mail.example.com/SOGo
-        icon: fas fa-inbox
-
-  - name: Administration
-    icon: fas fa-shield-halved
-    items:
-      - title: Authentik
-        description: Users, groups and OIDC providers
-        url: https://auth.example.com
-        icon: fas fa-key
-      - title: Traefik
-        description: Reverse proxy dashboard
-        url: https://traefik.example.com
-        icon: fas fa-network-wired
-      - title: Mailcow
-        description: Mail server administration
-        url: https://mail.example.com
-        icon: fas fa-server

@@ -49,14 +49,14 @@ describe('API token auth (no other auth configured)', () => {
   });
 
   it('grants admin (write) access with a valid token', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections')
-      .set(bearer('super-secret-token')).send({ name: 'Added via token' });
-    expect(res.status).toBe(201);
+    const res = await request(app).put('/api/config/conf.yml')
+      .set(bearer('super-secret-token')).send({ pageInfo: { title: 'Added via token' } });
+    expect(res.status).toBe(200);
   });
 
   it('rejects writes without a token', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections')
-      .send({ name: 'Should fail' });
+    const res = await request(app).put('/api/config/conf.yml')
+      .send({ pageInfo: { title: 'Should fail' } });
     expect(res.status).toBe(401);
   });
 });

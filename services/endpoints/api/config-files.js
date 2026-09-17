@@ -87,15 +87,6 @@ const writeConfig = async (filename, config) => {
   return result.message;
 };
 
-/* Resolves a section/item identifier (numeric index, or match on keyField)
-   to an array index, returning -1 when not found */
-const resolveIndex = (arr, id, keyField) => {
-  if (/^\d+$/.test(id)) {
-    return Number(id) < arr.length ? Number(id) : -1;
-  }
-  return arr.findIndex((entry) => entry && entry[keyField] === id);
-};
-
 module.exports = {
-  ApiError, safeFilename, listConfigFiles, readConfig, writeConfig, resolveIndex,
+  ApiError, safeFilename, listConfigFiles, readConfig, writeConfig,
 };

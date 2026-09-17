@@ -5,7 +5,7 @@ info:
   version: 1.0.0
   summary: Read and write your Workcenter config over HTTP.
   description: |
-      The Workcenter API is a simple opt-in REST API for CRUD actions over your config.
+      The Workcenter API is a simple opt-in REST API for reading and replacing your config.
       For full usage guide, examples and architecture, see the [API Docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/api.md).
 
       <details>
@@ -61,10 +61,6 @@ tags:
     description: List, read and replace whole config files.
   - name: Keys
     description: Read and replace a single top-level config key.
-  - name: Sections
-    description: Create, read, update and delete sections.
-  - name: Items
-    description: Create, read, update and delete items within a section.
 
 security:
   - bearerAuth: []
@@ -162,175 +158,6 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "413": { $ref: "#/components/responses/TooLarge" }
 
-  /config/{filename}/sections:
-    parameters:
-      - $ref: "#/components/parameters/Filename"
-    post:
-      tags: [Sections]
-      summary: Add section
-      operationId: addSection
-      description: Appends a new section. A `name` is required.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Section" }
-            example: { name: Monitoring, icon: fas fa-chart-line, items: [] }
-      responses:
-        "201":
-          description: Section added
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/SectionResult" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-
-  /config/{filename}/sections/{sid}:
-    parameters:
-      - $ref: "#/components/parameters/Filename"
-      - $ref: "#/components/parameters/SectionId"
-    get:
-      tags: [Sections]
-      summary: Get section
-      operationId: getSection
-      responses:
-        "200":
-          description: Section
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Section" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    patch:
-      tags: [Sections]
-      summary: Update section
-      operationId: updateSection
-      description: Shallow-merges the supplied fields. Sending `items` replaces the whole array.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/SectionFields" }
-            example: { name: Renamed Section }
-      responses:
-        "200":
-          description: Updated section
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/WriteResult"
-                  - type: object
-                    properties:
-                      section: { $ref: "#/components/schemas/Section" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    delete:
-      tags: [Sections]
-      summary: Delete section
-      operationId: deleteSection
-      responses:
-        "200": { $ref: "#/components/responses/Saved" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
-  /config/{filename}/sections/{sid}/items:
-    parameters:
-      - $ref: "#/components/parameters/Filename"
-      - $ref: "#/components/parameters/SectionId"
-    get:
-      tags: [Items]
-      summary: List items
-      operationId: listItems
-      responses:
-        "200":
-          description: Items in the section
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Item" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    post:
-      tags: [Items]
-      summary: Add item
-      operationId: addItem
-      description: Appends a new item to the section. A `title` is required.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Item" }
-            example: { title: Grafana, url: https://grafana.local, icon: hl-grafana }
-      responses:
-        "201":
-          description: Item added
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ItemResult" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
-  /config/{filename}/sections/{sid}/items/{iid}:
-    parameters:
-      - $ref: "#/components/parameters/Filename"
-      - $ref: "#/components/parameters/SectionId"
-      - $ref: "#/components/parameters/ItemId"
-    get:
-      tags: [Items]
-      summary: Get item
-      operationId: getItem
-      responses:
-        "200":
-          description: Item
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Item" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    patch:
-      tags: [Items]
-      summary: Update item
-      operationId: updateItem
-      description: Shallow-merges the supplied fields onto the item.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ItemFields" }
-            example: { url: https://grafana.example.com }
-      responses:
-        "200":
-          description: Updated item
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/WriteResult"
-                  - type: object
-                    properties:
-                      item: { $ref: "#/components/schemas/Item" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    delete:
-      tags: [Items]
-      summary: Delete item
-      operationId: deleteItem
-      responses:
-        "200": { $ref: "#/components/responses/Saved" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
 components:
   securitySchemes:
     bearerAuth:
@@ -357,22 +184,8 @@ components:
       in: path
       required: true
       description: A top-level config key.
-      schema: { type: string, enum: [pageInfo, appConfig, sections, pages] }
+      schema: { type: string, enum: [pageInfo, appConfig, sections] }
       example: appConfig
-    SectionId:
-      name: sid
-      in: path
-      required: true
-      description: Section index (zero-based) or exact `name` (URL-encoded).
-      schema: { type: string }
-      example: "0"
-    ItemId:
-      name: iid
-      in: path
-      required: true
-      description: Item index (zero-based) or exact `title` (URL-encoded).
-      schema: { type: string }
-      example: "0"
 
   responses:
     Saved:
@@ -380,7 +193,7 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/WriteResult" }
-          example: { success: true, message: Config has been written to disk }
+          example: { success: true, message: "Config saved successfully in conf.yml." }
     Disabled:
       description: API not enabled
       content:
@@ -392,7 +205,7 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
-          example: { success: false, message: "Section must have a 'name'" }
+          example: { success: false, message: "Invalid key 'widgets', must be one of: pageInfo, appConfig, sections" }
     Unauthorized:
       description: Authentication required or invalid
       content:
@@ -405,7 +218,7 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     NotFound:
-      description: File, key, section or item not found
+      description: File or key not found
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -442,24 +255,10 @@ components:
           type: array
           items: { type: string }
       required: [success, files]
-    SectionResult:
-      allOf:
-        - $ref: "#/components/schemas/WriteResult"
-        - type: object
-          properties:
-            index: { type: integer, description: Array index of the section }
-            section: { $ref: "#/components/schemas/Section" }
-    ItemResult:
-      allOf:
-        - $ref: "#/components/schemas/WriteResult"
-        - type: object
-          properties:
-            index: { type: integer, description: Array index of the item }
-            item: { $ref: "#/components/schemas/Item" }
 
     Config:
       type: object
-      description: A full config file. `conf.yml` requires `sections`; sub-pages may hold any subset.
+      description: A full config file. Sub-pages may hold any subset of these keys.
       additionalProperties: false
       properties:
         pageInfo: { $ref: "#/components/schemas/PageInfo" }
@@ -467,9 +266,6 @@ components:
         sections:
           type: array
           items: { $ref: "#/components/schemas/Section" }
-        pages:
-          type: array
-          items: { $ref: "#/components/schemas/Page" }
     KeyValue:
       description: The value of one top-level key.
       oneOf:
@@ -477,8 +273,6 @@ components:
         - $ref: "#/components/schemas/AppConfig"
         - type: array
           items: { $ref: "#/components/schemas/Section" }
-        - type: array
-          items: { $ref: "#/components/schemas/Page" }
 
     PageInfo:
       type: object
@@ -508,7 +302,7 @@ components:
 
     SectionFields:
       type: object
-      description: Any subset of a section's fields (used for PATCH).
+      description: The fields shared by every section.
       additionalProperties: false
       properties:
         name:
@@ -540,7 +334,7 @@ components:
 
     ItemFields:
       type: object
-      description: Any subset of an item's fields (used for PATCH).
+      description: The fields shared by every item.
       additionalProperties: false
       properties:
         title:
@@ -626,13 +420,3 @@ components:
       allOf:
         - $ref: "#/components/schemas/ItemFields"
         - { type: object, required: [title] }
-
-    Page:
-      type: object
-      description: An extra config file loaded as a separate page.
-      additionalProperties: false
-      required: [name, path]
-      properties:
-        name: { type: string, description: Unique page identifier }
-        path: { type: string, description: File name or path of the page's config }
-        displayData: { type: object, description: Page visibility and display options }

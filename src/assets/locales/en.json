@@ -91,5 +91,103 @@
     "item": {
       "copied-toast": "Copied to clipboard"
     }
+  },
+  "shell": {
+    "rail-label": "Workcenter navigation"
+  },
+  "switcher": {
+    "label": "Applications",
+    "unavailable": "{app} is not configured. Set its address in appConfig.applications.",
+    "shortcut-hint": "Alt+1 Files, Alt+2 Chat, Alt+3 Mail"
+  },
+  "status": {
+    "label": "Status",
+    "indicator-label": "{app} status: {state}",
+    "state": {
+      "healthy": "healthy",
+      "degraded": "degraded",
+      "unhealthy": "unavailable",
+      "unknown": "not checked yet"
+    }
+  },
+  "pane": {
+    "retry": "Retry",
+    "open-new-tab": "Open in new tab",
+    "loading-hint": "This is taking longer than usual. The application may be starting up.",
+    "reason": {
+      "unavailable": {
+        "title": "{app} is not responding",
+        "message": "The application could not be loaded, or its address is not configured.",
+        "check-failed": "The health check for this application is failing."
+      },
+      "blocked": {
+        "title": "{app} cannot be shown here",
+        "message": "The application refuses to be embedded. It must allow Workcenter as a frame ancestor."
+      },
+      "auth-error": {
+        "title": "Your session for {app} has expired",
+        "message": "Sign in again, or open the application in a new tab."
+      },
+      "timeout": {
+        "title": "{app} did not finish loading",
+        "message": "The application did not respond in time. It may still be starting up."
+      }
+    }
+  },
+  "sidebar": {
+    "label": "{app} navigation",
+    "files": {
+      "unconfigured": "The Files pane has no address configured. Set appConfig.applications.files.url.",
+      "sources": "Sources",
+      "all-files": "All files",
+      "recent": "Recent",
+      "shared": "Shared with me",
+      "favourites": "Favourites",
+      "tools": "Tools",
+      "search": "Search",
+      "size-viewer": "Size viewer",
+      "activity": "Activity",
+      "footnote": "Rows open FileBrowser at that view. Browsing inside the pane arrives with the file broker."
+    },
+    "chat": {
+      "unconfigured": "The Chat pane has no address configured. Set appConfig.applications.chat.url.",
+      "views": "Views",
+      "inbox": "Inbox",
+      "recent": "Recent conversations",
+      "combined": "Combined feed",
+      "mentions": "Mentions",
+      "starred": "Starred",
+      "drafts": "Drafts",
+      "messages": "Messages",
+      "direct": "Direct messages",
+      "new-topic": "New topic",
+      "footnote": "Your channels and direct messages are read from Zulip once the broker carries the chat adapter."
+    },
+    "mail": {
+      "unconfigured": "The Mail pane has no address configured. Set appConfig.applications.mail.url.",
+      "folders": "Mail",
+      "inbox": "Inbox",
+      "drafts": "Drafts",
+      "sent": "Sent",
+      "junk": "Junk",
+      "trash": "Trash",
+      "archive": "Archive",
+      "calendars": "Calendars",
+      "calendar": "Calendar",
+      "contacts": "Address books",
+      "address-book": "Personal",
+      "footnote": "Rows open SOGo at that view. Folder counts are read from the mailbox once the broker carries the mail adapter."
+    }
+  },
+  "apps": {
+    "files": {
+      "description": "Browse, search and edit your files"
+    },
+    "chat": {
+      "description": "Team chat, organised by channel and topic"
+    },
+    "mail": {
+      "description": "Mail, calendars and contacts"
+    }
   }
 }

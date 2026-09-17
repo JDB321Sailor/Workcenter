@@ -1,117 +1,148 @@
 # Theming
 
-By default Workcenter comes with 40+ built-in themes, which can be applied from the dropdown menu in the UI.
+Themes style the shell: the header, the application switcher, the status indicators, the
+sidebars and the frame the panes sit in. They do not reach inside a pane. Each embedded
+application — FileBrowser Quantum, Zulip, SOGo — is a separate product rendered in its own iframe,
+and its appearance is set in that product's own settings.
 
-![Built-in Themes](https://i.ibb.co/GV3wRss/Workcenter-Themes.png)
+Changing a theme is a configuration change, not a UI action: Workcenter renders no theme
+switcher. See [`configuring.md`](./configuring.md) for where `conf.yml` lives.
 
-You can also add your own themes, apply custom styles, and modify colors.
+## Choosing a theme
 
-You can customize Workcenter by writing your own CSS, which can be loaded either as an external stylesheet, set directly through the UI, or specified in the config file. Most styling options can be set through CSS variables, which are outlined below.
-
-The following content requires that you have a basic understanding of CSS. If you're just beginning, you may find [this article](https://developer.mozilla.org/en-US/docs/Learn/CSS/First_steps) helpful.
-
-## How Theme-Switching Works
-
-The theme switching is done by simply changing the `data-theme` attribute on the root DOM element, which can then be targeted by CSS. All colors and styles are managed with CSS variables.
-
-The theme switcher in the UI will list all themes defined in [here](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js), as well as any extras that you add yourself under `appConfig.cssThemes`. Then, when a theme is selected, any CSS within `html[data-theme='my-theme']{}` will be applied.
-
-To apply a default theme to your instance, set `appConfig.theme` (or, use `dayTheme` and `nightTheme` to adjust according to your OS light/dark preferences).
-
-## Adding Your Own Theme
-
-### Option 1: Colors-only, in `conf.yml`
-
-Quickest path when you just want to change colors. Name the theme under `cssThemes` so it shows in the dropdown, then list your colors under `customColors`:
+| Key | Type | Description |
+| --- | --- | --- |
+| `theme` | `string` | The theme to apply. `default` is the shell's own palette. |
+| `dayTheme` | `string` | Used when the operating system prefers a light colour scheme. Takes precedence over `theme` in that state. |
+| `nightTheme` | `string` | Used when the operating system prefers a dark colour scheme. Takes precedence over `theme` in that state. |
 
 ```yaml
 appConfig:
-  theme: mytheme
-  cssThemes: [mytheme]
-  customColors:
-    mytheme:
-      primary: '#ff6b6b'
-      background: '#1a1a2e'
-      background-darker: '#0f0f1e'
+  theme: default
+  dayTheme: minimal-light
+  nightTheme: one-dark
 ```
 
-Reload Workcenter and `mytheme` appears in the dropdown. Any of the [CSS variables](#css-variables) can go here.
+The day and night themes are selected with the CSS media query `prefers-color-scheme`, so they
+follow the operating system setting and need no browser reload when it changes.
 
-### Option 2: Full CSS file
+The theme is chosen in this order, highest first:
 
-Use this when you want more than colors (fonts, backgrounds, layout tweaks), or a portable file you can share between instances.
+1. A theme name stored in the browser's local storage under the `theme` key.
+2. `dayTheme` or `nightTheme`, whichever matches the operating system.
+3. `appConfig.theme`.
+4. `default`.
 
-Drop a CSS file into the directory you mount for `conf.yml` (usually `./user-data/`). Workcenter serves that directory as static files at the site root, so the stylesheet is fetchable at `/mytheme.css`:
+Nothing in the shell writes that local storage key, so the first entry only matters on a browser
+that holds a value from an earlier deployment. Clearing site data for the Workcenter origin
+removes it, and the config file then applies again.
+
+## Built-in themes
+
+The built-in themes are listed in `builtInThemes` in
+[`src/utils/config/defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js)
+and defined as `html[data-theme='<name>']` blocks in
+[`src/styles/color-themes.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-themes.scss).
+
+```
+default            glass              callisto           material
+material-dark      colorful           dracula            one-dark
+lissy              cherry-blossom     nord-frost         nord
+argon              fallout            whimsy             oblivion
+adventure          crayola            deep-ocean         minimal-dark
+minimal-light      thebe              matrix             matrix-red
+color-block        raspberry-jam      bee                tiger
+glow               glow-dark          vaporware          cyberpunk
+material-original  material-dark-original                high-contrast-dark
+high-contrast-light                   adventure-basic    basic
+tama               neomorphic         glass-2            night-bat
+tokyo-night        gruvbox            rose-pine          parchment
+aurora             zinc               solarized-dark     solarized-light
+brutalist          midnight           catppuccin
+```
+
+A theme is applied by setting `data-theme` on the document element, and every colour in the shell
+is a CSS custom property, so a theme is a list of variable values and nothing else.
+
+## Changing individual colours
+
+`appConfig.customColors` overrides single variables of a named theme. The values are applied as
+inline custom properties on the document element, so they win over the theme's own values.
+
+```yaml
+appConfig:
+  customColors:
+    one-dark:
+      primary: '#4c9be8'
+      background: '#101418'
+    default:
+      primary: rebeccapurple
+```
+
+| Ref | Rule |
+| --- | --- |
+| T-1 | The key under `customColors` is a theme name. Overrides apply only while that theme is active. |
+| T-2 | The values under it are CSS variable names, without the leading `--`. Any variable in [`color-palette.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-palette.scss) can be set. |
+| T-3 | Quote hex values. YAML reads an unquoted `#4c9be8` as a comment. |
+
+## Writing a theme
+
+A theme is a set of variable values under a `data-theme` selector. There are two places to put
+one, and the difference is whether the browser has to rebuild the bundle.
+
+### In the stylesheet
+
+Add the block to
+[`src/styles/user-defined-themes.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/user-defined-themes.scss),
+which is compiled into the bundle, then run `yarn build` and redeploy.
 
 ```css
-/* user-data/mytheme.css */
-html[data-theme='mytheme'] {
-  --primary: #ff6b6b;
-  --background: #1a1a2e;
-  --background-darker: #0f0f1e;
-  /* anything inside this block only applies when mytheme is active */
+html[data-theme='my-theme'] {
+  --primary: #00ccb4;
+  --background: #141b33;
+  --background-darker: #060913;
 }
 ```
 
-Then wire it up:
+Name the theme under `appConfig.cssThemes` so the shell treats it as a theme that exists, then
+select it:
 
 ```yaml
 appConfig:
-  theme: mytheme
-  cssThemes: [mytheme]
-  externalStyleSheet: /mytheme.css
+  theme: my-theme
+  cssThemes: [my-theme]
 ```
 
-`externalStyleSheet` also takes a full `https://` URL if you'd rather host the file on a CDN or a repo, and it accepts an array to load several at once. See [Loading External Stylesheets](#loading-external-stylesheets) for more.
+### From a CSS file you host
 
-## Modifying Theme Colors
-
-Themes can be modified either through the UI, using the color picker menu (to the right of the theme dropdown), or directly in the config file, under `appConfig.customColors`. Here you can specify the value for any of the [available CSS variables](#css-variables).
-
-<p align="center">
-  <a href="https://i.ibb.co/cLDXj1R/workcenter-theme-configurator.gif">
-    <img alt="Example Themes" src="https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/docs/assets/theme-config-demo.gif" width="400" />
-  </a>
-</p>
-
-By default, any color modifications made to the current theme through the UI will only be applied locally. If you need these settings to be set globally, then click the 'Export' button, to get the color codes and variable names, which can then be backed up, or saved in your config file.
-
-Custom colors are saved relative to the base theme selected. So if you switch themes after setting custom colors, then your settings will no longer be applied. Your changes aren't lost though, and switching back to the original theme will see your styles reapplied.
-
-If these values are specified in your `conf.yml` file, then it will look something like the below example. Note that in YAML, values or keys which contain special characters, must be wrapped in quotes.
-
-```yaml
-appConfig:
-  customColors:
-    oblivion:
-      primary: '#75efff'
-      background: '#2a3647'
-    dracula:
-      primary: '#8be9fd'
-```
-
-## Setting Custom CSS in the UI
-
-Custom CSS can be developed, tested and applied directly through the UI. Although you will need to make note of your changes to apply them across instances.
-
-This can be done from the Config menu (spanner icon, inside the options panel in the header), under the Custom Styles tab. This is then associated with `appConfig.customCss` in local storage. Styles can also be directly applied to this attribute in the config file, but this may get messy very quickly if you have a lot of CSS.
-
-## Page-Specific Styles
-
-If you've got multiple pages within your dashboard, you can choose to target certain styles to specific pages. The top-most element within `<body>` will have a class name specific to the current sub-page. This is usually the page's name, all lowercase, with dashes instead of spaces, but you can easily check this yourself within the dev tools.
-
-For example, if the pages name was "CFT Toolbox", and you wanted to target `.item`s, you would do:
+A theme can also be a stylesheet outside the bundle, which is the right choice for a theme you want
+to edit without rebuilding.
 
 ```css
-.cft-toolbox .item { border: 4px solid yellow; }
+/* user-data/my-theme.css */
+html[data-theme='my-theme'] {
+  --primary: #00ccb4;
+  --background: #141b33;
+}
 ```
 
-## Loading External Stylesheets
+The `user-data/` directory is served at the site root, so that file is fetchable at
+`/my-theme.css`:
 
-The URI of a stylesheet, either local or hosted on a remote CDN can be passed into the config file. The attribute `appConfig.externalStyleSheet` accepts either a string, or an array of strings. You can also pass custom font stylesheets here, they must be in a CSS format (for example, `https://fonts.googleapis.com/css2?family=Cutive+Mono`).
-This is handled in [`App.vue`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/App.vue).
+```yaml
+appConfig:
+  theme: my-theme
+  cssThemes: [my-theme]
+  externalStyleSheet: /my-theme.css
+```
 
-For example:
+Both keys are needed. `cssThemes` makes the name selectable, and `externalStyleSheet` loads the
+file that defines it.
+
+## External stylesheets
+
+`appConfig.externalStyleSheet` loads one stylesheet, or an array of them, into the shell document.
+It accepts an absolute `https://` URL or a path on the Workcenter origin.
 
 ```yaml
 appConfig:
@@ -120,112 +151,155 @@ appConfig:
 
 ```yaml
 appConfig:
-  externalStyleSheet: ['/themes/my-theme-1.css', '/themes/my-theme-2.css']
+  externalStyleSheet: ['/themes/one.css', '/themes/two.css']
 ```
 
-## Hard-Coding Section or Item Colors
+A stylesheet loaded this way can also be selected as the theme directly, by using the label the
+shell gives it — `External Stylesheet`, or `External Stylesheet 1`, `External Stylesheet 2` and so
+on for an array — as the value of `appConfig.theme`. Selecting an external stylesheet as a theme
+clears `data-theme`, so the built-in theme variables stop applying and the file is the only source
+of styling.
 
-Some UI components have a color option, that can be set in the config file, to force the color of a given item or section no matter what theme is selected. These colors should be expressed as hex codes (e.g. `#fff`) or HTML colors (e.g. `red`). The following attributes are supported:
+Stylesheets load into the shell document only. They cannot restyle an embedded application, which
+is cross-origin to Workcenter and renders in its own frame.
 
-- `section.color` - Custom color for a given section
-- `item.color` - Font and icon color for a given item
-- `item.backgroundColor` - Background color for a given icon
+## Custom CSS
+
+`appConfig.customCss` takes CSS as a **string** and injects it as a `<style>` element. It is not a
+file path.
+
+```yaml
+appConfig:
+  customCss: |
+    .wc-rail { border-right: 2px solid var(--primary); }
+    .wc-switcher__button { letter-spacing: 0.02em; }
+```
+
+| Ref | Rule |
+| --- | --- |
+| T-4 | The string is inserted into the document after tags are stripped out, so a value that looks like HTML is discarded rather than executed. |
+| T-5 | Prefer `customColors` for colour changes. Reach for `customCss` only for what a variable cannot express. |
+| T-6 | Target the shell's own class names, which are prefixed `wc-`. A selector for an embedded application's markup has no effect. |
 
 ## Typography
 
-Essential fonts bundled within the app are located within `./src/assets/fonts/`. All optional fonts that are used by themes are stored in `./public/fonts/`, if you want to add your own font, this is where you should put it. As with assets, if you're using Docker then using a volume to link a directory on your host system with this path within the container will make management much easier.
+Three typefaces are bundled in `src/assets/fonts/` and declared in
+[`src/styles/typography.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/typography.scss):
+Inconsolata Light, PT Mono Regular and Raleway. A theme selects between them by setting
+`--font-primary`, `--font-secondary` and `--font-monospace`.
 
-Fonts which are not being used by the current theme are **not** fetched on page load. They are instead only loaded into the application if and when they are required. So having multiple themes with various typefaces shouldn't have any negative impact on performance.
+Fonts that the active theme does not use are not fetched, so a set of themes with different
+typefaces costs nothing on a page load that uses one of them.
 
-Full credit to the typographers behind each of the included fonts. Specifically: Matt McInerney, Christian Robertson, Haley Fiege, Peter Hull, Cyreal and the legendary Vernon Adams
+## Browser tab colour
 
-## Changing browser address bar / tab color
+`pageInfo.color` sets the `theme-color` meta tag, which tints the address bar and the task switcher
+on browsers that support it: `#ff00a7`, `rebeccapurple` and `rgb(40, 60, 120)` are all valid. The
+value is validated as a CSS colour before it is applied. Support is limited to some mobile
+browsers, and the tint does not apply to an installed app.
 
-Some browsers support setting a color, which will apply a tint to the address bar, and task switcher card title bar. To enable this, set `pageInfo.color` to any valid CSS color (e.g. `#ff00a7`, `rebeccapurple`, `rgb(40, 60, 120)`). Note that browser support for this is still limited (Android Chrome, Safari iOS 15+ and some recent mobile Chromium browsers). This does not apply if you've installed the PWA. For more page-specific browser and UI options, see [Pages and Sections](/docs/pages-and-sections.md).
+## CSS variables
 
-## CSS Variables
+Every colour, radius and shadow in the shell is a CSS custom property, so a theme changes values in
+one place. The complete set is in
+[`src/styles/color-palette.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-palette.scss)
+and [`src/styles/dimensions.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/dimensions.scss).
 
-All colors as well as other variable values (such as borders, border-radius, shadows) are specified as CSS variables. This makes theming the application easy, as you only need to change a given color or value in one place. You can find all variables in [`color-palette.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-palette.scss) and the themes which make use of these color variables are specified in [`color-themes.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-themes.scss)
+Variables are defined as `--background: #0b1021;` and used as
+`background: var(--background);`.
 
-CSS variables are simple to use. You define them like: `--background: #fff;` and use them like: `body { background-color: var(--background); }`. For more information, see this guide on using [CSS Variables](https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties).
+### Base
 
-You can determine the variable used by any given element, and visualize changes using the browser developer tools (Usually opened with `F12`, or Options --> More --> Developer Tools). Under the elements tab, click the Element Selector icon (usually top-left corner), you will then be able to select any DOM element on the page by hovering and clicking it. In the CSS panel you will see all styles assigned to that given element, including CSS variables. Click a variable to see its parent value, and for color attributes, click the color square to modify the color. For more information, see this [getting started guide](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_are_browser_developer_tools), and these articles on [selecting elements](https://developer.mozilla.org/en-US/docs/Tools/Page_Inspector/How_to/Select_an_element) and [inspecting and modifying colors](https://developer.mozilla.org/en-US/docs/Tools/Page_Inspector/How_to/Inspect_and_select_colors).
+These four define the shell's palette. Every other colour derives from them unless a theme
+overrides it.
 
-### Top-Level Variables
+| Variable | Description |
+| --- | --- |
+| `--primary` | The accent colour: headings, focus rings, active states. |
+| `--foreground` | Default text colour. Defaults to `--primary`. |
+| `--background` | Page background. |
+| `--background-darker` | Header, rail and sidebar fill. |
 
-These are all that are required to create a theme. All other variables inherit their values from these variables, and can optionally be overridden.
+### Shell
 
-- `--primary` - Application primary color. Used for title, text, accents, and other features
-- `--background` - Application background color
-- `--background-darker` - Secondary background color (usually darker), used for navigation bar, section fill, footer etc
-- `--curve-factor` - The border radius used globally throughout the application. Specified in `px`, defaults to `5px`
-- `--dimming-factor` - Inactive elements have slight transparency. This can be between `0` (invisible) and `1` (normal), defaults to `0.7`
+The shell's own tokens. Each one maps to a base variable, which is what makes a theme work without
+knowing the shell's markup.
 
-### Targeted Color Variables
+| Variable | Description |
+| --- | --- |
+| `--wc-surface` | Pane and page surface. Defaults to `--background`. |
+| `--wc-surface-raised` | Header, rail and sidebar surface. Defaults to `--background-darker`. |
+| `--wc-border` | Separator between the shell's regions. |
+| `--wc-text` | Shell text. Defaults to `--foreground`. |
+| `--wc-text-muted` | Secondary text, such as the status label. |
+| `--wc-accent-files` | The Files application's accent. |
+| `--wc-accent-chat` | The Chat application's accent. |
+| `--wc-accent-mail` | The Mail application's accent. |
+| `--wc-focus-ring` | The ring drawn around a focused control. Defaults to `--primary`. |
+| `--wc-scrim` | The dimming layer behind an overlay. |
+| `--wc-status-healthy` | Status indicator for a healthy application. Defaults to `--success`. |
+| `--wc-status-degraded` | Status indicator for a degraded application. Defaults to `--warning`. |
+| `--wc-status-unhealthy` | Status indicator for an unhealthy application. Defaults to `--danger`. |
+| `--wc-status-unknown` | Status indicator for an application whose state is not known. Defaults to `--medium-grey`. |
+| `--wc-radius` | Corner radius for shell controls. Defaults to `--curve-factor`. |
+| `--wc-shadow-popover` | Shadow under a shell popover. |
 
-You can target specific elements on the UI with these variables. All are optional, since by default, they inherit their values from above
+### Shape and transparency
 
-- `--heading-text-color` - Text color for web page heading and sub-heading. Defaults to `--primary`
-- `--nav-link-text-color` - The text color for links displayed in the navigation bar. Defaults to `--primary`
-- `--nav-link-background-color` - The background color for links displayed in the navigation bar
-- `--nav-link-text-color-hover` - The text color when a navigation bar link is hovered over. Defaults to `--primary`
-- `--nav-link-background-color-hover` - The background color for nav bar links when hovered over
-- `--nav-link-border-color` - The border color for nav bar links. Defaults to `transparent`
-- `--nav-link-border-color-hover` - The border color for nav bar links when hovered over. Defaults to `--primary`
-- `--search-container-background` - Background for the container containing the search bar. Defaults to `--background-darker`
-- `--search-field-background` - Fill color for the search bar. Defaults to `--background`
-- `--settings-background` - The background for the quick settings. Defaults to `--background`
-- `--settings-text-color` - The text and icon color for quick settings. Defaults to `--primary`
-- `--footer-text-color` - Color for text within the footer. Defaults to `--medium-grey`
-- `--footer-text-color-link` - Color for any hyperlinks within the footer. Defaults to `--primary`
-- `--item-text-color` - The text and icon color for items. Defaults to `--primary`
-- `--item-group-outer-background` - The background color for the outer part of a section (including section head). Defaults to `--primary`
-- `--item-group-background` - The background color for the inner part of item groups. Defaults to `#0b1021cc` (semi-transparent black)
-- `--item-group-heading-text-color` - The text color for section headings. Defaults to `--item-group-background`
-- `--item-group-heading-text-color-hover` - The text color for section headings, when hovered. Defaults to `--background`
-- `--config-code-background` - Background color for the JSON editor in the config menu. Defaults to `#fff` (white)
-- `--config-code-color` - Text color for the non-highlighted code within the JSON editor. Defaults to `--background`
-- `--config-settings-color` - The background for the config/ settings pop-up modal. Defaults to `--primary`
-- `--config-settings-background` - The text color for text within the settings container. Defaults to `--background-darker`
-- `--scroll-bar-color` - Color of the scroll bar thumb. Defaults to `--primary`
-- `--scroll-bar-background` - Color of the scroll bar blank space. Defaults to `--background-darker`
-- `--highlight-background` - Fill color for text highlighting. Defaults to `--primary`
-- `--highlight-color` - Text color for selected/ highlighted text. Defaults to `--background`
-- `--toast-background` - Background color for the toast info popup. Defaults to `--primary`
-- `--toast-color` - Text, icon and border color in the toast info popup. Defaults to `--background`
-- `--welcome-popup-background` - Background for the info pop-up shown on first load. Defaults to `--background-darker`
-- `--welcome-popup-text-color` - Text color for the welcome pop-up. Defaults to `--primary`
-- `--side-bar-background` - Background color of the sidebar used in the workspace view. Defaults to `--background-darker`
-- `--side-bar-color` - Color of icons and text within the sidebar. Defaults to `--primary`
-- `--status-check-tooltip-background` - Background color for status check tooltips. Defaults to `--background-darker`
-- `--status-check-tooltip-color` - Text color for the status check tooltips. Defaults to `--primary`
-- `--code-editor-color` - Text color used within raw code editors. Defaults to `--black`
-- `--code-editor-background` - Background color for raw code editors. Defaults to `--white`
-- `--context-menu-color` - Text color for right-click context menu over items. Defaults to `--primary`
-- `--context-menu-background` - Background color of right-click context menu. Defaults to `--background`
-- `--context-menu-secondary-color` - Border and outline color for context menu. Defaults to `--background-darker`
+| Variable | Default | Description |
+| --- | --- | --- |
+| `--curve-factor` | `5px` | Corner radius used across the shell. |
+| `--curve-factor-navbar` | `16px` | Corner radius of the header. |
+| `--curve-factor-small` | `2px` | Corner radius of small controls. |
+| `--dimming-factor` | `0.7` | Opacity applied to inactive elements. |
+| `--scroll-bar-width` | `8px` | Width of the scroll bars. |
+| `--transparent-70`, `--transparent-50`, `--transparent-30` | — | Black at 70%, 50% and 30% opacity. |
+| `--transparent-white-70`, `--transparent-white-50`, `--transparent-white-30`, `--transparent-white-10` | — | White at the same range of opacities. |
 
-### Non-Color Variables
+### Components
 
-- `--outline-color` - Used to outline focused or selected elements
-- `--curve-factor-navbar` - The border radius of the navbar. Usually this is greater than `--curve-factor`
-- `--scroll-bar-width` - Width of horizontal and vertical scroll bars. E.g. `8px`
-- `--item-group-padding` - Inner padding of sections, determines the width of outline. E.g. `5px`
-- `--item-shadow` - Shadow for items. E.g. `1px 1px 2px #130f23`
-- `--item-hover-shadow` - Shadow for items when hovered over. E.g. `1px 2px 4px #373737`
-- `--item-icon-transform` - A [transform](https://developer.mozilla.org/en-US/docs/Web/CSS/transform) property, to modify item icons. E.g. `drop-shadow(2px 4px 6px var(--transparent-50)) saturate(0.65)`
-- `--item-icon-transform-hover` - Same as above, but applied when an item is hovered over. E.g. `drop-shadow(4px 8px 3px var(--transparent-50)) saturate(2)`
-- `--item-group-shadow` - The shadow for an item group/ section. Defaults to `--item-shadow`
-- `--settings-container-shadow` - A shadow property for the settings container. E.g. `none`
+| Variable | Description |
+| --- | --- |
+| `--heading-text-color` | Page title and description. Defaults to `--foreground`. |
+| `--nav-link-text-color` | Header navigation links. |
+| `--nav-link-background-color` | Header navigation link fill. |
+| `--nav-link-text-color-hover` | Header navigation links, hovered. |
+| `--nav-link-background-color-hover` | Header navigation link fill, hovered. |
+| `--nav-link-border-color` | Header navigation link outline. |
+| `--nav-link-border-color-hover` | Header navigation link outline, hovered. |
+| `--side-bar-background` | Application sidebar fill. Defaults to `--background-darker`. |
+| `--side-bar-color` | Sidebar row text and icons. Defaults to `--primary`. |
+| `--item-text-color-hover` | Sidebar row text, hovered. |
+| `--login-form-color` | Login page text. |
+| `--login-form-background` | Login page field fill. |
+| `--login-form-background-secondary` | Login page surface. |
+| `--toast-background` | Toast fill. Defaults to `--primary`. |
+| `--toast-color` | Toast text. Defaults to `--background`. |
+| `--scroll-bar-color` | Scroll bar thumb. |
+| `--scroll-bar-background` | Scroll bar track. |
+| `--highlight-background` | Highlighted text fill. |
+| `--highlight-color` | Highlighted text. |
+| `--progress-bar` | The progress bar shown during navigation. |
+| `--loading-screen-color` | Splash screen text. |
+| `--loading-screen-background` | Splash screen background. |
+| `--outline-color` | Outline for focused elements. Defaults to `none`. |
 
-### Action Colors
+### Action colours
 
-These colors represent intent, and so are not often changed, but you can do so if you wish
+Intent colours. They are rarely themed, and the status indicators are the main consumer.
 
-- `--info` - Information color, usually blue / `#04e4f4`
-- `--success` - Success color, usually green / `#20e253`
-- `--warning` - Warning color, usually yellow / `#f6f000`
-- `--danger` - Error/ danger color, usually red / `#f80363`
-- `--neutral` - Neutral color, usually grey / `#272f4d`
-- `--white` - Just white / `#fff`
-- `--black` - Just black / `#000`
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `--info` | `#04e4f4` | Information |
+| `--success` | `#20e253` | Success, and the healthy status |
+| `--warning` | `#f6f000` | Warning, and the degraded status |
+| `--danger` | `#f80363` | Error, and the unhealthy status |
+| `--medium-grey` | `#5e6474` | The unknown status |
+| `--neutral` | `#272f4d` | Neutral |
+| `--white` / `--black` | `#fff` / `#000` | Plain white and black |
+
+## Read next
+
+- [`configuring.md`](./configuring.md) — every option in `user-data/conf.yml`
+- [`security.md`](./security.md) — what a custom stylesheet can reach
+- [`development-guides.md`](./development-guides.md) — adding a built-in theme to the source
