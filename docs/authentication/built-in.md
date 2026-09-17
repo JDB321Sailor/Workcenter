@@ -237,7 +237,7 @@ VITE_APP_BASIC_AUTH_PASSWORD=supersecret
 
 Then rebuild Workcenter (`yarn build`). The credentials are baked into the JS bundle. This is obviously for demo purposes only, or for use on a trusted private network where the alternative is no auth at all, but it does mean anyone with access to the bundle (i.e. anyone who can reach your Workcenter instance unauthenticated, which shouldn't be anyone if you've configured this right) could extract the credentials.
 
-The official `lissy93/dashy` Docker image is pre-built, so this requires self-building. With `ENABLE_HTTP_AUTH=true` mode (conf.yml users), the SPA handles auth automatically via the session-cookie token, so these env vars aren't needed.
+The official `workcenter` Docker image is pre-built, so this requires self-building. With `ENABLE_HTTP_AUTH=true` mode (conf.yml users), the SPA handles auth automatically via the session-cookie token, so these env vars aren't needed.
 
 ## Troubleshooting common built-in auth issues
 

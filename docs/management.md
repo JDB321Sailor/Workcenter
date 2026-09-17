@@ -2,6 +2,16 @@
 
 _The following article is a primer on managing self-hosted apps. It covers everything from keeping the Workcenter (or any other app) up-to-date, secure, backed up, to other topics like auto-starting, monitoring, log management, web server configuration and using custom domains._
 
+> **Note:** Workcenter has not cut a release, so no image is published to Docker Hub or GHCR.
+> Everywhere this page shows an image name, build it locally instead:
+>
+> ```bash
+> docker build -t workcenter:dev .
+> ```
+>
+> Replace `workcenter:dev` with the published name once the first release is cut from
+> `Stable`.
+
 ## Contents
 
 - [Providing Assets](#providing-assets)
@@ -62,7 +72,7 @@ There are two ways to sort it. Pick whichever is less hassle:
    docker run -d -p 8080:8080 \
      --user $(id -u):$(id -g) \
      -v /path/to/user-data:/app/user-data \
-     lissy93/dashy:latest
+     workcenter:dev:latest
    ```
 
    In compose, uncomment the `user:` line under the service and set it:
@@ -180,12 +190,12 @@ Workcenter is under active development, so to take advantage of the latest featu
 
 ### Updating Docker Container
 
-1. Pull latest image: `docker pull lissy93/dashy:latest`
+1. Pull latest image: `docker pull workcenter:dev:latest`
 2. Kill off existing container
 	- Find container ID: `docker ps`
 	- Stop container: `docker stop [container_id]`
 	- Remove container: `docker rm [container_id]`
-3. Spin up new container: `docker run [params] lissy93/dashy`
+3. Spin up new container: `docker run [params] workcenter:dev`
 
 ### Automatic Docker Updates
 
@@ -220,7 +230,7 @@ sha256sum -c workcenter-<version>.tar.gz.sha256
 An `OK` means the file is untampered. To go further and prove it was built by our CI from our repo, verify the attestation with the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-gh attestation verify workcenter-<version>.tar.gz --repo lissy93/dashy
+gh attestation verify workcenter-<version>.tar.gz --repo workcenter:dev
 ```
 
 The release notes for each version also list the checksum and a link to view the attestation directly.
@@ -330,7 +340,7 @@ docker run -d \
   -p 8080:8080 \
   -v ~/my-private-key.key:/etc/ssl/certs/workcenter-priv.key:ro \
   -v ~/my-public-key.pem:/etc/ssl/certs/workcenter-pub.pem:ro \
-  lissy93/dashy:latest
+  workcenter:dev:latest
 ```
 
 By default the SSL port is `443` within a Docker container, or `4001` if running on bare metal, but you can override this with the `SSL_PORT` environmental variable.
@@ -377,7 +387,7 @@ An example Docker compose, using the default base image from DockerHub, might lo
 services:
   workcenter:
     container_name: Workcenter
-    image: lissy93/dashy:latest
+    image: workcenter:dev:latest
     volumes:
       - ./user-data:/app/user-data
     ports:
@@ -697,7 +707,7 @@ Everything Workcenter publishes can be verified, so you can check that what you'
 **Docker images**: Every image pushed to GHCR has a signed SBOM (software bill of materials) and build provenance attestation attached. Verify with the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-gh attestation verify oci://ghcr.io/lissy93/dashy:latest --owner lissy93
+gh attestation verify oci://workcenter:dev:latest --owner lissy93
 ```
 
 **GitHub releases (non-Docker)**: Each [release](https://github.com/JDB321Sailor/Workcenter/releases) includes a pre-built tarball, along with a SHA256 checksum and its own provenance attestation. To check your download:
@@ -740,7 +750,7 @@ To prevent known container escape vulnerabilities, which typically end in escala
 Docker enables you to limit resource consumption (CPU, memory, disk) on a per-container basis. This not only enhances system performance, but also prevents a compromised container from consuming a large amount of resources, in order to disrupt service or perform malicious activities. To learn more, see the [Resource Constraints Docs](https://docs.docker.com/config/containers/resource_constraints/)
 
 For example, to run Workcenter with max of 1GB ram, and max of 50% of 1 CP core:
-`docker run -d -p 8080:8080 --cpus=".5" --memory="1024m" lissy93/dashy:latest`
+`docker run -d -p 8080:8080 --cpus=".5" --memory="1024m" workcenter:dev:latest`
 
 ### Don't Run as Root
 
@@ -754,14 +764,14 @@ For containers in general, running as an unprivileged user is one of the best wa
 
 **Note for Workcenter:** If you use features that write to disk (saving config through the UI), the process needs write access to `/app/user-data/`. Since the default image creates these directories as root, running with `--user` will cause those features to fail with permission errors unless you also fix ownership of the mounted volumes. If you only use Workcenter in read-only mode, running as a non-root user works fine:
 
-`docker run --user 1000:1000 -p 8080:8080 lissy93/dashy`
+`docker run --user 1000:1000 -p 8080:8080 workcenter:dev`
 
 Or with Docker Compose, using an environmental variable:
 
 ```yaml
 services:
   workcenter:
-    image: lissy93/dashy
+    image: workcenter:dev
     user: ${CURRENT_UID}
     ports: [ 4000:8080 ]
 ```
@@ -781,7 +791,7 @@ Here's an example using docker-compose, removing privileges that are not require
 ```yaml
 services:
   workcenter:
-    image: lissy93/dashy
+    image: workcenter:dev
     ports: [ 4000:8080 ]
     cap_drop:
     - ALL
@@ -798,7 +808,7 @@ services:
 To prevent processes inside the container from getting additional privileges, pass in the `--security-opt=no-new-privileges:true` option to the Docker run command (see [docs](https://docs.docker.com/engine/reference/run/#security-configuration)).
 
 Run Command:
-`docker run --security-opt=no-new-privileges:true -p 8080:8080 lissy93/dashy`
+`docker run --security-opt=no-new-privileges:true -p 8080:8080 workcenter:dev`
 
 Docker Compose
 
@@ -826,7 +836,7 @@ You can specify that a volume should be read-only by appending `:ro` to the `-v`
 docker run -d \
   -p 8080:8080 \
   -v ~/workcenter-data:/app/user-data:ro \
-  lissy93/dashy:latest
+  workcenter:dev:latest
 ```
 
 If you do want config changes from the UI to persist back to disk, leave the mount writable. You can also use `--read-only` to make the whole container filesystem read-only, but in that case UI-driven config edits will not be saved.
@@ -846,7 +856,7 @@ Every Workcenter image published to [GHCR](https://github.com/JDB321Sailor/Workc
 To verify the image you're about to run, use the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-gh attestation verify oci://ghcr.io/lissy93/dashy:latest --repo lissy93/dashy
+gh attestation verify oci://workcenter:dev:latest --repo workcenter:dev
 ```
 
 A green check means it was genuinely built by us, from our repo. Worth doing on a fresh Proxmox or homelab box, especially before exposing Workcenter beyond your LAN.
@@ -854,7 +864,7 @@ A green check means it was genuinely built by us, from our repo. Worth doing on 
 To pull the SBOM and inspect what's inside, use [cosign](https://github.com/sigstore/cosign):
 
 ```bash
-cosign download sbom ghcr.io/lissy93/dashy:latest
+cosign download sbom workcenter:dev:latest
 ```
 
 ### Specify the Tag
@@ -863,9 +873,9 @@ Using fixed tags (as opposed to `:latest` ) will ensure immutability, meaning th
 
 ### Container Security Scanning
 
-It's helpful to be aware of any potential security issues in any of the Docker images you are using. You can run a quick scan using Snyk on any image to output known vulnerabilities using [Docker scan](https://docs.docker.com/engine/scan/), e.g: `docker scan lissy93/dashy:latest`.
+It's helpful to be aware of any potential security issues in any of the Docker images you are using. You can run a quick scan using Snyk on any image to output known vulnerabilities using [Docker scan](https://docs.docker.com/engine/scan/), e.g: `docker scan workcenter:dev:latest`.
 
-A similar product is [Trivy](https://github.com/aquasecurity/trivy), which is free an open source. First install it (with your package manager), then to scan an image, just run: `trivy image lissy93/dashy:latest`
+A similar product is [Trivy](https://github.com/aquasecurity/trivy), which is free an open source. First install it (with your package manager), then to scan an image, just run: `trivy image workcenter:dev:latest`
 
 For larger systems, RedHat [Clair](https://www.redhat.com/en/topics/containers/what-is-clair) is an app for parsing image contents and reporting on any found vulnerabilities. You run it locally in a container, and configure it with YAML. It can be integrated with Red Hat Quay, to show results on a dashboard. Most of these use static analysis to find potential issues, and scan included packages for any known security vulnerabilities.
 
@@ -1035,7 +1045,7 @@ Similar to above, you'll first need to fork and clone Workcenter to your local s
 
 Then, either use Workcenter's default [`Dockerfile`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/Dockerfile) as is, or modify it according to your needs.
 
-To build and deploy locally, first build the app with: `docker build -t workcenter .`, and then start the app with `docker run -p 8080:8080 --name my-dashboard workcenter`.  Or modify the `docker-compose.yml` file, replacing `image: lissy93/dashy` with `build: .` and run `docker compose up`.
+To build and deploy locally, first build the app with: `docker build -t workcenter .`, and then start the app with `docker run -p 8080:8080 --name my-dashboard workcenter`.  Or modify the `docker-compose.yml` file, replacing `image: workcenter:dev` with `build: .` and run `docker compose up`.
 
 Your container should now be running, and will appear in the list when you run `docker container ls –a`. If you'd like to enter the container, run `docker exec -it [container-id] /bin/ash`.
 

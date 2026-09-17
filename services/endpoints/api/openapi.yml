@@ -6,7 +6,7 @@ info:
   summary: Read and write your Workcenter config over HTTP.
   description: |
       The Workcenter API is a simple opt-in REST API for CRUD actions over your config.
-      For full usage guide, examples and architecture, see the [API Docs](https://github.com/lissy93/dashy/blob/master/docs/api).
+      For full usage guide, examples and architecture, see the [API Docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/api.md).
 
       <details>
       <summary>Enabling the API</summary>
@@ -40,11 +40,11 @@ info:
   x-logo:
     url: https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/public/web-icons/workcenter-logo.png
     altText: Workcenter
-    href: https://github.com/lissy93/dashy
+    href: https://github.com/JDB321Sailor/Workcenter
 
 externalDocs:
   description: API guide
-  url: https://github.com/lissy93/dashy/blob/master/docs/api
+  url: https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/api.md
 
 servers:
   - url: "{scheme}://{host}/api"

@@ -111,7 +111,7 @@ If the page reads "Welcome to your new dashboard!" with a Getting Started sectio
 Since v3.0.0 the config lives at `/app/user-data/conf.yml` (NOT `/app/public/conf.yml`)
 
 ```bash
-docker run -d -p 8080:8080 -v ~/workcenter/user-data:/app/user-data lissy93/dashy:latest
+docker run -d -p 8080:8080 -v ~/workcenter/user-data:/app/user-data workcenter:dev
 ```
 
 To see what the container is actually reading: `docker exec -it workcenter head /app/user-data/conf.yml`
@@ -275,7 +275,7 @@ Two unrelated causes share this symptom:
 If your container crashes or restart-loops right after clicking save, with logs like `ERR_HTTP_HEADERS_SENT` or `ERR_STREAM_WRITE_AFTER_END`, this was a known double-`res.end()` bug in 3.1.0 and 3.1.1. Fixed in v3.2.13 and later.
 
 ```bash
-docker pull lissy93/dashy:latest
+docker pull workcenter:dev
 docker compose up -d --force-recreate
 ```
 
@@ -454,7 +454,7 @@ If you're getting an error about scenarios, then you've likely installed the wro
 Alternatively, as a workaround, you have several options:
 
 - Try using [NPM](https://www.npmjs.com/get-npm) instead: So clone, cd, then run `npm install`, `npm run build` and `npm start`
-- Try using [Docker](https://www.docker.com/get-started) instead, and all of the system setup and dependencies will already be taken care of. So from within the directory, just run `docker build -t lissy93/dashy .` to build, and then use docker start to run the project, e.g: `docker run -it -p 8080:8080 lissy93/dashy` (see the [deploying docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/deployment.md#deploy-with-docker) for more info)
+- Try using [Docker](https://www.docker.com/get-started) instead, and all of the system setup and dependencies will already be taken care of. So from within the directory, just run `docker build -t workcenter:dev .` to build, and then use docker start to run the project, e.g: `docker run -it -p 8080:8080 workcenter:dev` (see the [deploying docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/deployment.md#deploy-with-docker) for more info)
 
 ### The engine "node" is incompatible with this module
 
@@ -488,7 +488,7 @@ When the Workcenter container first starts, it runs a Vue production build in pa
    ```yaml
    services:
      workcenter:
-       image: lissy93/dashy:latest
+       image: workcenter:dev
        deploy:
          resources:
            limits:
@@ -692,7 +692,7 @@ Recommended pattern: mount a host directory onto `/app/user-data`. The directory
 ```bash
 mkdir -p ~/workcenter-data
 cp /path/to/your/conf.yml ~/workcenter-data/conf.yml
-docker run -d -p 8080:8080 -v ~/workcenter-data:/app/user-data lissy93/dashy:latest
+docker run -d -p 8080:8080 -v ~/workcenter-data:/app/user-data workcenter:dev
 ```
 
 If you'd rather mount a single file (`-v ~/conf.yml:/app/user-data/conf.yml`), the host path must be a file that already exists, otherwise Docker creates a directory in its place and you'll see this error.
@@ -702,7 +702,7 @@ If you'd rather mount a single file (`-v ~/conf.yml:/app/user-data/conf.yml`), t
 This situation relates to error messages similar to one of the following, returned when pulling, updating or running the Docker container from Docker Hub.
 
 ```text
-Continuing execution. Pulling image lissy93/dashy:release-1.6.0
+Continuing execution. Pulling image workcenter:dev:release-1.6.0
 error pulling image configuration: toomanyrequests
 ```
 
@@ -717,7 +717,7 @@ You can [check your rate limit status](https://www.docker.com/blog/checking-your
 
 #### Solution 1 - Use an alternate container registry
 
-- Workcenter is also available through GHCR, which at present does not have any hard limits. Just use `docker pull ghcr.io/lissy93/dashy:latest` to fetch the image
+- Workcenter is also available through GHCR, which at present does not have any hard limits. Just use `docker pull ghcr.io/workcenter:dev` to fetch the image
 - You can also build the image from source, by cloning the repo, and running `docker build -t workcenter .` or use the pre-made docker compose
 
 #### Solution 2 - Increase your rate limits
@@ -728,15 +728,15 @@ You can [check your rate limit status](https://www.docker.com/blog/checking-your
 
 ### Old image tags fail to pull
 
-If `docker pull` returns `manifest unknown` or `manifest for lissy93/dashy:arm32v7 not found`, the cause is a stale architecture-specific tag in your compose file or run command. Tags like `:arm32v7`, `:arm64v8`, and `:multi-arch` are no longer published.
+If `docker pull` returns `manifest unknown` or `manifest for workcenter:dev:arm32v7 not found`, the cause is a stale architecture-specific tag in your compose file or run command. Tags like `:arm32v7`, `:arm64v8`, and `:multi-arch` are no longer published.
 
 The `:latest` tag is multi-arch and works on amd64 and arm64 without you having to pick a variant. Just use:
 
 ```yaml
-image: lissy93/dashy:latest
+image: workcenter:dev
 ```
 
-Docker fetches the right architecture for your host automatically. To pin a version, use a semver tag, e.g. `lissy93/dashy:3.2.14`.
+Docker fetches the right architecture for your host automatically. To pin a version, use a semver tag, e.g. `workcenter:dev:3.2.14`.
 
 ### `no matching manifest for linux/arm/v7`
 
@@ -751,7 +751,7 @@ no matching manifest for linux/arm/v7 in the manifest list entries
 - **Recommended:** reinstall your host OS as 64-bit (`arm64`). The Raspberry Pi 3 and newer all support it, and Workcenter's `arm64` image is then selected automatically.
 - **Stay on 32-bit:** pin the last image that shipped `armv7`:
   ```yaml
-  image: lissy93/dashy:4.4.10
+  image: workcenter:dev:4.4.10
   ```
 
 ### Healthcheck Failing in Docker

@@ -155,6 +155,9 @@ as described in [`contributions.md`](./contributions.md).
  - `docs/deployment/bare-metal.md` rewritten: building from source and the systemd unit are
    kept, and the pre-built release, checksum and attestation sections are removed because no
    release has been published.
+ - `docs/deployment/docker.md` and `docs/deployment.md` rewritten. Neither presents the upstream
+   project's image as Workcenter's. Both state that no image is published and show how to build
+   `workcenter:dev` locally.
  - `docs/branch-protection.md` — the GitHub-side branch, ruleset and required-check
    configuration that roadmap step 0.1 requires, and `docs/readme.md` reindexed for Workcenter.
  - `roadmap.md` — goals, integration requirements, UI requirements and the phased build plan.

@@ -213,7 +213,7 @@ The following list is the most reported non-issues. They are out-of-scope, since
 #### Endpoints are unauthenticated
 Workcenter ships with no auth configured out-of-the-box. So until you enable or setup auth, all pages and endpoints will be reachable without credentials. That's intentional, as it allows you to put Workcenter behind your existing auth setup without hassle. Once an auth system of your choice has been (correctly) configured, all unauthenticated requests will then be rejected.
 
-✅ **Solution**: Enable authentication. See the [authentication docs](https://github.com/lissy93/dashy/blob/master/docs/authentication/) for instructions.
+✅ **Solution**: Enable authentication. See the [authentication docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/authentication.md) for instructions.
 
 #### The proxy / status / ping can reach localhost and private IPs
 The CORS proxy, status-check and ping-check features are *meant* to reach internal and private addresses. Their use case is to let your widgets and service status checks talk the other services you have running within your LAN securely.

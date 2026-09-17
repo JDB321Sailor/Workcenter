@@ -14,7 +14,7 @@ The following content requires that you have a basic understanding of CSS. If yo
 
 The theme switching is done by simply changing the `data-theme` attribute on the root DOM element, which can then be targeted by CSS. All colors and styles are managed with CSS variables.
 
-The theme switcher in the UI will list all themes defined in [here](github.com/Lissy93/workcenter/blob/3.3.1/src/utils/defaults.js#L50), as well as any extras that you add yourself under `appConfig.cssThemes`. Then, when a theme is selected, any CSS within `html[data-theme='my-theme']{}` will be applied.
+The theme switcher in the UI will list all themes defined in [here](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js), as well as any extras that you add yourself under `appConfig.cssThemes`. Then, when a theme is selected, any CSS within `html[data-theme='my-theme']{}` will be applied.
 
 To apply a default theme to your instance, set `appConfig.theme` (or, use `dayTheme` and `nightTheme` to adjust according to your OS light/dark preferences).
 

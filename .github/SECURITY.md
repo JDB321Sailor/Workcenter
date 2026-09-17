@@ -27,8 +27,8 @@ To help me track it down quickly, it helps if you can include:
 The latest minor and patch versions are supported. Previous major versions (e.g. 3.x.x and below) don't receive official security updates.
 
 ## Keeping your own instance secure
-Workcenter's security posture and features are outlined in our [security docs](https://github.com/lissy93/dashy/blob/master/docs/security).
-A lot of security comes down to how and where you deploy Workcenter, so we've also documented some self-hosting best practices in the [management guide](https://github.com/lissy93/dashy/blob/master/docs/management/).
+Workcenter's security posture and features are outlined in our [security docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/security.md).
+A lot of security comes down to how and where you deploy Workcenter, so we've also documented some self-hosting best practices in the [management guide](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/management.md).
 
 ## Safe harbor
 If you research and report in good faith, following this policy, I won't pursue legal action against you.

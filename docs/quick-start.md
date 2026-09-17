@@ -2,7 +2,7 @@
 
 Welcome to Workcenter! So glad you're here 😊 In a couple of minutes, you'll have your new dashboard up and running 🚀
 
-**TLDR;** Run `docker run -p 8080:8080 lissy93/dashy`, then open `http://localhost:8080`
+**TLDR;** Build the image and run it, then open `http://localhost:4000`. No image is published yet — see [`deployment/docker.md`](./deployment/docker.md).
 
 ---
 
@@ -23,16 +23,16 @@ docker run -d \
   -v ~/workcenter-data:/app/user-data \
   --name workcenter \
   --restart=always \
-  lissy93/dashy:latest
+  workcenter:dev
 ```
 
 Your dashboard should now be up and running at `http://localhost:8080` (or your servers IP address/ domain, and the port that you chose) 🎉
 
-Workcenter is also available via GHCR (`ghcr.io/lissy93/dashy`).<br>
+No image is published to Docker Hub or GHCR yet: Workcenter has not cut a release.<br>
 You can either use `:latest` or pin to specific versions (like `4.0.0`).<br>
 All images are multi-arch (works on amd64 and arm64).<br>
 To use with compose, see our sample [`docker-compose.yml`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docker-compose.yml).<br>
-Once up and running, check the [configuring reference](https://github.com/lissy93/dashy/blob/master/docs/configuring) and [other docs](https://github.com/lissy93/dashy/tree/master/docs).<br>
+Once up and running, see [`configuring.md`](./configuring.md) and the rest of the [documentation](./readme.md).<br>
 
 > [!NOTE]
 > You need to mount a directory for your Workcenter settings in `/app/user-data`.
