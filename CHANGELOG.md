@@ -209,10 +209,29 @@ as described in [`contributions.md`](./contributions.md).
  - The application switcher and the per-application status indicators are one element:
    a status indicator sits beneath each switcher button, under a `STATUS` label. There is no
    separate status strip and no `StatusStrip.vue` / `StatusPill.vue` component.
+ - The `docs/` set is reorganized and condensed. `docs/authentication.md` becomes an index and the
+   per-mechanism guides move under `docs/authentication/`; fourteen guides are rewritten in a
+   terser style, and the Dashy-era prose that described behaviour Workcenter does not have is
+   removed rather than carried: the widget and status-check catalogues, the hosted config-sync
+   service, verifiable releases with signed provenance and an SBOM, Subresource Integrity, and the
+   community and sponsor sections. The set loses 4,315 lines and gains 2,186 (#4).
+ - `docs/api.md` rewritten around the routes that remain: enabling the API, the two credential
+   paths, the five routes, the backup, schema and size rules, and worked `curl` examples (#4).
 
 ### Notes
  - Workcenter is a **derivative of Workcenter**: the Default and Minimal views are intentionally
    discarded; only the Workspace view is carried forward.
+ - The REST API's section and item routes are removed. `POST`, `GET`, `PATCH` and `DELETE` under
+   `/api/config/:filename/sections/…` no longer exist, and neither does the `:sid` / `:iid`
+   addressing that selected a section by index or `name` and an item by index or `title`. The API
+   now reads and replaces whole files and single top-level keys only: `GET`/`PUT`
+   `/api/config/:filename` and `GET`/`PUT` `/api/config/:filename/:key`. A client that used to
+   change one section or item must read the file, change it, and `PUT` the whole object back.
+   `services/endpoints/api/openapi.yml` describes the reduced surface (#4).
+ - `pages` is no longer an addressable config key. Workcenter has no sub-pages, and
+   `ConfigSchema.json` rejects the key in `conf.yml` (`additionalProperties: false`), so the API's
+   key list and `docs/api.md` now name `pageInfo`, `appConfig` and `sections` only. A sub-page
+   *file* is unaffected: it is still read and replaced whole through `/api/config/:filename` (#4).
 
 ---
 

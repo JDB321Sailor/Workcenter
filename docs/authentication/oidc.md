@@ -1,134 +1,130 @@
 # OIDC
 
-## Step-by-step Guides
+OIDC is the mechanism that covers the whole workspace: the shell signs the user in against an OpenID
+Connect provider, and the server verifies every token the browser sends. For the full stack, read
+[`OIDC.md`](../../OIDC.md); for Authentik specifically, [`authentik.md`](./authentik.md).
 
-We have some provider-specific guides to walk you through configuring OIDC authentication with common services
-- [Authentik](./authentik.md)
-
-## About OIDC
-
-Workcenter also supports using a general [OIDC compatible](https://openid.net/connect/) authentication server. In order to use it, the authentication section needs to be configured:
+## Configuration
 
 ```yaml
 appConfig:
-  disableConfigurationForNonAdmin: true # Hide the config editor from non-admins (recommended)
-  enableServiceWorker: true             # Optional: enables the PWA and offline support
-  enableAuthProxyCompat: true           # Recover the PWA after a session expires (needs the service worker)
   auth:
-    enableOidc: true                    # Turn OIDC on
-    enableGuestAccess: false            # Optional: view the dashboard read-only without signing in
-    oidc:
-      clientId: workcenter                    # Client ID from your provider
-      endpoint: https://auth.example.com/application/o/workcenter/ # The issuer URL, not the .well-known one
-      scope: openid profile email groups # Scopes to request (groups for adminGroup, roles for adminRole)
-      adminGroup: workcenter-admins           # Members of this group are admins
-      adminRole: workcenter-admin             # Or grant admin by role instead
-      enableSilentRenew: true            # Refresh the session in the background before it expires
-      # showLoginPage: false             # If true, login redirects to Workcenter's own login page
-      # postLogoutRedirectUri: 'https://workcenter.example.com' # Where to send users after logout (must be registered with the provider)
-      # allowedIssuers: []               # Only for multi-tenant providers to override discovery document
-      # disableServerSideCheck: false    # Leave as false / unset. Setting to true makes auth just client-side
-```
-
-Because Workcenter is a SPA, a [public client](https://datatracker.ietf.org/doc/html/rfc6749#section-2.1) registration with PKCE is needed.
-
-If you set `adminGroup`, include `groups` in `scope` (e.g. `scope: 'openid profile email groups'`) so your IdP actually returns the claim in the id_token. Same goes for `adminRole` and a `roles` scope if your IdP needs one.
-
-Note, that if your `clientId` is numeric, you must place it in quotes. Otherwise YAML parses it as a number, and values longer than JavaScript's safe-integer range (around 15 digits) lose precision, which makes the client ID match fail.
-
-For the provider side (registering the client, redirect URIs, scope mappings), follow one of the [step-by-step guides](#step-by-step-guides) above.
-
-## Admin access
-
-Workcenter works out who's an admin from the id_token. Set `adminGroup` to a group name, or `adminRole` to a role name, and anyone with a matching claim can save changes to the config. The server blocks everyone else from saving anyway, and `disableConfigurationForNonAdmin: true` also hides the editor from non-admins so the dashboard is view-only for them.
-
-The claim has to be in the id_token, not just the access token. Most providers include it once you ask for the `groups` (or `roles`) scope. For the group check Workcenter reads the `groups` claim, plus GitLab's `groups_direct`. For the role check it reads `roles`, plus Keycloak's `realm_access.roles` and `resource_access.<clientId>.roles`.
-
-If your admins aren't being picked up, decode the id_token (paste it into [jwt.io](https://jwt.io)) and check the claim is there.
-
-## Multi-tenant providers
-
-With a multi-tenant provider (e.g. Microsoft Entra's `organizations` / `common` endpoints), the issuer in the token doesn't match the one in the discovery document, so verification fails. Set `allowedIssuers` to the issuer URL(s) you want to accept:
-
-```yaml
+    enableOidc: true
     oidc:
       clientId: workcenter
-      endpoint: 'https://login.microsoftonline.com/organizations/v2.0/'
-      allowedIssuers:
-        - 'https://login.microsoftonline.com/<your-tenant-id>/v2.0'
-```
-
-When set, tokens are accepted only if their `iss` matches one of these (signature, audience and expiry are still checked). Leave it unset for normal single-tenant providers.
-
-## Guest access
-
-Set `enableGuestAccess: true` to let people view the dashboard read-only without signing in. They get the full config but can't save anything, and sections or items marked `hideForGuests` stay hidden. With it off (the default), anyone who isn't signed in is sent to the login flow.
-
-## Showing Workcenter's login page
-
-By default, anyone who isn't signed in is sent straight to your provider's login page (or, with `enableGuestAccess: true`, straight into the dashboard as a guest). Set `showLoginPage: true` under `auth.oidc` to show Workcenter's own login page first instead:
-
-```yaml
-    oidc:
-      clientId: workcenter
-      endpoint: 'https://your-oidc-provider.example.com'
-      showLoginPage: true
-```
-
-The page has a button to sign in with your provider, plus a *Proceed as Guest* button if guest access is enabled, so the user picks which they want. This is useful when Workcenter is the landing page after another redirect (e.g. a captive portal), where an immediate second redirect off to the IdP is disorienting. It's shown on each page load until you sign in; the choice isn't remembered. See [#2302](https://github.com/JDB321Sailor/Workcenter/issues/2302) for info.
-
-## Using with a PWA
-
-If you turn on the service worker for offline use (`enableServiceWorker: true`), turn on `enableAuthProxyCompat: true` as well. Without it, when your session expires the cached app can keep showing the old page instead of letting the login redirect through. With it on, Workcenter spots the expired session on load, drops the service worker, and reloads so you can sign in again.
-
-
-
-## How server-side enforcement works
-
-Workcenter's server reads `auth.oidc` from `conf.yml` at boot, lazily fetches the OIDC discovery doc + JWKS from your `endpoint`, then verifies the `id_token` the SPA attaches to every API call as `Authorization: Bearer <id_token>`. Tokens that fail signature / issuer / audience / expiry verification are rejected with `401`. Write endpoints (`POST /config-manager/save`) additionally require the `adminGroup` (or `adminRole`) to be present in the token's `groups` / `roles` claims, and non-admins receive `403`. Unauthenticated requests for `/conf.yml` get a stripped response containing only the `auth` block plus a minimal `pageInfo`, just enough for the SPA to bootstrap the login flow. The full config is only served to authenticated users.
-
-Your IdP must include `groups` / `roles` in the id_token, not only the access token, for the admin check to work (most IdPs do this when the `groups` scope is requested).
-
-### Opting out of server-side enforcement
-
-> [!CAUTION]
-> This is not recommended (on untrusted networks), as it allows users to bypass all the server-side protection.
-
-Set `disableServerSideCheck: true` under `auth.oidc` to turn off the server-side enforcement. 
-This should only be done in a trusted environment, or where you've got your own protections in place or for when server-side verification isn't supported by your provider. It makes OIDC become a purely client-side login page.
-
-
-## Silent token renewal
-
-By default, when your access token expires Workcenter sends you back through the provider's login page to get a new one. On a long-lived session this is visible as a brief flash of the sign-out button and a reload. Setting `enableSilentRenew: true` avoids it: Workcenter requests a refresh token and uses it to renew the session in the background, before the token expires, with no interactive round-trip.
-
-```yaml
-    oidc:
-      clientId: workcenter
-      endpoint: 'https://your-oidc-provider.example.com'
-      scope: 'openid profile email groups'
-      adminGroup: admin
+      endpoint: https://auth.example.com/application/o/workcenter/
+      adminGroup: workspaceadmin
+      scope: openid profile email groups
       enableSilentRenew: true
 ```
 
-Notes:
-- It is opt-in and off by default. With it off, nothing changes, existing setups are unaffected.
-- **Your provider must support the `offline_access` scope.** When this is on, Workcenter adds `offline_access` to the scope it requests at sign-in, so the provider issues a refresh token. Most providers support this (Authentik, Keycloak, Authelia, Okta, Auth0, Entra/Azure AD). A few do not, most notably **Google**, which uses `access_type=offline` instead and will reject the scope. Do not enable this flag against a provider that rejects `offline_access`, as it would break the interactive sign-in too. If unsure, test sign-in after enabling it.
-- The provider's client/app may also need to be allowed to issue refresh tokens to a public (PKCE) client. In Authentik this is automatic once `offline_access` is an allowed scope.
-- If a silent renewal fails for any reason (no refresh token issued, refresh token expired or revoked, the provider returns no fresh id_token, a provider error), Workcenter falls back to the normal interactive sign-in. Renewal can save a round-trip, but the interactive flow always remains the safety net.
-- Renewal is driven by the access token's lifetime. If your provider issues an id_token with a much shorter lifetime than the access token, renewal may lag; keeping the two lifetimes equal (the common default) works best.
-- With multiple tabs open against a provider that rotates refresh tokens on use, tabs can briefly contend for the refresh token; the affected tab simply falls back to interactive sign-in. This is inherent to browser-based refresh tokens, not specific to Workcenter.
+| Key | Type | Required | Description |
+| --- | --- | --- | --- |
+| `enableOidc` | `boolean` | Yes | Turns the mechanism on. Without it the `oidc` block is ignored. |
+| `oidc.clientId` | `string` | Yes | The client ID from the provider, matched exactly, including case. |
+| `oidc.endpoint` | `string` | Yes | The provider's bare issuer URL. The discovery path is appended by the client, so do not include `/.well-known/openid-configuration`. |
+| `oidc.scope` | `string` | No | Scopes to request. Defaults to `openid profile email roles groups`. |
+| `oidc.adminGroup` | `string` | No | A group that grants administrative access. |
+| `oidc.adminRole` | `string` | No | A role that grants administrative access. |
+| `oidc.enableSilentRenew` | `boolean` | No | Refresh the session in the background, adding the `offline_access` scope. |
+| `oidc.showLoginPage` | `boolean` | No | Show Workcenter's login page instead of redirecting straight to the provider. |
+| `oidc.postLogoutRedirectUri` | `string` | No | Where the provider sends the browser once it has ended the session. |
+| `oidc.allowedIssuers` | `array` | No | Issuers to accept in place of the discovery document's, for a multi-tenant provider. |
+| `oidc.disableServerSideCheck` | `boolean` | No | Skip server-side token verification. See [Server-side enforcement](#server-side-enforcement). |
 
+**Quote a numeric `clientId`**, or YAML parses it as a number and loses precision past roughly
+fifteen digits.
 
-## Setting logout redirect URL
+**Use `allowedIssuers` for a multi-tenant provider.** One whose token issuer differs from the
+configured endpoint — Microsoft Entra's `organizations` endpoint, for example — fails issuer
+verification. List the issuers to accept instead, as
+`allowedIssuers: ['https://…/<tenant-id>/v2.0']`. Signature, audience and expiry are still verified.
 
-When you log out, Workcenter sends you to your provider's logout page, and by default that's where you stay. Set `postLogoutRedirectUri` if you'd like the provider to send you back to Workcenter (or anywhere else) once it's done:
+## The provider side
 
-```yaml
-    oidc:
-      clientId: workcenter
-      endpoint: 'https://your-oidc-provider.example.com'
-      postLogoutRedirectUri: 'https://workcenter.example.com'
-```
+Register the shell as a client using the **authorization code flow with PKCE**. Workcenter sends
+`response_type=code`, and the redirect URI is the origin the shell is served from.
 
-The URL is sent to the provider as `post_logout_redirect_uri`, so it needs to be registered as a valid post-logout redirect URI in your client's settings - most providers have a field for this right next to the sign-in redirect URIs. If it's not registered, many providers will show an error instead of completing the logout, so give the logout button a quick test after setting it. Left unset, nothing changes and logout ends at the provider as before. See [#2261](https://github.com/JDB321Sailor/Workcenter/issues/2261) for info.
+| Requirement | Why |
+| --- | --- |
+| `groups` in the requested scopes, when `adminGroup` is set | Without it the id_token carries no group claim, and the admin check silently fails. |
+| Claims included in the id_token | The client reads the claims from the token, not from userinfo. |
+| A signing key, and no encryption key | Only signed JWTs are accepted. An encrypted token is rejected as a JWE. |
+| The exact redirect URI registered | Matching is strict, including a trailing slash. |
+| `offline_access` allowed, when silent renewal is on | That is what makes the provider issue a refresh token. |
+
+## Admin access
+
+Workcenter decides administrative access from the token's claims. `adminGroup` is matched against
+the `groups` claim, and against `groups_direct` for providers that put group membership there;
+`adminRole` is matched against `roles`. With neither set, nobody is an admin.
+
+**The claim must be in the id_token.** A claim that appears only in the access token is not read, so
+decode the id_token and check what arrived. A user with no admin claim can still use the workspace —
+they simply have no administrative privilege.
+
+## Silent renewal
+
+By default, an expired token sends the browser back through the provider for a new one. Set
+`enableSilentRenew: true` to refresh in the background instead. Workcenter then requests the
+`offline_access` scope, which the provider must allow.
+
+Renewal is scheduled against the token's lifetime. If it fails — no refresh token, a revoked one, or
+no fresh id_token — the client falls back to the interactive sign-in. Two guards prevent loops: one
+sign-in redirect per five seconds, and one silent renewal per thirty seconds.
+
+Leave the flag off against a provider that rejects `offline_access`, since the rejected scope would
+break interactive sign-in too.
+
+## Server-side enforcement
+
+The Express server reads `appConfig.auth` when it starts. With OIDC enabled it fetches the
+provider's discovery document and published signing keys, then verifies the bearer token the browser
+attaches to each request: signature, issuer, audience and expiry. The audience is `clientId`, so a
+mismatch there rejects every call. A five-part encrypted token is refused before any network call.
+
+| Request | Response |
+| --- | --- |
+| A valid bearer token | The route runs, and `req.auth` carries the username and the admin decision. |
+| A token that fails verification | `401`, `Unauthorized - Invalid or expired token`. No configuration is served. |
+| No token, guest access off | A bootstrap subset of `conf.yml`: the `auth` block, `enableServiceWorker`, `enableAuthProxyCompat` and a login page title. The three applications' addresses are not sent. |
+| No token, guest access on | The full configuration, read-only. |
+
+Guest access is `appConfig.auth.enableGuestAccess`: with it on, an unauthenticated visitor sees the
+workspace read-only instead of the sign-in flow. Authenticated configuration responses carry
+`Cache-Control: private, no-store` and `Vary: Authorization`, so a shared cache cannot hand one user
+another user's configuration. The server reads `appConfig.auth` at start-up, so restart it after
+changing a key under `auth.oidc`; the client reads the same block on each page load. The
+implementation is
+[`services/utils/auth-oidc.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/services/utils/auth-oidc.js).
+
+Setting `oidc.disableServerSideCheck: true` makes OIDC a client-side login only: the server stops
+verifying tokens and stops stripping the configuration. **Do not set it on a deployment reachable
+from outside your network.** It exists for a provider that cannot be verified server-side, or for a
+disposable test host.
+
+## Ending a session
+
+There is no logout control in the shell, and the session is ended at the provider. A sign-out clears
+the browser's stored session — the username, the admin flag and the token — and sends the browser to
+the provider's end-session endpoint. Visiting `/login` while signed in offers a button that does the
+same.
+
+Set `oidc.postLogoutRedirectUri` to bring the browser back after the provider ends the session. The
+value is sent as `post_logout_redirect_uri`, so it must be registered with the provider as a valid
+post-logout redirect URI. An unregistered value is refused by many providers instead of ending the
+session.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| A redirect loop with the provider | `endpoint` includes `/.well-known/openid-configuration` | Use the bare issuer. |
+| `invalid redirect URI` | The served origin differs by scheme, host or trailing slash | Register the exact URL, including the trailing-slash form. |
+| `unexpected "iss" claim value` | The provider advertises an issuer the token does not carry — commonly `http` behind a proxy | Make the provider trust the proxy, and forward the HTTPS scheme. |
+| `unexpected "aud" claim value` | `clientId` does not match the provider's client ID | Copy the exact value, and quote a numeric one. |
+| `"exp" claim timestamp check failed` just after sign-in | Clock drift | Sync both hosts over NTP. Workcenter tolerates thirty seconds. |
+| No admin access | The token carries no `groups` claim | Add the `groups` scope, and include claims in the id_token. |
+| Silent renewal never fires | `offline_access` is not granted | Add it to the provider's allowed scopes. |
+
+See [`authentik.md`](./authentik.md) for the provider walkthrough, and [`OIDC.md`](../../OIDC.md) for the whole stack.
