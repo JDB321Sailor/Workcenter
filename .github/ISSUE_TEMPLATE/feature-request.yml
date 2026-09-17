@@ -8,7 +8,7 @@ body:
       value: |
         Workcenter is deliberately narrow: three applications, one login, and four
         file-movement flows. Before opening this request, check roadmap.md section 14
-        (Non-goals). Requests that reintroduce a removed Dashy subsystem, add a fourth
+        (Non-goals). Requests that reintroduce a removed Workcenter subsystem, add a fourth
         application, or fork a bundled application need a roadmap change agreed first.
 
   - type: textarea

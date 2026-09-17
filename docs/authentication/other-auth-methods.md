@@ -59,7 +59,7 @@ If you have a static IP or are already on a VPN, you can restrict access to Work
 NGINX:
 ```text
 location / {
-    proxy_pass http://dashy:8080;
+    proxy_pass http://workcenter:8080;
     allow 192.168.1.0/24;
     allow 203.0.113.50;
     deny all;
@@ -68,10 +68,10 @@ location / {
 
 Caddy ([request matchers docs](https://caddyserver.com/docs/caddyfile/matchers)):
 ```text
-dashy.example.com {
+workcenter.example.com {
     @blocked not remote_ip 192.168.1.0/24 203.0.113.50
     respond @blocked "Access denied" 403
-    reverse_proxy dashy:8080
+    reverse_proxy workcenter:8080
 }
 ```
 
@@ -92,7 +92,7 @@ NGINX ([auth module docs](https://nginx.org/en/docs/http/ngx_http_auth_basic_mod
 location / {
     auth_basic "Workcenter";
     auth_basic_user_file /etc/nginx/conf.d/.htpasswd;
-    proxy_pass http://dashy:8080;
+    proxy_pass http://workcenter:8080;
 }
 ```
 
@@ -100,11 +100,11 @@ Generate the password file with `htpasswd -c /etc/nginx/conf.d/.htpasswd alicia`
 
 Caddy ([basicauth directive](https://caddyserver.com/docs/caddyfile/directives/basicauth)):
 ```text
-dashy.example.com {
+workcenter.example.com {
     basicauth {
         alicia $2a$14$... # generate with: caddy hash-password
     }
-    reverse_proxy dashy:8080
+    reverse_proxy workcenter:8080
 }
 ```
 
@@ -130,7 +130,7 @@ server {
     ssl_client_certificate /etc/nginx/certs/ca.crt;
     ssl_verify_client on;
     location / {
-        proxy_pass http://dashy:8080;
+        proxy_pass http://workcenter:8080;
     }
 }
 ```

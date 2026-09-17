@@ -14,7 +14,7 @@ The following content requires that you have a basic understanding of CSS. If yo
 
 The theme switching is done by simply changing the `data-theme` attribute on the root DOM element, which can then be targeted by CSS. All colors and styles are managed with CSS variables.
 
-The theme switcher in the UI will list all themes defined in [here](github.com/Lissy93/dashy/blob/3.3.1/src/utils/defaults.js#L50), as well as any extras that you add yourself under `appConfig.cssThemes`. Then, when a theme is selected, any CSS within `html[data-theme='my-theme']{}` will be applied.
+The theme switcher in the UI will list all themes defined in [here](github.com/Lissy93/workcenter/blob/3.3.1/src/utils/defaults.js#L50), as well as any extras that you add yourself under `appConfig.cssThemes`. Then, when a theme is selected, any CSS within `html[data-theme='my-theme']{}` will be applied.
 
 To apply a default theme to your instance, set `appConfig.theme` (or, use `dayTheme` and `nightTheme` to adjust according to your OS light/dark preferences).
 
@@ -69,8 +69,8 @@ appConfig:
 Themes can be modified either through the UI, using the color picker menu (to the right of the theme dropdown), or directly in the config file, under `appConfig.customColors`. Here you can specify the value for any of the [available CSS variables](#css-variables).
 
 <p align="center">
-  <a href="https://i.ibb.co/cLDXj1R/dashy-theme-configurator.gif">
-    <img alt="Example Themes" src="https://raw.githubusercontent.com/Lissy93/dashy/master/docs/assets/theme-config-demo.gif" width="400" />
+  <a href="https://i.ibb.co/cLDXj1R/workcenter-theme-configurator.gif">
+    <img alt="Example Themes" src="https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/docs/assets/theme-config-demo.gif" width="400" />
   </a>
 </p>
 
@@ -109,7 +109,7 @@ For example, if the pages name was "CFT Toolbox", and you wanted to target `.ite
 ## Loading External Stylesheets
 
 The URI of a stylesheet, either local or hosted on a remote CDN can be passed into the config file. The attribute `appConfig.externalStyleSheet` accepts either a string, or an array of strings. You can also pass custom font stylesheets here, they must be in a CSS format (for example, `https://fonts.googleapis.com/css2?family=Cutive+Mono`).
-This is handled in [`App.vue`](https://github.com/Lissy93/dashy/blob/master/src/App.vue).
+This is handled in [`App.vue`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/App.vue).
 
 For example:
 
@@ -145,7 +145,7 @@ Some browsers support setting a color, which will apply a tint to the address ba
 
 ## CSS Variables
 
-All colors as well as other variable values (such as borders, border-radius, shadows) are specified as CSS variables. This makes theming the application easy, as you only need to change a given color or value in one place. You can find all variables in [`color-palette.scss`](https://github.com/Lissy93/dashy/blob/master/src/styles/color-palette.scss) and the themes which make use of these color variables are specified in [`color-themes.scss`](https://github.com/Lissy93/dashy/blob/master/src/styles/color-themes.scss)
+All colors as well as other variable values (such as borders, border-radius, shadows) are specified as CSS variables. This makes theming the application easy, as you only need to change a given color or value in one place. You can find all variables in [`color-palette.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-palette.scss) and the themes which make use of these color variables are specified in [`color-themes.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-themes.scss)
 
 CSS variables are simple to use. You define them like: `--background: #fff;` and use them like: `body { background-color: var(--background); }`. For more information, see this guide on using [CSS Variables](https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties).
 

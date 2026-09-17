@@ -48,7 +48,7 @@ function copyUserDataConfig() {
 }
 
 export default defineConfig({
-  envPrefix: ['VITE_', 'DASHY_'],
+  envPrefix: ['VITE_', 'WORKCENTER_'],
   plugins: [
     vue(),
     svgLoader(),

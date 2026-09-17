@@ -2,8 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { deriveIsAdmin, loadOidcSettings } from '../../services/utils/auth-oidc';
 
-const oidc = { kind: 'oidc', clientId: 'dashy', adminGroup: 'admins', adminRole: null };
-const keycloak = { kind: 'keycloak', clientId: 'dashy', adminGroup: null, adminRole: 'admin' };
+const oidc = { kind: 'oidc', clientId: 'workcenter', adminGroup: 'admins', adminRole: null };
+const keycloak = { kind: 'keycloak', clientId: 'workcenter', adminGroup: null, adminRole: 'admin' };
 
 describe('deriveIsAdmin', () => {
   it('matches adminGroup against the standard groups claim', () => {
@@ -23,7 +23,7 @@ describe('deriveIsAdmin', () => {
 
   it('matches Keycloak realm and client roles', () => {
     expect(deriveIsAdmin({ realm_access: { roles: ['admin'] } }, keycloak)).toBe(true);
-    expect(deriveIsAdmin({ resource_access: { dashy: { roles: ['admin'] } } }, keycloak)).toBe(true);
+    expect(deriveIsAdmin({ resource_access: { workcenter: { roles: ['admin'] } } }, keycloak)).toBe(true);
     expect(deriveIsAdmin({ realm_access: { roles: ['viewer'] } }, keycloak)).toBe(false);
   });
 
@@ -35,7 +35,7 @@ describe('deriveIsAdmin', () => {
 });
 
 describe('loadOidcSettings allowedIssuers', () => {
-  const base = { enableOidc: true, oidc: { endpoint: 'https://idp.example.com', clientId: 'dashy' } };
+  const base = { enableOidc: true, oidc: { endpoint: 'https://idp.example.com', clientId: 'workcenter' } };
 
   it('defaults to null when not set', () => {
     expect(loadOidcSettings(base).allowedIssuers).toBe(null);

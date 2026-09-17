@@ -6,7 +6,7 @@ import os from 'os';
 import path from 'path';
 
 // Isolate writes to a temp dir so the real user-data/conf.yml is never touched
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-save-config-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-save-config-'));
 process.env.USER_DATA_DIR = tmpDir;
 afterAll(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 

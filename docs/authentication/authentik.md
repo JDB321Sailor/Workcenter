@@ -13,8 +13,8 @@ Workcenter supports using [Authentik](https://goauthentik.io/) as its OIDC provi
   - [Create the application](#create-the-application)
   - [Create the admin group](#create-the-admin-group)
   - [Create test users](#create-test-users)
-  - [Restrict who can access Workcenter (optional)](#restrict-who-can-access-dashy-optional)
-- [3. Enabling Authentik in Workcenter](#3-enabling-authentik-in-dashy)
+  - [Restrict who can access Workcenter (optional)](#restrict-who-can-access-workcenter-optional)
+- [3. Enabling Authentik in Workcenter](#3-enabling-authentik-in-workcenter)
 - [4. Groups and Visibility](#4-groups-and-visibility)
 - [5. Silent token renewal (optional)](#5-silent-token-renewal-optional)
 - [Troubleshooting](#troubleshooting-common-authentik-issues)
@@ -145,10 +145,10 @@ return {"groups": [g.name for g in request.user.ak_groups.all()]}
 5. Set **Invalidation flow** to `default-provider-invalidation-flow` (required on Authentik 2024.10 and newer)
 6. Under **Protocol settings**:
    - **Client type**: `Public`
-   - **Client ID**: `dashy`, or leave the auto-generated value and copy it for later
+   - **Client ID**: `workcenter`, or leave the auto-generated value and copy it for later
    - **Redirect URIs** with matching mode `Strict`, one URL per line. Register both the bare URL and the trailing-slash version:
-     - `https://dashy.example.com`
-     - `https://dashy.example.com/`
+     - `https://workcenter.example.com`
+     - `https://workcenter.example.com/`
    - **Signing Key**: the built-in `authentik Self-signed Certificate` is fine
 7. Expand **Advanced protocol settings**:
    - Add `openid`, `profile`, `email`, and the `groups` scope you just created to **Selected Scopes**
@@ -160,17 +160,17 @@ return {"groups": [g.name for g in request.user.ak_groups.all()]}
 1. Go to **Applications > Applications**
 2. Click **Create**
 3. Set **Name** to `Workcenter`
-4. Set **Slug** to `dashy` (this becomes part of the issuer URL: `<host>/application/o/<slug>/`)
+4. Set **Slug** to `workcenter` (this becomes part of the issuer URL: `<host>/application/o/<slug>/`)
 5. Set **Provider** to the `Workcenter` provider you just made
 6. Click **Create**
 
-Now open the `Workcenter` provider again (**Applications > Providers > Workcenter**) and copy the **OpenID Configuration Issuer URL** shown on the page (e.g. `https://auth.example.com/application/o/dashy/`). The provider only displays a valid URL once it's bound to an application. You'll need this for Workcenter's `endpoint` setting later.
+Now open the `Workcenter` provider again (**Applications > Providers > Workcenter**) and copy the **OpenID Configuration Issuer URL** shown on the page (e.g. `https://auth.example.com/application/o/workcenter/`). The provider only displays a valid URL once it's bound to an application. You'll need this for Workcenter's `endpoint` setting later.
 
 ### Create the admin group
 
 1. Go to **Directory > Groups**
 2. Click **Create**
-3. Set **Name** to `dashy-admins`
+3. Set **Name** to `workcenter-admins`
 4. Click **Create**
 5. Open the new group, click **Users**, and add any users who should have admin rights in Workcenter
 
@@ -181,7 +181,7 @@ If you want separate accounts beyond `akadmin`:
 1. Go to **Directory > Users**
 2. Click **Create**, fill in **Username**, **Name** and **Email**, click **Create**
 3. On the new user's page, click **Set password**, set a password, click **Update**
-4. Add the user to `dashy-admins` for admin access, or leave them out for a non-admin
+4. Add the user to `workcenter-admins` for admin access, or leave them out for a non-admin
 
 ### Restrict who can access Workcenter (optional)
 
@@ -229,9 +229,9 @@ appConfig:
   auth:
     enableOidc: true
     oidc:
-      clientId: dashy
-      endpoint: https://auth.example.com/application/o/dashy/
-      adminGroup: dashy-admins
+      clientId: workcenter
+      endpoint: https://auth.example.com/application/o/workcenter/
+      adminGroup: workcenter-admins
       scope: openid profile email groups
 ```
 
@@ -240,7 +240,7 @@ Where:
 - `auth.enableOidc` - Set the auth mode to OIDC
 - `clientId` - The Client ID from the Authentik provider (exact, case-sensitive)
 - `endpoint` - The OpenID Configuration Issuer URL from the provider page. Use the bare issuer, not the discovery URL; Workcenter appends `/.well-known/openid-configuration` itself
-- `adminGroup` - Name of the Authentik group that grants admin in Workcenter (matches the `dashy-admins` group above). To use roles instead, set `adminRole`, but Authentik has no `roles` claim by default, so groups are the simpler path here
+- `adminGroup` - Name of the Authentik group that grants admin in Workcenter (matches the `workcenter-admins` group above). To use roles instead, set `adminRole`, but Authentik has no `roles` claim by default, so groups are the simpler path here
 - `scope` - Space-separated list of scopes to request. Must include `groups` when `adminGroup` is set, otherwise the id_token won't carry the claim
 
 To let visitors view a read-only dashboard without signing in, add `enableGuestAccess: true` under `auth`; they skip the Authentik login, and admins still get edit access after signing in. See [guest access](./oidc.md#guest-access) for the details.
@@ -258,12 +258,12 @@ When you load Workcenter, you'll be redirected to Authentik's login page. After 
 
 Once group membership is in the id_token, you can use it to hide or show pages, sections and items in Workcenter, with `showForGroups` and `hideForGroups` under `displayData`.
 
-To make an Admin section visible only to members of `dashy-admins`:
+To make an Admin section visible only to members of `workcenter-admins`:
 
 ```yaml
 displayData:
   showForGroups:
-    - dashy-admins
+    - workcenter-admins
 ```
 
 Both `showForGroups` and `hideForGroups` accept a list of group names (`showForRoles` / `hideForRoles` do the same for a `roles` claim). If a user matches an entry they're allowed or excluded as defined.
@@ -272,7 +272,7 @@ Both `showForGroups` and `hideForGroups` accept a list of group names (`showForR
 sections:
   - name: Internal Tools
     displayData:
-      showForGroups: ['dashy-admins']
+      showForGroups: ['workcenter-admins']
       hideForGroups: ['guests']
     items:
       - title: Hidden from interns
@@ -287,9 +287,9 @@ By default, when your token expires Workcenter sends you back through Authentik'
 
 ```yaml
     oidc:
-      clientId: dashy
-      endpoint: https://auth.example.com/application/o/dashy/
-      adminGroup: dashy-admins
+      clientId: workcenter
+      endpoint: https://auth.example.com/application/o/workcenter/
+      adminGroup: workcenter-admins
       scope: openid profile email groups
       enableSilentRenew: true
 ```
@@ -314,11 +314,11 @@ Solution: `endpoint` in `conf.yml` probably includes `.well-known/openid-configu
 
 #### invalid_redirect_uri
 Problem: Authentik shows "invalid redirect URI" after submitting credentials.<br>
-Solution: The URL Workcenter is being served from doesn't exactly match what's registered on the provider. Register both the bare URL and the trailing-slash variant (e.g. `https://dashy.example.com` and `https://dashy.example.com/`), keep matching mode on `Strict`, and make sure the scheme matches (`http` vs `https`).
+Solution: The URL Workcenter is being served from doesn't exactly match what's registered on the provider. Register both the bare URL and the trailing-slash variant (e.g. `https://workcenter.example.com` and `https://workcenter.example.com/`), keep matching mode on `Strict`, and make sure the scheme matches (`http` vs `https`).
 
 #### Logged in but config saves return 403
 Problem: User authenticates fine, but saving the dashboard returns 403.<br>
-Solution: The id_token isn't carrying the group claim. Paste the token (from localStorage, key `idToken`) into [jwt.io](https://jwt.io) and look for `groups`. If it's missing, the `groups` scope mapping isn't attached to the provider's **Selected Scopes** or **Include claims in id_token** is off. If the claim is there but the user isn't in it, add them to the `dashy-admins` group.
+Solution: The id_token isn't carrying the group claim. Paste the token (from localStorage, key `idToken`) into [jwt.io](https://jwt.io) and look for `groups`. If it's missing, the `groups` scope mapping isn't attached to the provider's **Selected Scopes** or **Include claims in id_token** is off. If the claim is there but the user isn't in it, add them to the `workcenter-admins` group.
 
 #### Issuer mismatch behind a reverse proxy
 Problem: Server logs show `unexpected "iss" claim value`. The browser reaches Authentik over HTTPS, but Authentik advertises an HTTP issuer in its discovery document.<br>
@@ -358,7 +358,7 @@ Solution: Wrap numeric Client IDs in quotes (e.g. `clientId: "12345678901234567"
 
 #### Workcenter server can't reach Authentik
 Problem: Auth'd API calls return 401 and Workcenter logs show fetch errors for `.well-known/openid-configuration`.<br>
-Solution: `endpoint` must be reachable from inside the Workcenter container, not just from the browser. If both run in Docker, put them on the same network. Test with `docker exec <dashy-container> wget -qO- "$ENDPOINT/.well-known/openid-configuration"`.
+Solution: `endpoint` must be reachable from inside the Workcenter container, not just from the browser. If both run in Docker, put them on the same network. Test with `docker exec <workcenter-container> wget -qO- "$ENDPOINT/.well-known/openid-configuration"`.
 
 #### Config change to auth.oidc not picked up
 Problem: Updated `clientId`, `endpoint`, `adminGroup` or `scope` in `conf.yml`, but Workcenter still uses the old values.<br>
@@ -368,7 +368,7 @@ Solution: The server reads the auth config only at boot. Restart the Workcenter 
 
 ## Config Example
 
-Below is an example of a configured local dashy instance (port 4000) for Authentik.
+Below is an example of a configured local workcenter instance (port 4000) for Authentik.
 
 <details>
 <summary>Screenshots of Workcenter config in Authentik</summary>

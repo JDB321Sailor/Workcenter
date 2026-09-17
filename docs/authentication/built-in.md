@@ -114,7 +114,7 @@ The login page is still the user-facing entry point. The flow is:
 2. User submits credentials, frontend hashes the password and validates against `users[]`
 3. On success, a session cookie is set
 4. Every subsequent API/asset request includes the cookie as a bearer token in the `Authorization` header
-5. The server [validates the same token against `users[]`](https://github.com/lissy93/dashy/blob/4.1.5/services/app.js) before letting the request through
+5. The server [validates the same token against `users[]`](https://github.com/JDB321Sailor/Workcenter/Dev/blob/4.1.5/services/app.js) before letting the request through
 
 This is the recommended setup if you're using built-in auth.
 
@@ -266,7 +266,7 @@ Problem: The user logs in fine, but the save button is greyed out.<br>
 Solution: Confirm `type: admin` (lowercase) is set on the user in `conf.yml`. Default is `normal`. Also check `disableConfigurationForNonAdmin` is not unexpectedly applying to your account (it shouldn't if `type: admin`, but worth checking).
 
 #### Guest can still see hidden items via `/conf.yml`
-Problem: Hidden a section with `displayData.hideForGuests` but a guest can read it via `curl https://dashy/conf.yml`.<br>
+Problem: Hidden a section with `displayData.hideForGuests` but a guest can read it via `curl https://workcenter/conf.yml`.<br>
 Solution: `displayData` is a UI control, not server-side filtering. To gate `conf.yml` itself, you need server enforcement (`ENABLE_HTTP_AUTH=true`), which will require auth before serving the raw YAML. With auth enforced, an unauthenticated request gets a stripped version of the config (or 401, depending on guest mode setting).
 
 #### Want to keep passwords out of conf.yml entirely
@@ -314,7 +314,7 @@ sequenceDiagram
     Browser->>Browser: Route guard re-checks, lets user into dashboard
 ```
 
-The token is `SHA-256(uppercase(username) + uppercase(password_hash))`, stored as a cookie. On every page load, the SPA reads the cookie back, recomputes the token from each configured user, and looks for a match. If found, the user is "logged in" client-side. See [`src/utils/auth/Auth.js`](https://github.com/lissy93/dashy/blob/4.1.5/src/utils/auth/Auth.js).
+The token is `SHA-256(uppercase(username) + uppercase(password_hash))`, stored as a cookie. On every page load, the SPA reads the cookie back, recomputes the token from each configured user, and looks for a match. If found, the user is "logged in" client-side. See [`src/utils/auth/Auth.js`](https://github.com/JDB321Sailor/Workcenter/Dev/blob/4.1.5/src/utils/auth/Auth.js).
 
 ### Server-enforced mode
 
@@ -330,7 +330,7 @@ flowchart LR
     classDef err fill:#fecaca,stroke:#dc2626,color:#7f1d1d
 ```
 
-With `ENABLE_HTTP_AUTH=true`, [`services/app.js`](https://github.com/lissy93/dashy/blob/4.1.5/services/app.js) installs an `express-basic-auth` middleware in front of every API endpoint and every `.yml` file. The middleware's custom authorizer takes the bearer token, walks the `users[]` list, computes the expected token for each user (`SHA-256(user.user.toUpperCase() + user.hash.toUpperCase())`), and returns true if any match.
+With `ENABLE_HTTP_AUTH=true`, [`services/app.js`](https://github.com/JDB321Sailor/Workcenter/Dev/blob/4.1.5/services/app.js) installs an `express-basic-auth` middleware in front of every API endpoint and every `.yml` file. The middleware's custom authorizer takes the bearer token, walks the `users[]` list, computes the expected token for each user (`SHA-256(user.user.toUpperCase() + user.hash.toUpperCase())`), and returns true if any match.
 
 The bearer token the SPA sends *is* the same SHA-256-of-user-plus-hash that's stored client-side as a cookie. There's no signature, no JWT, no expiry on the server side; the server just verifies the cookie-derived token reproduces under one of the configured user entries.
 

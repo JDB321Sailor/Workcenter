@@ -5,8 +5,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-// Both Dashy basic-auth AND an API_TOKEN configured — either should work
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-api-coexist-'));
+// Both Workcenter basic-auth AND an API_TOKEN configured — either should work
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-api-coexist-'));
 process.env.USER_DATA_DIR = tmpDir;
 process.env.ENABLE_API = 'true';
 process.env.API_TOKEN = 'token-value';
@@ -24,7 +24,7 @@ afterAll(() => {
 
 const app = require('../../services/app');
 
-describe('API token coexisting with Dashy auth', () => {
+describe('API token coexisting with Workcenter auth', () => {
   it('accepts a valid API token', async () => {
     const res = await request(app).get('/api/config').set({ Authorization: 'Bearer token-value' });
     expect(res.status).toBe(200);

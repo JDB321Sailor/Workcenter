@@ -1,7 +1,7 @@
 # Docker
 
 Docker is the recommended way of running Workcenter.
-We have light-weight multi-arch (amd64 and arm64) images published to DockerHub ([`lissy93/dashy`](https://hub.docker.com/r/lissy93/dashy)) and GHCR ([`ghcr.io/lissy93/dashy`](https://github.com/lissy93/dashy/pkgs/container/dashy)) with full semver tags.
+We have light-weight multi-arch (amd64 and arm64) images published to DockerHub ([`lissy93/dashy`](https://hub.docker.com/r/lissy93/dashy)) and GHCR ([`ghcr.io/lissy93/dashy`](https://github.com/JDB321Sailor/Workcenter/pkgs/container/workcenter)) with full semver tags.
 
 The container runs on port 8080 (can be overridden with PORT). Your config (`conf.yml`) and any other assets (icons, styles, themes, fonts, scripts, etc) will live in `/app/user-data` in the container.
 
@@ -11,7 +11,7 @@ The container runs on port 8080 (can be overridden with PORT). Your config (`con
 ![Docker Hosted on](https://img.shields.io/badge/Hosted_on-DockerHub%20%26%20GHCR-6ba6e5)
 ](https://hub.docker.com/r/lissy93/dashy)<br>
 **Status**:
-![Build Status](https://img.shields.io/github/actions/workflow/status/Lissy93/dashy/docker.yml?label=Build&color=f4a966)
+![Build Status](https://img.shields.io/github/actions/workflow/status/Lissy93/workcenter/docker.yml?label=Build&color=f4a966)
 ![Docker Pulls](https://img.shields.io/docker/pulls/lissy93/dashy?color=ecb2f7)
 ![Docker Stars](https://img.shields.io/docker/stars/lissy93/dashy?color=f7f754&label=Docker%20Stars)
 ![Docker Image Size](https://img.shields.io/docker/image-size/lissy93/dashy/latest?color=1eea76)
@@ -27,7 +27,7 @@ You will need [Docker](https://docs.docker.com/get-docker/) installed on your sy
 docker run -d \
   -p 8080:8080 \
   -v /path/to/your/user-data:/app/user-data \
-  --name dashy \
+  --name workcenter \
   --restart=always \
   lissy93/dashy:latest
 ```
@@ -55,17 +55,17 @@ Notes:
 
 Using Docker Compose can be useful for saving your specific config in files, without having to type out a long run command each time. Save compose config as a YAML file, and then run `docker compose up -d` (optionally use the `-f` flag to specify file location, if it isn't located at `./docker-compose.yml`), `-d` is detached mode (not running in the foreground of your terminal). Compose is also useful if you are using clusters, as the format is very similar to stack files, used with Docker Swarm.
 
-The following is a complete example of a [`docker-compose.yml`](https://github.com/Lissy93/dashy/blob/master/docker-compose.yml) for Workcenter. Run it as is, or uncomment the additional options you need.
+The following is a complete example of a [`docker-compose.yml`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docker-compose.yml) for Workcenter. Run it as is, or uncomment the additional options you need.
 
 ```yaml
 services:
-  dashy:
+  workcenter:
     # The image to pull + version. Can use `ghcr.io/lissy93/dashy` instead
     image: lissy93/dashy:latest
     # Or, to build from source, replace `image:` with `build: .`
     # build: .
     # Optional container name
-    container_name: dashy
+    container_name: workcenter
     # Port to serve on (keep container port (second one) as 8080)
     ports:
       - 8080:8080
@@ -100,7 +100,7 @@ To pull from GHCR instead of Docker Hub, set `image: ghcr.io/lissy93/dashy:lates
 podman run -d \
   -p 8080:8080 \
   -v /path/to/your/user-data:/app/user-data:Z \
-  --name dashy \
+  --name workcenter \
   --restart=always \
   docker.io/lissy93/dashy:latest
 ```

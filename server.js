@@ -1,5 +1,5 @@
 /**
- * This is the main entry point for the web server which serves Dashy
+ * This is the main entry point for the web server which serves Workcenter
  * Reads some config, runs some checks, prints a lil welcome, starts server
  * Registers the Express app.js, which has all the routes, middleware, auth
  * Note: The app must first be built (yarn build) before this script is run
@@ -30,7 +30,7 @@ const printWelcomeMessage = () => {
       console.log(printMessage(ip, port, isDocker)); // eslint-disable-line no-console
     })
     .catch(() => {
-      console.log(`Dashy server has started (${port})`); // eslint-disable-line no-console
+      console.log(`Workcenter server has started (${port})`); // eslint-disable-line no-console
     });
 };
 
@@ -40,7 +40,7 @@ http.createServer(app)
     printWelcomeMessage();
   })
   .on('error', (err) => {
-    console.warn('Unable to start Dashy\'s Node server\n', err); // eslint-disable-line no-console
+    console.warn('Unable to start Workcenter\'s Node server\n', err); // eslint-disable-line no-console
   });
 
 /* Check, and if possible start SSL server too */

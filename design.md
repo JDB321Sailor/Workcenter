@@ -2,7 +2,7 @@
 
 > **Scope:** every user-interface element of the Workcenter application: structure, layout, states,
 > interaction, theming, accessibility and responsiveness.
-> **Foundations:** [Dashy](https://github.com/lissy93/dashy)'s theming model, CSS custom properties and
+> **Foundations:** [Workcenter](https://github.com/JDB321Sailor/Workcenter)'s theming model, CSS custom properties and
 > Workspace view layout; [FileBrowser Quantum's sidebar](https://filebrowserquantum.com/en/docs/features/sidebar-links/)
 > as the sidebar interaction pattern.
 > **Companions:** [`roadmap.md`](./roadmap.md) · [`architecture.md`](./architecture.md) · [`standards.md`](./standards.md)
@@ -78,24 +78,24 @@ application switcher, not a separate row.
 
 ### 2.2 Layout tokens
 
-Extends Dashy's `src/styles/dimensions.scss`.
+Extends Workcenter's `src/styles/dimensions.scss`.
 
 | Token | Default | Meaning |
 | --- | --- | --- |
-| `--side-bar-width` | `16rem` | Rail width. Dashy's value is `3.5rem` (icons only); Workcenter widens it because its sidebars carry labels, not just icons. |
-| `--side-bar-width-collapsed` | `3.5rem` | Rail width when collapsed to icons. Equals Dashy's `--side-bar-width`, so a collapsed Workcenter rail has exactly Dashy's geometry. |
+| `--side-bar-width` | `16rem` | Rail width. Workcenter's value is `3.5rem` (icons only); Workcenter widens it because its sidebars carry labels, not just icons. |
+| `--side-bar-width-collapsed` | `3.5rem` | Rail width when collapsed to icons. Equals Workcenter's `--side-bar-width`, so a collapsed Workcenter rail has exactly Workcenter's geometry. |
 | `--rail-header-height` | `3rem` | Brand header row. |
 | `--switcher-height` | `4.5rem` | Application switcher region: the button row **and** the status indicator row plus its label. |
 | `--switcher-button-height` | `2.5rem` | A single switcher button. |
 | `--switcher-indicator-height` | `2rem` | The status indicator row and the `STATUS` label beneath the buttons. |
 | `--sidebar-search-height` | `2.5rem` | Global search row. |
 | `--user-menu-height` | `3rem` | User menu row. |
-| `--header-height` | `0` | **Kept as a token, set to `0`.** Dashy shows a `6.3rem` header on the Workspace view and positions the iframe at `calc(100% - var(--header-height))`. Workcenter replaces that header with the rail's brand header (D-1) and sets this token to `0`, so every inherited `calc()` expression stays correct without editing any component. Re-introducing a top header means changing this token only. |
+| `--header-height` | `0` | **Kept as a token, set to `0`.** Workcenter shows a `6.3rem` header on the Workspace view and positions the iframe at `calc(100% - var(--header-height))`. Workcenter replaces that header with the rail's brand header (D-1) and sets this token to `0`, so every inherited `calc()` expression stays correct without editing any component. Re-introducing a top header means changing this token only. |
 | `--pane-gutter` | `0` | No gutter between rail and surface — the embedded app owns its own padding. |
 | `--rail-transition` | `180ms ease` | Width and collapse transitions. |
 
 > **Rule D-L1:** the content surface is positioned at `left: var(--side-bar-width)` with width
-> `calc(100% - var(--side-bar-width))` and height `calc(100% - var(--header-height))` — Dashy's exact
+> `calc(100% - var(--side-bar-width))` and height `calc(100% - var(--header-height))` — Workcenter's exact
 > positioning contract, preserved so inherited layout code and themes keep working. No element may
 > overlap the rail.
 
@@ -290,7 +290,7 @@ Selecting a source or folder navigates the **Files pane** to that path and marks
 | Container | `PaneHost.vue` — holds one `AppPane.vue` per application, all mounted after first activation |
 | Pane | `AppPane.vue` — an `<iframe>` plus loading, error and unavailable states |
 | iframe attributes | `allow="fullscreen; clipboard-read; clipboard-write"`, `referrerpolicy="same-origin"`, `loading="eager"`, a stable `id` per application |
-| Sizing | `position: absolute; inset: 0 0 0 var(--side-bar-width)`, matching Dashy's `WebContent.vue` contract |
+| Sizing | `position: absolute; inset: 0 0 0 var(--side-bar-width)`, matching Workcenter's `WebContent.vue` contract |
 | Visibility | Inactive panes get `.wc-pane--hidden { display: none }`; state inside the iframe is untouched |
 | Background | `--workspace-web-content-background` (kept from Dashy), so an app's own white/dark surface does not flash the shell colour |
 
@@ -370,7 +370,7 @@ These are the UI for the four flows in [`roadmap.md` §7.2](./roadmap.md#72-the-
 
 ### 4.1 Token architecture
 
-Workcenter keeps Dashy's two-layer model:
+Workcenter keeps Workcenter's two-layer model:
 
 1. **Palette layer** (`src/styles/color-palette.scss`) — raw colour values as CSS custom properties.
 2. **Semantic layer** (`src/styles/workcenter/*.scss`) — meaning-bearing tokens that components use.
@@ -391,10 +391,10 @@ Components reference **semantic tokens only**. No component contains a colour li
 | `--wc-focus-ring` | Focus ring colour, ≥3:1 against both surface and accent |
 | `--wc-scrim` | Modal backdrop |
 | `--wc-status-healthy` / `--wc-status-degraded` / `--wc-status-unhealthy` / `--wc-status-unknown` | Application switcher status indicators |
-| `--wc-radius` | Corner radius (Dashy's `--curve-factor` is aliased to this) |
+| `--wc-radius` | Corner radius (Workcenter's `--curve-factor` is aliased to this) |
 | `--wc-shadow-popover` | Popover elevation |
 
-Retained Dashy tokens (unchanged names, so Dashy themes keep working): `--side-bar-width`,
+Retained Workcenter tokens (unchanged names, so Workcenter themes keep working): `--side-bar-width`,
 `--side-bar-background`, `--side-bar-background-lighter`, `--side-bar-color`,
 `--side-bar-item-background`, `--side-bar-item-color`, `--workspace-web-content-background`,
 `--curve-factor`.
@@ -406,7 +406,7 @@ Retained Dashy tokens (unchanged names, so Dashy themes keep working): `--side-b
 | `workcenter-dark` | **Default.** Neutral near-black surface, accents at 60% lightness |
 | `workcenter-light` | Neutral off-white surface, accents at 40% lightness |
 | `workcenter-contrast` | High-contrast variant meeting WCAG AAA for shell chrome |
-| Inherited Dashy themes | Kept where they only affect tokens; themes referencing removed components are deleted |
+| Inherited Workcenter themes | Kept where they only affect tokens; themes referencing removed components are deleted |
 
 ### 4.4 Theme bridge
 
@@ -424,7 +424,7 @@ The shell's theme is pushed into each application so panes do not clash with the
 
 ### 4.5 Custom CSS
 
-Administrators may inject a stylesheet through `appConfig.customCss` (Dashy's mechanism) and users
+Administrators may inject a stylesheet through `appConfig.customCss` (Workcenter's mechanism) and users
 through their profile. Custom CSS is scoped to shell chrome; it cannot reach inside iframes.
 
 ---
@@ -498,7 +498,7 @@ through their profile. Custom CSS is scoped to shell chrome; it cannot reach ins
 | Errors state what happened and what to do | "Chat is not responding. Retry, or open Zulip in a new tab." |
 | No exclamation marks, no blame, no jargon | "Your session for Mail has expired. Sign in again." |
 | Empty states are actionable | "No files here yet. Upload one from FileBrowser, or save an attachment from Mail." |
-| Never say "Dashy" | The product is Workcenter |
+| Never say "Workcenter" | The product is Workcenter |
 
 ---
 
@@ -547,4 +547,4 @@ Every UI pull request is reviewed against this list:
 
 ---
 
-<p align="center"><sub>Workcenter design specification · sidebar pattern after <a href="https://filebrowserquantum.com/en/docs/features/sidebar-links/">FileBrowser Quantum</a> · theming after <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>
+<p align="center"><sub>Workcenter design specification · sidebar pattern after <a href="https://filebrowserquantum.com/en/docs/features/sidebar-links/">FileBrowser Quantum</a> · theming after <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>

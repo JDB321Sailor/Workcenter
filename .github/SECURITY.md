@@ -1,10 +1,10 @@
 # Security Policy
 
-Thanks for helping keep Dashy and the people who use it safe. If you've found something that could put users at risk, I really appreciate you taking the time to let me know.
+Thanks for helping keep Workcenter and the people who use it safe. If you've found something that could put users at risk, I really appreciate you taking the time to let me know.
 
 ## Reporting a security issue
 If you think you've found a security problem, please securely reach-out, either:
-- Open a [security advisory](https://github.com/lissy93/dashy/security/advisories/new) here on GitHub
+- Open a [security advisory](https://github.com/JDB321Sailor/Workcenter/security/advisories/new) here on GitHub
 - Or email me at `security@as93.net` (PGP: [`E10EE533A8E5D6F6E231BBCD4C8DEAFFCE3B8D03`](https://keys.openpgp.org/vks/v1/by-fingerprint/E10EE533A8E5D6F6E231BBCD4C8DEAFFCE3B8D03))
 
 > [!IMPORTANT]
@@ -27,8 +27,8 @@ To help me track it down quickly, it helps if you can include:
 The latest minor and patch versions are supported. Previous major versions (e.g. 3.x.x and below) don't receive official security updates.
 
 ## Keeping your own instance secure
-Dashy's security posture and features are outlined in our [security docs](https://dashy.to/docs/security).
-A lot of security comes down to how and where you deploy Dashy, so we've also documented some self-hosting best practices in the [management guide](https://dashy.to/docs/management/).
+Workcenter's security posture and features are outlined in our [security docs](https://github.com/lissy93/dashy/blob/master/docs/security).
+A lot of security comes down to how and where you deploy Workcenter, so we've also documented some self-hosting best practices in the [management guide](https://github.com/lissy93/dashy/blob/master/docs/management/).
 
 ## Safe harbor
 If you research and report in good faith, following this policy, I won't pursue legal action against you.

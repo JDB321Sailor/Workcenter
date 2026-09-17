@@ -11,7 +11,7 @@
 
 ## 0. Read this first
 
-Workcenter is a **derivative of [Dashy](https://github.com/lissy93/dashy)** that integrates
+Workcenter is a **derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter)** that integrates
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser),
 [Zulip](https://github.com/zulip/docker-zulip), Mailcow/SOGo, OnlyOffice, Authentik and Traefik.
 Almost every convention in this repository was inherited from Dashy and is intentional. An agent's
@@ -90,7 +90,7 @@ When sources disagree, resolve in this order — highest first:
 
 | Ref | Requirement |
 | --- | --- |
-| A-3.7 | **Never reintroduce a removed Dashy subsystem**: the Default view, the Minimal view, widgets, status/ping monitoring, the tile grid, the view switcher, the in-app config editor. The removal list is in [`architecture.md` §3.3](./architecture.md#33-removed-from-dashy). |
+| A-3.7 | **Never reintroduce a removed Workcenter subsystem**: the Default view, the Minimal view, widgets, status/ping monitoring, the tile grid, the view switcher, the in-app config editor. The removal list is in [`architecture.md` §3.3](./architecture.md#33-removed-from-workcenter). |
 | A-3.8 | **Never modify an upstream application in place.** Mailcow's `docker-compose.yml`, `generate_config.sh` and `update.sh` are read-only; Workcenter changes go in `docker-compose.override.yml`. Bundled applications are pinned and configured, never forked and patched. |
 | A-3.9 | **Never restructure the per-application folders.** Every application owns exactly one top-level folder, and its volumes are bind mounts inside it. |
 | A-3.10 | **Never overwrite a published requirement ID.** IDs in the specification set are stable; a withdrawn requirement is marked `(withdrawn)`, not renumbered or reused. |
@@ -114,24 +114,24 @@ Reporting a blocker is a correct outcome. Guessing is not.
 
 These are the facts most often hallucinated. They are verified against the source.
 
-### 4.1 Dashy-derived facts
+### 4.1 Workcenter-derived facts
 
 | Fact | Value |
 | --- | --- |
 | UI framework | Vue 3, **Options API** — no `<script setup>` anywhere in this repository |
-| State | Vuex 4, **single root store**; Dashy's `modules: {}` is empty |
+| State | Vuex 4, **single root store**; Workcenter's `modules: {}` is empty |
 | Route paths | Declared in `src/utils/config/defaults.js`, **not** in `src/router.js` |
 | Config file | `user-data/conf.yml`, loaded by the store, validated by `ConfigSchema.json` |
 | Config schema | `src/utils/config/ConfigSchema.json`, draft-07, `required: ["sections"]` |
-| Dashy's sidebar width token | `--side-bar-width` (Dashy: `3.5rem`; Workcenter widens it — see [`design.md` §2.2](./design.md#22-layout-tokens)) |
-| Dashy's header token | `--header-height` (Dashy: `6.3rem`; Workcenter sets `0` and replaces the header with the rail) |
+| Workcenter's sidebar width token | `--side-bar-width` (Workcenter: `3.5rem`; Workcenter widens it — see [`design.md` §2.2](./design.md#22-layout-tokens)) |
+| Workcenter's header token | `--header-height` (Workcenter: `6.3rem`; Workcenter sets `0` and replaces the header with the rail) |
 | i18n | `vue-i18n`, `legacy: false`; templates use `$t('ns.key')`, scripts use `i18n.global.t('ns.key')`; `en.json` is canonical |
 | Package manager | **Yarn**, not npm |
 | Formatting | `.editorconfig` + the written style guide. **There is no Prettier.** |
 | Linting | ESLint 10 flat config, `eslint.config.mjs` |
 | Server | `server.js` → `services/app.js` (Express 5) |
 | Healthcheck endpoint | `/healthz` (Workcenter's own server) — **not** `/health` |
-| Dashy's brand strings | None may remain. Run `grep -ri dashy src/ services/ index.html` before declaring done. |
+| Workcenter's brand strings | None may remain. Run `grep -ri workcenter src/ services/ index.html` before declaring done. |
 
 ### 4.2 Integrated-application facts
 
@@ -292,7 +292,7 @@ An agent must never:
 | 7 | Add `disableVerifyTLS`, `InsecureSkipVerify`, `--insecure`, `NODE_TLS_REJECT_UNAUTHORIZED=0` or `privileged: true` to make a check pass. |
 | 8 | Publish a service port to the host instead of routing it through Traefik. |
 | 9 | Write a secret into a tracked file, a log line, an error message or a test fixture. |
-| 10 | Reintroduce a removed Dashy subsystem. |
+| 10 | Reintroduce a removed Workcenter subsystem. |
 | 11 | Add a dependency, upgrade a dependency, or change a pinned image tag without being asked. |
 | 12 | Fabricate a test result, a command output, a version number, a config key or an API endpoint. |
 | 13 | Delete or weaken an existing test to make a change pass. |
@@ -332,7 +332,7 @@ A task is complete only when **all** of the following are true:
 - [ ] No secret, credential or personal datum was written anywhere.
 - [ ] No debugging artefact remains.
 - [ ] The final report lists what was verified, what was not, and what a human must check.
-- [ ] `grep -ri dashy src/ services/ index.html` returns nothing outside of intentional attribution.
+- [ ] `grep -ri workcenter src/ services/ index.html` returns nothing outside of intentional attribution.
 
 ---
 

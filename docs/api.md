@@ -106,6 +106,6 @@ After modifying your config, refresh the page to see changes.
 ## Limitations & Notes
 
 - Writes re-serialize the YAML file, so comments, anchors and custom formatting are discarded (the same applies to saving via the UI). A timestamped backup is saved to `user-data/config-backups/` before every write, unless `DISABLE_CONFIG_BACKUPS=true`
-- Writes to `conf.yml` are validated against [the schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json) and rejected if invalid. Sub-page files are not schema-validated, since they may contain only a subset of fields
+- Writes to `conf.yml` are validated against [the schema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json) and rejected if invalid. Sub-page files are not schema-validated, since they may contain only a subset of fields
 - Config files are capped at 256 KB
 - Concurrent writes are last-write-wins; there is no locking or optimistic concurrency

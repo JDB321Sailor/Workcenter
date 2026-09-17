@@ -8,7 +8,7 @@ const request = require('../utils/request');
 const { validateTargetUrl } = request;
 
 // If reference to env var is present, substitute for env var value if set
-const PLACEHOLDER_RE = /\b(?:DASHY_|VITE_APP_|VUE_APP_)\w+/g;
+const PLACEHOLDER_RE = /\b(?:WORKCENTER_|VITE_APP_|VUE_APP_)\w+/g;
 const warnedPlaceholders = new Set();
 const resolvePlaceholder = (name) => {
   const value = process.env[name];

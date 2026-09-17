@@ -1,6 +1,6 @@
 # Configuring
 
-All app configuration is specified in [`/user-data/conf.yml`](https://github.com/Lissy93/dashy/blob/master/user-data/conf.yml) which is in [YAML Format](https://yaml.org/) format. If you're using Docker, this file can be passed in as a volume. Changes can either be made directly to this file, or done [through the UI](#editing-config-through-the-ui). From the UI you can also export, backup, reset, validate and download your configuration file.
+All app configuration is specified in [`/user-data/conf.yml`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/user-data/conf.yml) which is in [YAML Format](https://yaml.org/) format. If you're using Docker, this file can be passed in as a volume. Changes can either be made directly to this file, or done [through the UI](#editing-config-through-the-ui). From the UI you can also export, backup, reset, validate and download your configuration file.
 
 ## There are three ways to edit the config
 
@@ -75,7 +75,7 @@ The following file provides a reference of all supported configuration options.
 **`description`** | `string` | _Optional_ | Description of your dashboard, also displayed as a subtitle
 **`navLinks`** | `array` | _Optional_ | Optional list of a maximum of 6 links, which will be displayed in the navigation bar. See [`navLinks`](#pageinfonavlinks-optional)
 **`footer`** | `string` | _Optional_ | Text to display in the footer. When omitted, no footer is rendered. Supports inline HTML (sanitized before render)
-**`logo`** | `string` | _Optional_ | The path to an image to display in the header (to the right of the title). This can be either local, where `/` is the root of `./public`, or any remote image, such as `https://i.ibb.co/yhbt6CY/dashy.png`. It's recommended to scale your image down, so that it doesn't impact load times
+**`logo`** | `string` | _Optional_ | The path to an image to display in the header (to the right of the title). This can be either local, where `/` is the root of `./public`, or any remote image, such as `https://i.ibb.co/yhbt6CY/workcenter.png`. It's recommended to scale your image down, so that it doesn't impact load times
 **`favicon`** | `string` | _Optional_ | URL or path to a custom favicon shown in the browser tab. Can be absolute (`https://...`), root-relative (`/icons/x.png`), or a `data:` URI
 **`color`** | `string` | _Optional_ | Theme colour applied to the browser chrome (mobile address bar). Any valid CSS color (e.g. `#ff00a7`) is accepted
 
@@ -106,7 +106,7 @@ For more info, see the[Multi-Page docs](/docs/pages-and-sections.md#multi-page-s
 
 **Field** | **Type** | **Required**| **Description**
 --- | --- | --- | ---
-**`language`** | `string` | _Optional_ | The 2 (or 4-digit) [ISO 639-1 code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) for your language, e.g. `en` or `en-GB`. This must be a language that the app has already been [translated](https://github.com/Lissy93/dashy/tree/master/src/assets/locales) into. If your language is unavailable, Workcenter will fallback to English. By default Workcenter will attempt to auto-detect your language, although this may not work on some privacy browsers.
+**`language`** | `string` | _Optional_ | The 2 (or 4-digit) [ISO 639-1 code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) for your language, e.g. `en` or `en-GB`. This must be a language that the app has already been [translated](https://github.com/JDB321Sailor/Workcenter/tree/Dev/src/assets/locales) into. If your language is unavailable, Workcenter will fallback to English. By default Workcenter will attempt to auto-detect your language, although this may not work on some privacy browsers.
 **`startingView`** | `enum` | _Optional_ | Which view to land on when visiting `/`. One of `home`, `minimal` or `workspace`. Defaults to `home`. Applied at runtime, so no rebuild is needed. You can always switch views from the UI. (Legacy value `default` is accepted as an alias for `home`.)
 **`defaultOpeningMethod`** | `enum` | _Optional_ | The default opening method for items, if no `target` is specified for a given item. Can be either `newtab`, `sametab`, `modal`, `workspace`, `clipboard`, `top` or `parent`. Defaults to `newtab`
 **`statusCheck`** | `boolean` | _Optional_ | When set to `true`, Workcenter will ping each of your services and display their status as a dot next to each item. This can be overridden by setting `statusCheck` under each item. Defaults to `false`
@@ -387,7 +387,7 @@ sections:
 
 ### Editing Config through the UI
 
-Config can be modified directly through the UI, and then written to disk, or applied locally. This can be done wither with the raw config editor (introduced in V 0.6.5 / [#3](https://github.com/Lissy93/dashy/pull/3)), or the interactive editor (introduced in V 1.8.9 / [#298](https://github.com/Lissy93/dashy/pull/298)).
+Config can be modified directly through the UI, and then written to disk, or applied locally. This can be done wither with the raw config editor (introduced in V 0.6.5 / [#3](https://github.com/JDB321Sailor/Workcenter/pull/3)), or the interactive editor (introduced in V 1.8.9 / [#298](https://github.com/JDB321Sailor/Workcenter/pull/298)).
 
 <p align="center">
   <a href="https://ibb.co/CzkyMNb">
@@ -397,7 +397,7 @@ Config can be modified directly through the UI, and then written to disk, or app
   <br>
   <a href="https://ibb.co/zRv542H">
   <b>JSON Editor</b><br>
-  <img alt="Config Editor demo" src="https://raw.githubusercontent.com/Lissy93/dashy/master/docs/assets/config-editor-demo.gif" width="600" />
+  <img alt="Config Editor demo" src="https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/docs/assets/config-editor-demo.gif" width="600" />
   </a>
 </p>
 
@@ -407,7 +407,7 @@ If you're new to YAML, it's pretty straight-forward. The format is exactly the s
 
 ### Schema Validation in your Editor
 
-Workcenter's config is described by a [JSON schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json) (and served up at `[your-dashy-instance.local]/schema.json`).
+Workcenter's config is described by a [JSON schema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json) (and served up at `[your-workcenter-instance.local]/schema.json`).
 
 Most editors can use this to give you validation, auto-complete and inline docs as you type, so long as you have the `$schema` key pointing to the schema URL.
 
@@ -416,7 +416,7 @@ If you have the [YAML Language Server](https://github.com/redhat-developer/yaml-
 ```json
 {
   "yaml.schemas": {
-    "https://raw.githubusercontent.com/Lissy93/dashy/master/src/utils/config/ConfigSchema.json": ["conf.yml", "user-data/*.yml"]
+    "https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/src/utils/config/ConfigSchema.json": ["conf.yml", "user-data/*.yml"]
   }
 }
 ```
@@ -424,7 +424,7 @@ If you have the [YAML Language Server](https://github.com/redhat-developer/yaml-
 The built-in YAML editor (under Config --> Edit Config) also has live validation and auto-complete from the schema.
 
 <p align="center">
-<img width="700" src="https://pixelflare.cc/alicia/dashy/yaml-editor" alt="YAML editor screenshot" />
+<img width="700" src="https://pixelflare.cc/alicia/workcenter/yaml-editor" alt="YAML editor screenshot" />
 </p>
 
 ### Config Saving Methods
@@ -454,15 +454,15 @@ sections: # An array of sections
   - title: GitHub
     description: Source code and documentation on GitHub
     icon: fab fa-github
-    url: https://github.com/Lissy93/dashy
+    url: https://github.com/JDB321Sailor/Workcenter
   - title: Issues
     description: View currently open issues, or raise a new one
     icon: fas fa-bug
-    url: https://github.com/Lissy93/dashy/issues
+    url: https://github.com/JDB321Sailor/Workcenter/issues
   - title: Demo
     description: A live demo
     icon: far fa-rocket
-    url: https://dashy-demo-1.netlify.app
+    url: https://workcenter-demo-1.netlify.app
 - name: Section 2 - Local Services
   items:
   - title: Firewall
@@ -475,7 +475,7 @@ sections: # An array of sections
 
 For more example config files, see: [this gist](https://gist.github.com/Lissy93/000f712a5ce98f212817d20bc16bab10)
 
-If you need any help, feel free to [Raise an Issue](https://github.com/Lissy93/dashy/issues/new?assignees=Lissy93&labels=%F0%9F%A4%B7%E2%80%8D%E2%99%82%EF%B8%8F+Question&template=question.md&title=%5BQUESTION%5D) or [Start a Discussion](https://github.com/Lissy93/dashy/discussions)
+If you need any help, feel free to [Raise an Issue](https://github.com/JDB321Sailor/Workcenter/issues/new?assignees=Lissy93&labels=%F0%9F%A4%B7%E2%80%8D%E2%99%82%EF%B8%8F+Question&template=question.md&title=%5BQUESTION%5D) or [Start a Discussion](https://github.com/JDB321Sailor/Workcenter/discussions)
 
 Happy Configuring 🤓🔧
 

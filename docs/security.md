@@ -17,7 +17,7 @@
   - [Intended Deployment](#intended-deployment)
   - [Trust Boundaries](#trust-boundaries)
   - [Assets](#assets)
-  - [When Workcenter is NOT the Right Choice](#when-dashy-is-not-the-right-choice)
+  - [When Workcenter is NOT the Right Choice](#when-workcenter-is-not-the-right-choice)
 - [Update & Patch Policy](#update--patch-policy)
 - [Known Limitations](#known-limitations)
 - [Reporting a Security Issue](#reporting-a-security-issue)
@@ -58,7 +58,7 @@ There is very little complexity involved with Workcenter, and therefore the atta
 
 Every release is built in the open by GitHub Actions, never by hand. Each build produces a signed provenance attestation (keyless, tied to GitHub's OIDC identity), so you can confirm that the copy of Workcenter you're running was built by our CI, from this repo, and hasn't been altered since. Release tarballs also ship with a SHA256 checksum.
 
-You can browse every attestation on the [attestations page](https://github.com/lissy93/dashy/attestations), or verify a download yourself with `gh attestation verify`.
+You can browse every attestation on the [attestations page](https://github.com/JDB321Sailor/Workcenter/attestations), or verify a download yourself with `gh attestation verify`.
 
 ### Supply Chain
 
@@ -108,7 +108,7 @@ The official image follows container best practices out of the box:
 - Minimal Alpine base, with npm removed from the final image to reduce the attack surface
 - Multi-stage build, so only runtime files ship, with no build tooling or source
 - Scanned with Trivy for known vulnerabilities before every publish
-- Published to GHCR with signed build provenance and an attested SBOM, viewable on the [attestations page](https://github.com/lissy93/dashy/attestations)
+- Published to GHCR with signed build provenance and an attested SBOM, viewable on the [attestations page](https://github.com/JDB321Sailor/Workcenter/attestations)
 
 To lock things down further, such as read-only volumes and dropped capabilities, see the [container security docs](/docs/management.md#container-security).
 
@@ -140,7 +140,7 @@ If exposed to the internet, Workcenter **must** be placed behind a reverse proxy
 | Dashboard configuration | Service URLs, section layout, app settings | `conf.yml` on server, optionally cached in browser localStorage |
 | User credentials | SHA-256 password hashes, Keycloak/OIDC client IDs | `conf.yml` on server |
 | API keys | Keys for widget services (weather, stocks, etc.) | `conf.yml` on server or environment variables |
-| Auth tokens | Session token derived from credentials | Browser cookie (`dashyAuthToken`) |
+| Auth tokens | Session token derived from credentials | Browser cookie (`workcenterAuthToken`) |
 | User preferences | Theme, layout, language, collapsed sections | Browser localStorage |
 
 ### When Workcenter is NOT the Right Choice
@@ -181,7 +181,7 @@ We follow Semantic Versioning for all releases. Security fixes are shipped as pa
 
 ## Reporting a Security Issue
 
-Please see our [Security.md](https://github.com/Lissy93/dashy/?tab=security-ov-file) doc for how to report issues.
+Please see our [Security.md](https://github.com/JDB321Sailor/Workcenter/?tab=security-ov-file) doc for how to report issues.
 We have an actively monitored security mailbox supporting PGP, as well as a GitHub Advisories vulnerability reporting program.
 
 ---
@@ -195,7 +195,7 @@ These are reported regularly, usually by automated scanners. Each has been check
 | Report | Response |
 |---|---|
 | Ping and status checks allow command injection | The host goes to pingman, which runs `spawn('ping', ...)` with no shell, so `;`, `|`, `$()` and backticks are inert. It is one trailing argument, so no extra flags either. |
-| The CORS proxy can read arbitrary environment variables | Only `DASHY_`, `VITE_APP_` prefixes are read. The client `VITE_APP_` vars are already in the bundle, and `DASHY_` is opt-in. Unprefixed secrets stay unreachable. |
+| The CORS proxy can read arbitrary environment variables | Only `WORKCENTER_`, `VITE_APP_` prefixes are read. The client `VITE_APP_` vars are already in the bundle, and `WORKCENTER_` is opt-in. Unprefixed secrets stay unreachable. |
 | `enableInsecure` disables TLS certificate verification | Opt-in per status check, for internal services with self-signed certs, and it only affects that one request. Leave `statusCheckAllowInsecure` unset to keep verification on. The equivalent for widgets is `allowInsecure`, which is also opt-in and per-widget. |
 | OIDC does not pin the JWT algorithm (alg confusion or `none`) | Verification uses a remote JWKS, so jose rejects none and symmetric algorithms. The issuer and group claims come from a signature-verified token, so a user cannot forge them. |
 | `yaml.load()` allows code execution on parse | In js-yaml 4.x (we use `^4.2.0`) `load` is the safe loader. It does not instantiate custom types, so parsing a config file cannot execute code. |
@@ -213,7 +213,7 @@ The following list is the most reported non-issues. They are out-of-scope, since
 #### Endpoints are unauthenticated
 Workcenter ships with no auth configured out-of-the-box. So until you enable or setup auth, all pages and endpoints will be reachable without credentials. That's intentional, as it allows you to put Workcenter behind your existing auth setup without hassle. Once an auth system of your choice has been (correctly) configured, all unauthenticated requests will then be rejected.
 
-✅ **Solution**: Enable authentication. See the [authentication docs](https://dashy.to/docs/authentication/) for instructions.
+✅ **Solution**: Enable authentication. See the [authentication docs](https://github.com/lissy93/dashy/blob/master/docs/authentication/) for instructions.
 
 #### The proxy / status / ping can reach localhost and private IPs
 The CORS proxy, status-check and ping-check features are *meant* to reach internal and private addresses. Their use case is to let your widgets and service status checks talk the other services you have running within your LAN securely.

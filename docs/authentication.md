@@ -50,9 +50,9 @@ appConfig:
     enableKeycloak: true
     keycloak:
       serverUrl: http://localhost:9100
-      realm: dashy
-      clientId: dashy
-      adminRole: dashy-admin
+      realm: workcenter
+      clientId: workcenter
+      adminRole: workcenter-admin
 ```
 
 ## Header Authentication
@@ -86,11 +86,11 @@ appConfig:
   auth:
     enableOidc: true                    # Turn OIDC on
     oidc:
-      clientId: dashy                    # Client ID from your provider
-      endpoint: https://auth.example.com/application/o/dashy/ # The issuer URL, not the .well-known one
+      clientId: workcenter                    # Client ID from your provider
+      endpoint: https://auth.example.com/application/o/workcenter/ # The issuer URL, not the .well-known one
       scope: openid profile email groups # Scopes to request (groups for adminGroup, roles for adminRole)
-      adminGroup: dashy-admins           # Members of this group are admins
-      adminRole: dashy-admin             # Or grant admin by role instead
+      adminGroup: workcenter-admins           # Members of this group are admins
+      adminRole: workcenter-admin             # Or grant admin by role instead
       enableSilentRenew: true            # Refresh the session in the background before it expires
 ```
 

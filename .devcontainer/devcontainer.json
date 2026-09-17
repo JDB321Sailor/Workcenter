@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
 {
-	"name": "Dashy",
+	"name": "Workcenter",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm",
 
@@ -39,11 +39,11 @@
 			"onAutoForward": "openPreview"
 		},
 		"4000": {
-			"label": "Dashy (Production)",
+			"label": "Workcenter (Production)",
 			"onAutoForward": "notify"
 		},
 		"4001": {
-			"label": "Dashy (SSL)",
+			"label": "Workcenter (SSL)",
 			"onAutoForward": "silent"
 		}
 	},

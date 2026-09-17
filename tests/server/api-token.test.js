@@ -5,8 +5,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-// No Dashy auth configured here — only an API_TOKEN. Set before requiring app.
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-api-token-'));
+// No Workcenter auth configured here — only an API_TOKEN. Set before requiring app.
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-api-token-'));
 process.env.USER_DATA_DIR = tmpDir;
 process.env.ENABLE_API = 'true';
 process.env.API_TOKEN = 'super-secret-token';

@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-IMAGE="dashy-smoke-test"
-CONTAINER="dashy-smoke-$$"
+IMAGE="workcenter-smoke-test"
+CONTAINER="workcenter-smoke-$$"
 
 cleanup() {
   echo "Cleaning up..."

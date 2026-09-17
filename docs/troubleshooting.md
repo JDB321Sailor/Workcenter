@@ -15,7 +15,7 @@
   - [Your browser shows an old config](#your-browser-shows-an-old-config)
   - [Empty dashboard with "Login" in the title](#empty-dashboard-with-login-in-the-title)
   - [Static hosting ignores config changes](#static-hosting-ignores-config-changes)
-  - [Nothing loads when Workcenter is behind a sub-path](#nothing-loads-when-dashy-is-behind-a-sub-path)
+  - [Nothing loads when Workcenter is behind a sub-path](#nothing-loads-when-workcenter-is-behind-a-sub-path)
 - [Config not saving](#config-not-saving)
   - [Permission denied or read-only filesystem](#permission-denied-or-read-only-filesystem-eacces-erofs)
   - [Kubernetes ConfigMap mount is read-only](#kubernetes-configmap-mount-is-read-only)
@@ -34,7 +34,7 @@
   - [404 On Static Hosting](#404-on-static-hosting)
   - [404 from Mobile Home Screen](#404-after-launch-from-mobile-home-screen)
   - [404 On Multi-Page Apps](#404-on-multi-page-apps)
-  - [Workcenter hosted at a sub-path](#dashy-hosted-at-a-sub-path-eg-examplecomdashy)
+  - [Workcenter hosted at a sub-path](#workcenter-hosted-at-a-sub-path-eg-examplecomworkcenter)
 - [Sub-pages](#sub-pages)
   - [Sub-page shows "Unable to find config for ..."](#sub-page-shows-unable-to-find-config-for-)
   - [Sub-page missing from nav, or won't open when clicked](#sub-page-missing-from-nav-or-wont-open-when-clicked)
@@ -59,7 +59,7 @@
   - [invalid_redirect_uri](#invalid_redirect_uri)
   - [Login works in the browser but the dashboard refuses to save anything (403)](#login-works-in-the-browser-but-the-dashboard-refuses-to-save-anything-403)
   - [Logged in but no admin controls](#logged-in-but-no-admin-controls)
-  - [Login works but Workcenter errors on the callback with "OIDC signinCallback returned no user"](#login-works-but-dashy-errors-on-the-callback-with-oidc-signincallback-returned-no-user)
+  - [Login works but Workcenter errors on the callback with "OIDC signinCallback returned no user"](#login-works-but-workcenter-errors-on-the-callback-with-oidc-signincallback-returned-no-user)
   - [Sign-out leaves you stuck on Authentik](#sign-out-leaves-you-stuck-on-authentik)
   - [Untrusted certificate from Authentik](#untrusted-certificate-from-authentik)
   - [Numeric client_id getting truncated](#numeric-client_id-getting-truncated)
@@ -102,7 +102,7 @@
 
 ## Config not loading
 
-The server reads `conf.yml` from `user-data/` on each request (that's `/app/user-data/` on Docker), which Workcenter serves to the base of the domain (like `[your-dashy-instance]/conf.yml`). If you forget to pass in a config, or you put it in the wrong place, you'll see the default Workcenter config.
+The server reads `conf.yml` from `user-data/` on each request (that's `/app/user-data/` on Docker), which Workcenter serves to the base of the domain (like `[your-workcenter-instance]/conf.yml`). If you forget to pass in a config, or you put it in the wrong place, you'll see the default Workcenter config.
 
 ### You see the default dashboard instead of yours
 
@@ -111,10 +111,10 @@ If the page reads "Welcome to your new dashboard!" with a Getting Started sectio
 Since v3.0.0 the config lives at `/app/user-data/conf.yml` (NOT `/app/public/conf.yml`)
 
 ```bash
-docker run -d -p 8080:8080 -v ~/dashy/user-data:/app/user-data lissy93/dashy:latest
+docker run -d -p 8080:8080 -v ~/workcenter/user-data:/app/user-data lissy93/dashy:latest
 ```
 
-To see what the container is actually reading: `docker exec -it dashy head /app/user-data/conf.yml`
+To see what the container is actually reading: `docker exec -it workcenter head /app/user-data/conf.yml`
 
 ### "Failed to fetch configuration: Server responded with status 404"
 
@@ -125,8 +125,8 @@ A file that exists but can't be read by uid 1000 gives the same 404, so check [p
 Put the file in place before starting the container:
 
 ```bash
-mkdir -p ~/dashy/user-data
-cp conf.yml ~/dashy/user-data/conf.yml
+mkdir -p ~/workcenter/user-data
+cp conf.yml ~/workcenter/user-data/conf.yml
 ```
 
 ### Config came back after a permissions fix, but auth is ignored
@@ -134,8 +134,8 @@ cp conf.yml ~/dashy/user-data/conf.yml
 Restart the container after fixing permissions, even though the dashboard already looks repaired. Because auth is resolved once at startup, while `conf.yml` is re-read on every request. See [Permission denied or read-only filesystem](#permission-denied-or-read-only-filesystem-eacces-erofs) for the ownership side, including Synology, NAS and SELinux cases.
 
 ```bash
-sudo chown -R 1000:1000 ~/dashy/user-data
-docker restart dashy
+sudo chown -R 1000:1000 ~/workcenter/user-data
+docker restart workcenter
 ```
 
 ### Edits on the host never reach the container
@@ -167,7 +167,7 @@ On Netlify, Vercel, GitHub Pages and similar there's no Workcenter server, so `c
 
 ### Nothing loads when Workcenter is behind a sub-path
 
-Serve Workcenter at `example.com/dashy` and the browser still requests `example.com/conf.yml`. The config path is fixed at build time as `/conf.yml`, and `BASE_URL` doesn't apply to it, so a proxy forwarding only `/dashy/*` never sees the request.
+Serve Workcenter at `example.com/workcenter` and the browser still requests `example.com/conf.yml`. The config path is fixed at build time as `/conf.yml`, and `BASE_URL` doesn't apply to it, so a proxy forwarding only `/workcenter/*` never sees the request.
 
 Give Workcenter its own hostname or subdomain, or build from source with `VITE_APP_CONFIG_PATH` set to the full path. Any `VITE_` variable is read during the build, so setting one on the prebuilt Docker image won't do anything.
 
@@ -192,7 +192,7 @@ The container can't write to your `conf.yml` or its directory. Almost always an 
 
 The `COPY --chown=node:node` in the Dockerfile only sets ownership *inside the image*. When you bind-mount `user-data`, your host directory takes over that path entirely, so its ownership is what counts - not the image's.
 
-Workcenter runs as UID=1000 (default non-root node user). You can see this by running `docker exec -it dashy id`. Then, check who owns the user-data directory, with: `docker exec -it dashy ls -la /app/user-data` - if it's not `1000` then that's the issue. And the solution is just to run `sudo chown -R 1000:1000 /path/to/your/user-data` to set the right owner.
+Workcenter runs as UID=1000 (default non-root node user). You can see this by running `docker exec -it workcenter id`. Then, check who owns the user-data directory, with: `docker exec -it workcenter ls -la /app/user-data` - if it's not `1000` then that's the issue. And the solution is just to run `sudo chown -R 1000:1000 /path/to/your/user-data` to set the right owner.
 
 Fixes:
 1. **Hand the directory to uid 1000** (recommended). Keeps the container running as a non-root user, which is how Workcenter is built to run `sudo chown -R 1000:1000 /path/to/your/user-data`
@@ -242,7 +242,7 @@ Beyond that, there's several other config options which prevent saving the confi
 Updating source config file on static hosts is not possible, since they have no Node server, nor have write access to modify any files.
 The "Local" save mode will still work (changes are just persisted in your browser), but the real solution is to copy/export the updated YAML and replace it in the source config file in your repo.
 
-Related: [#1465](https://github.com/Lissy93/dashy/issues/1465).
+Related: [#1465](https://github.com/JDB321Sailor/Workcenter/issues/1465).
 
 ### `/config-manager/save` returns 404 or HTML
 How are you running/serving Workcenter?
@@ -321,13 +321,13 @@ header {
 In Apache, you can use the [`mod_headers`](https://httpd.apache.org/docs/current/mod/mod_headers.html) module to set the `X-Frame-Options` in your config file. This file is usually located somewhere like `/etc/apache2/httpd.conf
 
 ```text
-Header set X-Frame-Options: "ALLOW-FROM http://[dashy-location]/"
+Header set X-Frame-Options: "ALLOW-FROM http://[workcenter-location]/"
 ```
 
 ### LightHttpd
 
 ```text
-Content-Security-Policy: frame-ancestors 'self' https://[dashy-location]/
+Content-Security-Policy: frame-ancestors 'self' https://[workcenter-location]/
 ```
 
 ---
@@ -347,20 +347,20 @@ If this works, but you wish to continue using HTML5 history mode, then a bit of 
 Similar to the above issue, if you get a 404 after using iOS and Android's "Add to Home Screen" feature, then this is caused by Vue router.
 It can be fixed by rebuilding Workcenter with the `VITE_APP_ROUTING_MODE=hash` build-time environment variable set.
 
-See also: [#628](https://github.com/Lissy93/dashy/issues/628), [#762](https://github.com/Lissy93/dashy/issues/762)
+See also: [#628](https://github.com/JDB321Sailor/Workcenter/issues/628), [#762](https://github.com/JDB321Sailor/Workcenter/issues/762)
 
 ### 404 On Multi-Page Apps
 
 Similar to above, if you get a 404 error when visiting a page directly on multi-page apps, then this can be fixed by rebuilding Workcenter with the `VITE_APP_ROUTING_MODE=hash` build-time environment variable set, then refreshing the page.
 
-See also: [#670](https://github.com/Lissy93/dashy/issues/670), [#763](https://github.com/Lissy93/dashy/issues/763)
+See also: [#670](https://github.com/JDB321Sailor/Workcenter/issues/670), [#763](https://github.com/JDB321Sailor/Workcenter/issues/763)
 
-### Workcenter hosted at a sub-path (e.g. `example.com/dashy`)
+### Workcenter hosted at a sub-path (e.g. `example.com/workcenter`)
 
 If the homepage works but sub-page links 404, or assets fail to load, it's almost always the base path.
 Rebuild with `BASE_URL` set to the sub-path - leading slash, no trailing slash:
 
-Vue Router uses this to prefix every route. Without it, links resolve to `/home/...` instead of `/dashy/home/...` and skip your reverse proxy altogether. More detail in [web-server configuration](/docs/management.md#web-server-configuration).
+Vue Router uses this to prefix every route. Without it, links resolve to `/home/...` instead of `/workcenter/home/...` and skip your reverse proxy altogether. More detail in [web-server configuration](/docs/management.md#web-server-configuration).
 
 ---
 
@@ -426,7 +426,7 @@ Now everything in your `user-data` folder is reachable at the web root. Same app
 If you've got a multi-page dashboard, and are hosting the additional config files yourself, then CORS rules will apply. A CORS error will look something like:
 
 ```text
-Access to XMLHttpRequest at 'https://example.com/raw/my-config.yml' from origin 'http://dashy.local' has been blocked by CORS policy:
+Access to XMLHttpRequest at 'https://example.com/raw/my-config.yml' from origin 'http://workcenter.local' has been blocked by CORS policy:
 No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ```
 
@@ -440,7 +440,7 @@ If it is a remote service, that you do not have admin access to, then another op
 
 ### Yarn Error
 
-For more info, see [Issue #1](https://github.com/Lissy93/dashy/issues/1)
+For more info, see [Issue #1](https://github.com/JDB321Sailor/Workcenter/issues/1)
 
 First of all, check that you've got yarn installed correctly - see the [yarn installation docs](https://classic.yarnpkg.com/en/docs/install) for more info.
 
@@ -454,7 +454,7 @@ If you're getting an error about scenarios, then you've likely installed the wro
 Alternatively, as a workaround, you have several options:
 
 - Try using [NPM](https://www.npmjs.com/get-npm) instead: So clone, cd, then run `npm install`, `npm run build` and `npm start`
-- Try using [Docker](https://www.docker.com/get-started) instead, and all of the system setup and dependencies will already be taken care of. So from within the directory, just run `docker build -t lissy93/dashy .` to build, and then use docker start to run the project, e.g: `docker run -it -p 8080:8080 lissy93/dashy` (see the [deploying docs](https://github.com/Lissy93/dashy/blob/master/docs/deployment.md#deploy-with-docker) for more info)
+- Try using [Docker](https://www.docker.com/get-started) instead, and all of the system setup and dependencies will already be taken care of. So from within the directory, just run `docker build -t lissy93/dashy .` to build, and then use docker start to run the project, e.g: `docker run -it -p 8080:8080 lissy93/dashy` (see the [deploying docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/deployment.md#deploy-with-docker) for more info)
 
 ### The engine "node" is incompatible with this module
 
@@ -487,7 +487,7 @@ When the Workcenter container first starts, it runs a Vue production build in pa
 2. **Set explicit Docker resource limits** so the build can't starve other services on the same host:
    ```yaml
    services:
-     dashy:
+     workcenter:
        image: lissy93/dashy:latest
        deploy:
          resources:
@@ -498,7 +498,7 @@ When the Workcenter container first starts, it runs a Vue production build in pa
 3. **Wait it out** - once the build completes, idle CPU drops to near zero and idle RAM is typically under 100 MB. If you watch `docker stats`, you'll see the spike taper off.
 4. If the spike never tapers (i.e., Workcenter stays at 100% CPU forever and never serves the page), see [Heap limit Allocation failed](#ineffective-mark-compacts-near-heap-limit-allocation-failed) below - that usually means the build was killed mid-way and is being retried.
 
-See also: [#1585](https://github.com/Lissy93/dashy/issues/1585), [#969](https://github.com/Lissy93/dashy/issues/969), [#1500](https://github.com/Lissy93/dashy/issues/1500), [#877](https://github.com/Lissy93/dashy/issues/877)
+See also: [#1585](https://github.com/JDB321Sailor/Workcenter/issues/1585), [#969](https://github.com/JDB321Sailor/Workcenter/issues/969), [#1500](https://github.com/JDB321Sailor/Workcenter/issues/1500), [#877](https://github.com/JDB321Sailor/Workcenter/issues/877)
 
 ### Ineffective mark-compacts near heap limit Allocation failed
 
@@ -516,13 +516,13 @@ FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memor
 
 This is likely caused by insufficient memory allocation to the container. When the container first starts up, or has to rebuild, the memory usage spikes, and if there isn't enough memory, it may terminate. This can be specified with, for example: `--memory=1024m`. For more info, see [Docker: Runtime options with Memory, CPUs, and GPUs](https://docs.docker.com/config/containers/resource_constraints/). For more context on what the spike is, see [High CPU or RAM Usage on Startup](#high-cpu-or-ram-usage-on-startup) above.
 
-See also: [#380](https://github.com/Lissy93/dashy/issues/380), [#350](https://github.com/Lissy93/dashy/issues/350), [#297](https://github.com/Lissy93/dashy/issues/297), [#349](https://github.com/Lissy93/dashy/issues/349), [#510](https://github.com/Lissy93/dashy/issues/510), [#511](https://github.com/Lissy93/dashy/issues/511) and [#834](https://github.com/Lissy93/dashy/issues/834)
+See also: [#380](https://github.com/JDB321Sailor/Workcenter/issues/380), [#350](https://github.com/JDB321Sailor/Workcenter/issues/350), [#297](https://github.com/JDB321Sailor/Workcenter/issues/297), [#349](https://github.com/JDB321Sailor/Workcenter/issues/349), [#510](https://github.com/JDB321Sailor/Workcenter/issues/510), [#511](https://github.com/JDB321Sailor/Workcenter/issues/511) and [#834](https://github.com/JDB321Sailor/Workcenter/issues/834)
 
 ### Command failed with signal "SIGKILL"
 
 In Docker, this can be caused by not enough memory. When the container first starts up, or has to rebuild, the memory usage spikes, and so a larger allocation may be required. This can be specified with, for example: `--memory=1024m`. For more info, see [Docker: Runtime options with Memory, CPUs, and GPUs](https://docs.docker.com/config/containers/resource_constraints/)
 
-See also [#624](https://github.com/Lissy93/dashy/issues/624)
+See also [#624](https://github.com/JDB321Sailor/Workcenter/issues/624)
 
 ### Node Sass does not yet support your current environment
 
@@ -535,7 +535,7 @@ An error similar to: `Fatal error in , line 0. Unreachable code, FailureMessage 
 Is related to a bug in a downstream package, see [nodejs/docker-node#1477](https://github.com/nodejs/docker-node/issues/1477).
 Usually, updating your system and packages will resolve the issue.
 
-See also: [#776](https://github.com/Lissy93/dashy/issues/776)
+See also: [#776](https://github.com/JDB321Sailor/Workcenter/issues/776)
 
 ### Error: Cannot find module './_baseValues'
 
@@ -550,7 +550,7 @@ If the issue persists, remove (`rm -rf node_modules\ yarn.lock`) and reinstall (
 
 In V 1.6.5 an update was made that in the future will become a breaking change. You will need to update you config to reflect this before V 2.0.0 is released. In the meantime, your previous config will continue to function normally, but you will see a validation warning. The change means that the structure of the `appConfig.auth` object is now an object, which has a `users` property.
 
-For more info, see [this announcement](https://github.com/Lissy93/dashy/discussions/177).
+For more info, see [this announcement](https://github.com/JDB321Sailor/Workcenter/discussions/177).
 
 You can fix this by replacing:
 
@@ -588,7 +588,7 @@ For more details on how to set headers, see the [Example Headers](/docs/manageme
 If you're running in Kubernetes, you will need to enable CORS ingress rules, see [docs](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#enable-cors), e.g:
 
 ```text
-nginx.ingress.kubernetes.io/cors-allow-origin: "https://dashy.example.com"
+nginx.ingress.kubernetes.io/cors-allow-origin: "https://workcenter.example.com"
 nginx.ingress.kubernetes.io/enable-cors: "true"
 ```
 
@@ -625,8 +625,8 @@ The redirect URI Authentik has registered for the provider doesn't exactly match
 ### Login works in the browser but the dashboard refuses to save anything (403)
 Workcenter's server is rejecting the id_token. Check Workcenter's container logs for `[auth-oidc] token verification failed`. Common causes:
 - **Issuer mismatch**. Authentik is behind a reverse proxy that isn't sending `X-Forwarded-Proto: https`, so its discovery document advertises `http://` while you configured `https://` in Workcenter. Fix the proxy or set `AUTHENTIK_HOST`/`AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS` on the Authentik containers
-- **Audience mismatch**. The `aud` claim in the id_token is not `dashy`. Confirm the provider's Client ID is exactly `dashy` (no leading or trailing whitespace)
-- **Workcenter server can't reach Authentik**. The Workcenter container fails to fetch the discovery document. Exec into the container and try `wget -qO- https://auth.example.com/application/o/dashy/.well-known/openid-configuration`
+- **Audience mismatch**. The `aud` claim in the id_token is not `workcenter`. Confirm the provider's Client ID is exactly `workcenter` (no leading or trailing whitespace)
+- **Workcenter server can't reach Authentik**. The Workcenter container fails to fetch the discovery document. Exec into the container and try `wget -qO- https://auth.example.com/application/o/workcenter/.well-known/openid-configuration`
 - **Clock skew**. The middleware allows 30 seconds of drift. If a container's clock is further off than that, `exp`/`iat` checks fail
 
 If you've exhausted these and need a stop-gap, set `oidc.disableServerSideCheck: true` to skip server-side verification and fall back to client-side-only auth. This leaves Workcenter's server routes unprotected, so only use it in a trusted environment (see the [OIDC docs](/docs/authentication/oidc.md)).
@@ -635,9 +635,9 @@ If you've exhausted these and need a stop-gap, set `oidc.disableServerSideCheck:
 Your SSO session's id_token expired, so Workcenter signs you out (rather than leaving a logged-in-looking UI whose API calls all silently 401). For OIDC, set `oidc.enableSilentRenew: true` to refresh the session in the background before it lapses; this needs your provider to issue refresh tokens (Workcenter adds the `offline_access` scope automatically when it's on). Otherwise, just sign in again when prompted.
 
 ### Logged in but no admin controls
-The id_token doesn't include the groups claim. Open browser devtools after logging in, find the call to `/application/o/dashy/userinfo/`, and check the response. You should see a `groups` array containing `dashy-admins`. If not:
+The id_token doesn't include the groups claim. Open browser devtools after logging in, find the call to `/application/o/workcenter/userinfo/`, and check the response. You should see a `groups` array containing `workcenter-admins`. If not:
 - The `groups` scope mapping doesn't exist, or is not attached to the provider's property mappings
-- The user is not in the `dashy-admins` group
+- The user is not in the `workcenter-admins` group
 - The conf.yml is missing `groups` from `scope:` and Authentik is therefore not sending it
 
 ### Login works but Workcenter errors on the callback with "OIDC signinCallback returned no user"
@@ -653,7 +653,7 @@ Self-signed certs make Workcenter's server-side fetch of the discovery document 
 Don't use numeric-only client IDs. If you must, wrap the value in quotes in conf.yml so YAML treats it as a string
 
 ### Header auth: "Unauthorized - not from trusted proxy"
-The IP your reverse proxy presents as isn't in `auth.headerAuth.proxyWhitelist`. For Docker it's usually the bridge IP, not your LAN IP. Find it with `docker compose exec dashy getent hosts <proxy-service-name>` and paste that into `proxyWhitelist`. Restart Workcenter after the change.
+The IP your reverse proxy presents as isn't in `auth.headerAuth.proxyWhitelist`. For Docker it's usually the bridge IP, not your LAN IP. Find it with `docker compose exec workcenter getent hosts <proxy-service-name>` and paste that into `proxyWhitelist`. Restart Workcenter after the change.
 
 ### Header auth: "Unauthorized - missing user header"
 The source IP check passed, but the configured `userHeader` isn't on the request. Either the proxy isn't sending it (check the Cloudflare Access policy / Authelia forward-auth / Tailscale Serve config is actually applied), or the header name in `conf.yml` doesn't match what the proxy sends. Header matching is case-insensitive, but spelling and prefix matter.
@@ -674,8 +674,8 @@ Version 2.0.4 introduced changes to how the config is read, and the app is build
 
 ```yaml
 volumes:
-- /srv/dashy/conf.yml:/app/user-data/conf.yml
-- /srv/dashy/item-icons:/app/public/item-icons
+- /srv/workcenter/conf.yml:/app/user-data/conf.yml
+- /srv/workcenter/item-icons:/app/public/item-icons
 ```
 
 ### Mount Type Mismatch
@@ -690,9 +690,9 @@ This means the host side and container side of your volume don't agree on whethe
 Recommended pattern: mount a host directory onto `/app/user-data`. The directory must exist on the host and contain at least a `conf.yml`:
 
 ```bash
-mkdir -p ~/dashy-data
-cp /path/to/your/conf.yml ~/dashy-data/conf.yml
-docker run -d -p 8080:8080 -v ~/dashy-data:/app/user-data lissy93/dashy:latest
+mkdir -p ~/workcenter-data
+cp /path/to/your/conf.yml ~/workcenter-data/conf.yml
+docker run -d -p 8080:8080 -v ~/workcenter-data:/app/user-data lissy93/dashy:latest
 ```
 
 If you'd rather mount a single file (`-v ~/conf.yml:/app/user-data/conf.yml`), the host path must be a file that already exists, otherwise Docker creates a directory in its place and you'll see this error.
@@ -718,7 +718,7 @@ You can [check your rate limit status](https://www.docker.com/blog/checking-your
 #### Solution 1 - Use an alternate container registry
 
 - Workcenter is also available through GHCR, which at present does not have any hard limits. Just use `docker pull ghcr.io/lissy93/dashy:latest` to fetch the image
-- You can also build the image from source, by cloning the repo, and running `docker build -t dashy .` or use the pre-made docker compose
+- You can also build the image from source, by cloning the repo, and running `docker build -t workcenter .` or use the pre-made docker compose
 
 #### Solution 2 - Increase your rate limits
 
@@ -760,7 +760,7 @@ If `docker ps` shows the Workcenter container as `unhealthy`, the periodic healt
 
 #### SSL-enabled Workcenter
 
-The healthcheck reads the same cert paths as the main server (`/etc/ssl/certs/dashy-pub.pem` and `/etc/ssl/certs/dashy-priv.key`) to detect whether to probe HTTPS or HTTP. If you've mounted certs at non-default paths via `SSL_PUB_KEY_PATH` / `SSL_PRIV_KEY_PATH`, the healthcheck will pick those up automatically as long as those env vars are set in the container environment (not just at run time).
+The healthcheck reads the same cert paths as the main server (`/etc/ssl/certs/workcenter-pub.pem` and `/etc/ssl/certs/workcenter-priv.key`) to detect whether to probe HTTPS or HTTP. If you've mounted certs at non-default paths via `SSL_PUB_KEY_PATH` / `SSL_PRIV_KEY_PATH`, the healthcheck will pick those up automatically as long as those env vars are set in the container environment (not just at run time).
 
 #### Custom port
 
@@ -770,7 +770,7 @@ If you've set `PORT` to override the default 8080, the healthcheck honors the sa
 
 The healthcheck has a 20s `start-period` after which failures start counting. The image is prebuilt, so startup is just `node server.js` binding to a port - fast even on a Pi. If the container is still `unhealthy` past the grace period, the server has likely crashed. Check `docker logs <container>` for the real error (usually a malformed `conf.yml` or a missing `user-data` mount).
 
-See also: [#1410](https://github.com/Lissy93/dashy/issues/1410)
+See also: [#1410](https://github.com/JDB321Sailor/Workcenter/issues/1410)
 
 ### Docker Login Fails on Ubuntu
 
@@ -780,15 +780,15 @@ Run `sudo apt install gnupg2 pass && gpg2 -k`
 
 ## Styles and Assets not Updating
 
-If you find that your styles and other visual assets work when visiting `ip:port` by not `dashy.domain.com`, then this is usually caused by caching. In your browser, do a hard-refresh (<kbd>Ctrl</kbd> + <kbd>F5</kbd>). If you use Cloudflare, then you can clear the cache through the management console, or set the cache level to Bypass for certain files, under the Rules tab.
+If you find that your styles and other visual assets work when visiting `ip:port` by not `workcenter.domain.com`, then this is usually caused by caching. In your browser, do a hard-refresh (<kbd>Ctrl</kbd> + <kbd>F5</kbd>). If you use Cloudflare, then you can clear the cache through the management console, or set the cache level to Bypass for certain files, under the Rules tab.
 
 ---
 
 ## Config Validation Errors
 
-The configuration file is validated against [Workcenter's Schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json) using AJV.
+The configuration file is validated against [Workcenter's Schema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json) using AJV.
 
-First, check that your syntax is valid, using [YAML Validator](https://codebeautify.org/yaml-validator/) or [JSON Validator](https://codebeautify.org/jsonvalidator). If the issue persists, then take a look at the [schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json), and verify that the field you are trying to add/ modify matches the required format. You can also use [this tool](https://www.jsonschemavalidator.net/s/JFUj7X9J) to validate your JSON config against the schema, or run `yarn validate-config`.
+First, check that your syntax is valid, using [YAML Validator](https://codebeautify.org/yaml-validator/) or [JSON Validator](https://codebeautify.org/jsonvalidator). If the issue persists, then take a look at the [schema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json), and verify that the field you are trying to add/ modify matches the required format. You can also use [this tool](https://www.jsonschemavalidator.net/s/JFUj7X9J) to validate your JSON config against the schema, or run `yarn validate-config`.
 
 If you're trying to use a recently released feature, and are getting a warning, this is likely because you've not yet updated the the current latest version of Workcenter.
 
@@ -817,7 +817,7 @@ If your service requires requests to include any authorization in the headers, t
 If you are still having issues, it may be because your target application is blocking requests from Workcenter's IP. This is a [CORS error](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), and can be fixed by setting the headers on your target app, to include:
 
 ```text
-Access-Control-Allow-Origin: https://location-of-dashy/
+Access-Control-Allow-Origin: https://location-of-workcenter/
 Vary: Origin
 ```
 
@@ -827,13 +827,13 @@ If your service is online, but responds with a status code that is not in the 2x
 
 If you get an error, like `Service Unavailable: Server resulted in Invalid URL`, even when it's definitely online, this is most likely caused by missing the protocol. Don't forget to include `https://` (or whatever protocol) before the URL, and ensure that if needed, you've specified the port.
 
-Running Workcenter in HOST network mode, instead of BRIDGE will allow status check access to other services in HOST mode. For more info, see [#445](https://github.com/Lissy93/dashy/discussions/445).
+Running Workcenter in HOST network mode, instead of BRIDGE will allow status check access to other services in HOST mode. For more info, see [#445](https://github.com/JDB321Sailor/Workcenter/discussions/445).
 
 If you have firewall rules configured, then ensure that they don't prevent Workcenter from making requests to the other services you are trying to access.
 
 Currently, the status check needs a page to be rendered, so if this URL in your browser does not return anything, then status checks will not work. This may be modified in the future, but in the meantime, a fix would be to make your own status service, which just checks if your app responds with whatever code you'd like, and then return a 200 plus renders an arbitrary message. Then just point `statusCheckUrl` to your custom page.
 
-For further troubleshooting, use an application like [Postman](https://postman.com) to diagnose the issue. Set the parameter to `GET`, and then make a call to: `https://[url-of-dashy]/status-check/?&url=[service-url]`. Where the service URL must have first been encoded (e.g. with `encodeURIComponent()` or [urlencoder.io](https://www.urlencoder.io/))
+For further troubleshooting, use an application like [Postman](https://postman.com) to diagnose the issue. Set the parameter to `GET`, and then make a call to: `https://[url-of-workcenter]/status-check/?&url=[service-url]`. Where the service URL must have first been encoded (e.g. with `encodeURIComponent()` or [urlencoder.io](https://www.urlencoder.io/))
 
 If you're serving Workcenter though a CDN, instead of using the Node server or Docker image, then the Node endpoint that makes requests will not be available to you, and all requests will fail. A workaround for this may be implemented in the future, but in the meantime, your only option is to use the Docker or Node deployment method.
 
@@ -853,7 +853,7 @@ Before proceeding, ensure that if the widget requires auth your API is correct, 
 
 #### Timeout Error
 
-If the error message in the console includes: `Error: timeout of 500ms exceeded`, then your Glances endpoint is slower to respond than expected. You can fix this by [setting timeout](https://github.com/Lissy93/dashy/blob/master/docs/widgets.md#setting-timeout) to a larger value. This is done on each widget, with the `timeout` attribute, and is specified in ms. E.g. `timeout: 5000` would only fail if no response is returned within 5 seconds.
+If the error message in the console includes: `Error: timeout of 500ms exceeded`, then your Glances endpoint is slower to respond than expected. You can fix this by `docs/widgets.md` to a larger value. This is done on each widget, with the `timeout` attribute, and is specified in ms. E.g. `timeout: 5000` would only fail if no response is returned within 5 seconds.
 
 #### CORS error
 
@@ -879,7 +879,7 @@ If you have control over the destination (e.g. for a self-hosted service), then 
 Add the `Access-Control-Allow-Origin` header, with the value of either `*` to allow requests from anywhere, or more securely, the host of where Workcenter is served from. For example:
 
 ```text
-Access-Control-Allow-Origin: https://url-of-dashy.local
+Access-Control-Allow-Origin: https://url-of-workcenter.local
 ```
 
 or
@@ -947,17 +947,17 @@ Since the forecasting API requires an upgraded plan. ULPT: You can get a free, p
 
 A future update will be pushed out, to use a free weather forecasting API.
 
-See also: [#803](https://github.com/Lissy93/dashy/issues/803), [#789](https://github.com/Lissy93/dashy/issues/789), [#577](https://github.com/Lissy93/dashy/issues/577), [#621](https://github.com/Lissy93/dashy/issues/621), [#578](https://github.com/Lissy93/dashy/issues/578), [#806](https://github.com/Lissy93/dashy/discussions/806)
+See also: [#803](https://github.com/JDB321Sailor/Workcenter/issues/803), [#789](https://github.com/JDB321Sailor/Workcenter/issues/789), [#577](https://github.com/JDB321Sailor/Workcenter/issues/577), [#621](https://github.com/JDB321Sailor/Workcenter/issues/621), [#578](https://github.com/JDB321Sailor/Workcenter/issues/578), [#806](https://github.com/JDB321Sailor/Workcenter/discussions/806)
 
 ### Widget Displaying Inaccurate Data
 
 If any widget is not displaying the data you expect, first confirm that your config is correct, then try manually calling the API endpoint.
 
-If the raw API output is correct, yet the widget is rendering incorrect results, then it is likely a bug, and a ticket should be raised. You can start to debug the issue, by looking at the widget's code ([here](https://github.com/Lissy93/dashy/tree/master/src/components/Widgets)), and the browser console + networking tab.
+If the raw API output is correct, yet the widget is rendering incorrect results, then it is likely a bug, and a ticket should be raised. You can start to debug the issue, by looking at the widget's code (`src/components/Widgets`), and the browser console + networking tab.
 
-If the API itself is returning incorrect, incomplete or inaccurate data then an issue needs to be raised **with the API provider** (not Workcenter!). You can find the API provider included within the widget docs, or for a full list see the [Privacy Docs](https://github.com/Lissy93/dashy/blob/master/docs/privacy.md#widgets).
+If the API itself is returning incorrect, incomplete or inaccurate data then an issue needs to be raised **with the API provider** (not Workcenter!). You can find the API provider included within the widget docs, or for a full list see the [Privacy Docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/privacy.md#widgets).
 
-See also: [#807](https://github.com/Lissy93/dashy/issues/807) (re, domain monitor)
+See also: [#807](https://github.com/JDB321Sailor/Workcenter/issues/807) (re, domain monitor)
 
 ### Public IP Widget not working for `ipinfo` or `ipquery` providers
 
@@ -991,7 +991,7 @@ The most common reason for this, is if you not running the app over HTTPS. Copyi
 As a workaround, you could either:
 
 - Highlight the text and copy / <kbd>Ctrl</kbd> + <kbd>C</kbd>
-- Or setup SSL - [here's a guide](https://github.com/Lissy93/dashy/blob/master/docs/management.md#ssl-certificates) on doing so
+- Or setup SSL - [here's a guide](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/management.md#ssl-certificates) on doing so
 
 ---
 
@@ -1014,14 +1014,14 @@ For a full list of all data that may be cached, see the [Privacy Docs](/docs/pri
 
 #### Step 1 - Where to open issues
 
-You will need a GitHub account in order to raise a ticket. You can then [click here](https://github.com/Lissy93/dashy/issues/new?assignees=lissy93&labels=%F0%9F%90%9B+Bug&template=bug.yml&title=%5BBUG%5D+%3Ctitle%3E) to open a new bug report.
+You will need a GitHub account in order to raise a ticket. You can then [click here](https://github.com/JDB321Sailor/Workcenter/issues/new?assignees=lissy93&labels=%F0%9F%90%9B+Bug&template=bug.yml&title=%5BBUG%5D+%3Ctitle%3E) to open a new bug report.
 
 #### Step 2 - Checking it's not already covered
 
 Before submitting, please check that:
 
 - A similar ticket has not previously been opened
-- The issue is not covered in the [troubleshooting guide](https://github.com/Lissy93/dashy/blob/master/docs/troubleshooting.md) or [docs](https://github.com/Lissy93/dashy/tree/master/docs#readme)
+- The issue is not covered in the [troubleshooting guide](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/troubleshooting.md) or [docs](https://github.com/JDB321Sailor/Workcenter/tree/Dev/docs#readme)
 
 #### Step 3 - Describe the Issue
 
@@ -1048,7 +1048,7 @@ A maintainer will aim to respond within 48 hours.
 The timeframe for resolving your issue, will vary depending on severity of the bug and the complexity of the fix.
 You will be notified on your ticket, when a fix has been released.
 
-Finally, be sure to remain respectful to other users and project maintainers, in line with the [Contributor Covenant Code of Conduct](https://github.com/Lissy93/dashy/blob/master/.github/CODE_OF_CONDUCT.md#contributor-covenant-code-of-conduct).
+Finally, be sure to remain respectful to other users and project maintainers, in line with the [Contributor Covenant Code of Conduct](https://github.com/JDB321Sailor/Workcenter/blob/Dev/.github/CODE_OF_CONDUCT.md#contributor-covenant-code-of-conduct).
 
 ### How-To Open Browser Console
 
@@ -1065,7 +1065,7 @@ For more detailed walk through, see [this article](https://support.shortpoint.co
 
 ### Git Contributions not Displaying
 
-If you've contributed to Workcenter (or any other project), but your contributions are not showing up on your GH profile, or in Workcenter's [Credits Page](https://github.com/Lissy93/dashy/blob/master/docs/credits.md), then this is likely a git config issue.
+If you've contributed to Workcenter (or any other project), but your contributions are not showing up on your GH profile, or in Workcenter's [Credits Page](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/credits.md), then this is likely a git config issue.
 
 These statistics are generated using the username / email associated with commits. This info needs to be setup on your local machine using [`git config`](https://git-scm.com/docs/git-config).
 
