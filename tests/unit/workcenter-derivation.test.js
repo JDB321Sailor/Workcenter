@@ -25,9 +25,21 @@ const walk = (dir, out = []) => {
 const sourceFiles = () => [
   ...walk('src'),
   ...(exists('services') ? walk('services') : []),
-].filter((f) => /\.(js|vue|json|scss)$/.test(f));
+  ...(exists('public') ? walk('public') : []),
+].filter((f) => /\.(js|vue|json|scss|html)$/.test(f));
 
-/** Files that legitimately retain upstream attribution. */
+/**
+ * The MIT licence requires the upstream copyright notice to be retained, so a
+ * line crediting Alicia Sykes is allowed. Any other mention of the old product
+ * name is not.
+ */
+const ATTRIBUTION = /(Licensed under MIT|Licensed under the MIT|Portions derived from Dashy|\(C\) Alicia Sykes|Copyright \(c\)[^\n]*Alicia Sykes)/i;
+
+/** Strip attribution lines, then look for the old product name. */
+const staleBrandLines = (text) => text
+  .split('\n')
+  .filter((line) => /Dashy/.test(line) && !ATTRIBUTION.test(line));
+
 const ATTRIBUTION_ALLOWLIST = new Set([
   'src/directives/ClickOutside.js',
   'src/directives/LongPress.js',
@@ -164,14 +176,26 @@ describe('the product is branded Workcenter', () => {
     expect(JSON.stringify(en)).not.toMatch(/Dashy/);
   });
 
-  it('carries no stale product name outside the attribution allowlist', () => {
+  it('serves a Workcenter initialization page while the bundle loads', () => {
+    const html = fs.readFileSync(path.join(root, 'public/initialization.html'), 'utf8');
+    expect(html).toMatch(/<title>Workcenter<\/title>/);
+    // No network fetch: the placeholder must stand alone.
+    expect(html).not.toMatch(/https?:\/\/(fonts|cdn)\./);
+  });
+
+  it('carries no stale product name on any line that is not an attribution', () => {
     const offenders = [];
     for (const file of sourceFiles()) {
-      if (ATTRIBUTION_ALLOWLIST.has(file)) continue;
-      const text = fs.readFileSync(path.join(root, file), 'utf8');
-      if (/Dashy/.test(text)) offenders.push(file);
+      const lines = staleBrandLines(fs.readFileSync(path.join(root, file), 'utf8'));
+      if (lines.length) offenders.push(`${file}: ${lines[0].trim().slice(0, 80)}`);
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('allows the upstream copyright notice, which the MIT licence requires', () => {
+    // A regression guard on the guard: attribution must not be flagged.
+    expect(staleBrandLines(' * Dashy: Licensed under MIT - (C) Alicia Sykes 2024')).toEqual([]);
+    expect(staleBrandLines('      name: "Dashy",')).toHaveLength(1);
   });
 
   it('preserves the upstream MIT licence and attribution', () => {

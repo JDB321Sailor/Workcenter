@@ -58,14 +58,16 @@ export default defineConfig({
       registerType: 'prompt',
       useCredentials: true,
       manifest: {
-        name: 'Dashy',
+        name: 'Workcenter',
+        short_name: 'Workcenter',
+        description: 'Files, chat and mail in one self-hosted workspace',
         theme_color: '#00af87',
         background_color: '#0b1021',
         icons: [
           { src: '/web-icons/favicon-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: '/web-icons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
           { src: '/web-icons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-          { src: '/web-icons/dashy-logo.png', sizes: '512x512', type: 'image/png' },
+          { src: '/web-icons/workcenter-logo.png', sizes: '512x512', type: 'image/png' },
         ],
       },
       workbox: {
@@ -90,7 +92,7 @@ export default defineConfig({
             urlPattern: /\.ya?ml(\?.*)?$/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'dashy-config',
+              cacheName: 'workcenter-config',
               networkTimeoutSeconds: 3,
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [200] },

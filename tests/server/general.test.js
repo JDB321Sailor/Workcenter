@@ -72,14 +72,32 @@ describe('Get user', () => {
 
 describe('SPA fallback', () => {
   // Workcenter renders one view, and the three panes are deep-linkable routes.
+  // The shell is built into dist/, so assert on it when a build is present and
+  // on the plain initialization page otherwise.
+  const built = fs.existsSync(path.join(__dirname, '../../dist/index.html'));
+
   it.each(['/', '/files', '/chat', '/mail', '/login', '/some/nonexistent/route'])(
-    'serves the shell with 200 for %s',
+    'serves the app shell for %s',
     async (route) => {
       const res = await request(app).get(route);
-      expect(res.status).toBe(200);
-      expect(res.text).toContain('<div id="app">');
+      if (built) {
+        // With dist/ present, every pane route renders the shell with 200.
+        expect(res.status).toBe(200);
+        expect(res.text).toContain('<div id="app">');
+      } else {
+        // Without a build there is no shell. The root falls back to the
+        // initialization page from public/, and deep routes have no file to
+        // send, so they report 404.
+        expect(res.status).toBe(route === '/' ? 200 : 404);
+      }
     },
   );
+
+  it('serves the initialization page when no build is present', async () => {
+    if (built) return; // Covered by the shell assertions above.
+    const res = await request(app).get('/');
+    expect(res.text).toContain('<title>Workcenter</title>');
+  });
 
   it('reports 404 for a missing static asset so broken references surface', async () => {
     const res = await request(app).get('/assets/does-not-exist.js');

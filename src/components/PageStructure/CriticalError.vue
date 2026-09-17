@@ -14,16 +14,16 @@
     <h4>{{ $t('critical-error.sub-next-steps') }}</h4>
     <ul>
       <li>Check the browser console for more details
-        (<a href="https://github.com/Lissy93/dashy/blob/master/docs/troubleshooting.md#how-to-open-browser-console">see how</a>)
+        (<a href="https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/troubleshooting.md">see how</a>)
       </li>
       <li>View the
-        <a href="https://github.com/Lissy93/dashy/blob/master/docs/troubleshooting.md">Troubleshooting Guide</a>
-        and <a href="https://dashy.to/docs/">Docs</a>
+        <a href="https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/troubleshooting.md">Troubleshooting Guide</a>
+        and <a href="https://github.com/JDB321Sailor/Workcenter/blob/Dev/Readme.md">Docs</a>
       </li>
       <li>
         If you've verified the config is present, accessible and valid, and cannot find the solution
         in the troubleshooting, docs or GitHub issues,
-        then <a href="https://github.com/Lissy93/dashy/issues/new/choose">open a ticket on GitHub</a>
+        then <a href="https://github.com/JDB321Sailor/Workcenter/issues/new/choose">open a ticket on GitHub</a>
       </li>
       <li>Click 'Ignore Critical Errors' below to not show this warning again</li>
     </ul>

@@ -1,19 +1,21 @@
 version: 2
 updates:
 
+  # The application lives on Dev, so that is where dependency updates belong.
+  # Stable holds the documentation and has no manifest to update, and Beta
+  # receives promotions only.
   - package-ecosystem: npm
     directory: /
+    target-branch: Dev
     schedule:
       interval: weekly
       day: friday
     open-pull-requests-limit: 8
     labels:
-      - "📦 Dependencies"
-    assignees:
-      - lissy93
+      - dependencies
     commit-message:
-      prefix: "⬆️ "
-      prefix-development: "⬆️ "
+      prefix: "chore(deps): "
+      prefix-development: "chore(deps-dev): "
       include: scope
     versioning-strategy: increase
     groups:
@@ -30,12 +32,6 @@ updates:
         update-types:
           - minor
           - patch
-      sentry:
-        patterns:
-          - "@sentry/*"
-        update-types:
-          - minor
-          - patch
       vitest:
         patterns:
           - "vitest"
@@ -43,13 +39,6 @@ updates:
         update-types:
           - minor
           - patch
-      codemirror:
-        patterns:
-          - "@codemirror/*"
-          - "@lezer/*"
-      jsonforms:
-        patterns:
-          - "@jsonforms/*"
       minor-and-patch:
         update-types:
           - minor
@@ -61,25 +50,20 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "vue-router"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "keycloak-js"
-        update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vitejs/plugin-vue"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "connect-history-api-fallback"
-        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
+    target-branch: Dev
     schedule:
       interval: monthly
     labels:
-      - "📦 Dependencies"
-    assignees:
-      - lissy93
+      - dependencies
     commit-message:
-      prefix: "⬆️ "
+      prefix: "chore(deps): "
       include: scope
     groups:
       github-actions:
@@ -88,14 +72,13 @@ updates:
 
   - package-ecosystem: docker
     directory: /
+    target-branch: Dev
     schedule:
       interval: monthly
     labels:
-      - "📦 Dependencies"
-    assignees:
-      - lissy93
+      - dependencies
     commit-message:
-      prefix: "⬆️ "
+      prefix: "chore(deps): "
       include: scope
     ignore:
       - dependency-name: "node"
@@ -103,12 +86,11 @@ updates:
 
   - package-ecosystem: devcontainers
     directory: /
+    target-branch: Dev
     schedule:
       interval: monthly
     labels:
-      - "📦 Dependencies"
-    assignees:
-      - lissy93
+      - dependencies
     commit-message:
-      prefix: "⬆️ "
+      prefix: "chore(deps): "
       include: scope
