@@ -258,6 +258,9 @@ roadmap-listed requirements below are the acceptance contract.
 | I-FB-11 | **The API base path is `/api/` — there is no `/api/v1/`.** Public/share routes are `/public/api/...`. Auth order is `?auth=` → `Authorization` (Bearer, or Basic where the password is the token) → the `filebrowser_quantum_jwt` cookie; there is no `X-Auth` header. Swagger lives at `/swagger/` |
 | I-FB-12 | The sidebar is a fixed `<nav id="sidebar">` at `top: 4em` with **no slot, no plugin hook, no custom-JS hook and no public JS API**. `frontend.styling.customCSS` is the only supported injection point (server-injected `<style>`; `style-src` is unrestricted), and `frontend.externalLinks` renders only in the bottom credits. Workcenter therefore places its own switcher as a **body-level fixed element** and shifts FileBrowser's sidebar with `customCSS`; the switcher is *mirrored* inside FileBrowser as per-user `custom` `sidebarLinks` |
 | I-FB-13 | Per-user sidebar links persist **server-side in the user object** as `{name, category, target, icon, sourceName?}`. Read via `GET /api/users?username=self`; write via `PATCH /api/users?username=<login>` with `{"which":["sidebarLinks"],"data":{…}}` → 204. Non-admins may patch their own `sidebarLinks`. **Round-trip trap:** `sourceName` is written as a filesystem path but read back as a display name |
+| I-FB-14 | **FileBrowser Quantum is Workcenter's appearance standard.** Its light/dark palette is the source the shell's tokens and every other application's branding derive from (`U-21`), and `setup.sh` writes the Workcenter name, icons, backgrounds and accent through `frontend.*` and `userDefaults.ui.themeColor` |
+| I-FB-15 | `userDefaults.ui.darkMode` is set **true** so a new user starts dark. At runtime the mode and the locale are carried per user by `PATCH /api/users?username=<login>` with `{"which":["darkMode"]}` / `{"which":["locale"]}` → 204, using the user's own session — both are non-admin-editable |
+| I-FB-16 | FileBrowser Quantum has **no inbound message channel and no theme query parameter**, so the Files pane is refreshed after the patch, at the path its outbound `filebrowser:navigation` message last reported, and never while a document editor is open. `locale` values are FileBrowser's own keys (`ptBR`, `zhCN`), not BCP-47 |
 
 ### 6.2 Zulip (Chat)
 
@@ -275,6 +278,10 @@ roadmap-listed requirements below are the acceptance contract.
 | I-ZU-10 | The Workcenter file broker needs a Zulip **bot** with an API key (`Zulip/secrets/zuliprc`) and a dedicated channel for the "send file to Zulip" action |
 | I-ZU-11 | **Upload size:** Zulip's nginx caps request bodies at **25 MiB** (`client_max_body_size 25m`), even though `POST /register` may advertise `max_file_upload_size_mib` higher. `POST /api/v1/user_uploads` therefore returns 413 above 25 MiB. Files at or above that size must use the resumable **`POST /api/v1/tus`** endpoint, which has `client_max_body_size 0` |
 | I-ZU-12 | **Attachment download path:** Zulip's nginx sets permissive CORS on `/api/`, `/user_uploads`, `/avatar` and `/thumbnail` (`Access-Control-Allow-Origin: *`, `Authorization` allowed), and a request to `GET /user_uploads/{realm_id}/{filename}` carrying an `Authorization` header bypasses rate limiting. The broker may therefore fetch attachments directly with `Authorization: Basic base64(email:api_key)`, and the browser can do so cross-origin without CSRF concerns |
+| I-ZU-13 | **Appearance is per user and live.** `PATCH /api/v1/settings` with `color_scheme` (1 automatic, 2 dark, 3 light) reaches the open client through Zulip's event queue, so the Chat pane changes without a reload. `PATCH /api/v1/realm/user_settings_defaults` with `color_scheme=2` makes dark the default for new accounts |
+| I-ZU-14 | The realm-wide pass uses `target_users` with **`skip_if_already_edited: true`** (feature level 444, present on the pinned 12.2), which is how the advisory contract in `U-20` is enforced for Zulip. `PATCH /api/v1/settings` is `@human_users_only`, so it needs a human administrator account — the file-broker bot key cannot do it |
+| I-ZU-15 | Branding is `PATCH /api/v1/realm` (name, description), `POST /api/v1/realm/icon`, and `POST /api/v1/realm/logo` twice, `night=false` and `night=true`. **Zulip ships no custom-CSS mechanism** and its production build contains no editable stylesheet; Workcenter brands it with name, icon, logos and theme only, and never forks its frontend for appearance |
+| I-ZU-16 | `default_language` is settable on the same endpoint but **cannot** re-render an open client — Zulip's own source says a reload is fundamentally required — so a language change refreshes the Chat pane |
 
 ### 6.3 Mailcow Dockerized with SOGo (Mail)
 
@@ -293,6 +300,10 @@ roadmap-listed requirements below are the acceptance contract.
 | I-MC-8 | `SKIP_SOGO=n` and the SOGo container must be present and healthy. Mailcow's compose defines **no** `healthcheck:` blocks of its own (only image-baked `HEALTHCHECK` instructions and one `condition: service_healthy` on unbound), so Workcenter's override supplies explicit healthchecks for `nginx-mailcow`, `sogo-mailcow`, `mysql-mailcow` and `redis-mailcow`, plus a Mailcow API key (`API_KEY`, `API_ALLOW_FROM`) for `/api/v1/get/status/containers` |
 | I-MC-9 | External mail clients use Mailcow **app passwords** (documented in `OIDC.md`) unless LDAP is enabled; switching a mailbox's identity provider never destroys the existing SQL password, so fallback to the account password remains possible |
 | I-MC-10 | The vmail store must be reachable for the file broker's "save attachment" path; `./Mailcow/data/` and the FileBrowser source are co-located on the same host filesystem |
+| I-MC-11 | **SOGo 5.12 has no dark mode**, no theme preference and one stylesheet, so Workcenter *supplies* the palette: a stylesheet bind-mounted into SOGo's web resources through `Mailcow/docker-compose.override.yml`, plus a delimited block appended to `data/conf/sogo/custom-sogo.js` — a file `sogo.conf` already loads through `SOGoUIAdditionalJSFiles`, so no Mailcow configuration key is edited. The block preserves Mailcow's own `mc_logout()` |
+| I-MC-12 | That block sets `data-wc-mode` from the `wc_mode` cookie for first paint and updates it on an **origin-checked** `workcenter:mode` message, so the Mail pane changes mode live. It reads only the values `dark` and `light`, never evaluates a received string, and never touches mail content or credentials |
+| I-MC-13 | `sogo-mailcow` is **restarted** after any SOGo branding change, because `bootstrap-sogo.sh` rsyncs the web resources into the nginx volume at container start. Everything under `data/conf/sogo/` is tracked by Mailcow and `update.sh` merges `-X theirs`, so `setup.sh --brand` is a documented post-upgrade step |
+| I-MC-14 | The Mailcow UI is branded through `data/web/css/build/0081-custom-mailcow.css` and `$UI_THEME` in `data/web/inc/vars.local.inc.php` — both untracked upstream, so both survive `update.sh`. Its own dark mode is keyed on its origin's `localStorage`, which the shell cannot write, so Workcenter leaves the Mailcow UI's mode to the user; it is an admin surface in a new tab, not a pane |
 
 ### 6.4 OnlyOffice Documentserver (Editing)
 
@@ -422,7 +433,10 @@ requirements are:
 | U-4 | To the right of the rail, a single **content surface**. Panes are kept mounted (`enableMultiTasking` semantics inherited from Dashy) so switching preserves scroll position, drafts and sessions |
 | U-5 | The switcher never scrolls away; the sidebar body scrolls independently; the content surface scrolls independently |
 | U-6 | The **application switcher carries a status indicator beneath each button**, plus a `STATUS` label beneath the indicators, showing per-application health (from the healthchecks in §9) without leaving the page |
-| U-7 | A **user menu** in the rail footer: identity, admin badge when in `workspaceadmin`, theme toggle, language, and Logout (which ends the Authentik session) |
+| U-7 | A **user menu** in the rail footer: identity, admin badge when in `workspaceadmin`, the appearance control (U-17), the language control (U-18), the admin links, and Logout (which ends the Authentik session) |
+| U-17 | The user menu carries the **light/dark mode switcher**, and it is the only appearance control Workcenter offers. Dark is the default, and the menu says so |
+| U-18 | The user menu carries a **language element showing the language in use**, written in its own language, with a **flag button** that opens the language menu |
+| U-19 | Each switcher button carries the **real brand mark** of its application, committed to `icons/` in the repository and never fetched from a third-party CDN at runtime |
 
 ### 8.2 Visual language
 
@@ -431,7 +445,11 @@ requirements are:
 | U-8 | Styling derives from **Dashy's theming model**: CSS custom properties, `color-palette.scss` variables, `--side-bar-*` tokens, light/dark themes and per-user custom CSS |
 | U-9 | The three applications are visually distinguished by an accent colour used on the active switcher button, the active sidebar affordance and the pane loading state |
 | U-10 | Workcenter chrome must be **quiet**: neutral surfaces, one accent, no gradients or decoration that competes with embedded applications |
-| U-11 | Because embedded applications carry their own theming, Workcenter must apply a **theme bridge**: the shell's light/dark choice is passed to each application where the application supports it (FileBrowser `userDefaults.ui.darkMode`, Zulip colour scheme, SOGo theme) |
+| U-11 | Because embedded applications carry their own theming, Workcenter must apply a **theme bridge**: one switch in the shell changes the shell *and* all three applications. FileBrowser Quantum through its per-user `darkMode`, Zulip through `color_scheme`, SOGo through the Workcenter stylesheet supplied at setup — SOGo has no dark mode of its own |
+| U-20 | The bridge is **advisory**: a user who has set an appearance inside an application keeps it (`design.md` D-T1) |
+| U-21 | **FileBrowser Quantum's palette is the appearance standard.** The shell's tokens and the branding pushed into the other applications are derived from it, from a single source |
+| U-22 | `setup.sh` brands the embedded applications — name, logo, palette — so the deployment reads as one product and not as three separate sites behind one proxy |
+| U-23 | Where the shell can forward the **language** the same way, it does: FileBrowser's `locale` and Zulip's `default_language`. Where it cannot, the shell says so instead of failing quietly |
 
 ### 8.3 Interaction
 
@@ -600,9 +618,14 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 | 2.7 | Make panes **persistent**: all three iframes stay mounted; switching toggles visibility and restores focus/scroll |
 | 2.8 | Implement routing: `/files`, `/chat`, `/mail`, deep-linkable, with the pane restored on reload |
 | 2.9 | Implement the status indicators inside the application switcher (one beneath each button, plus the `STATUS` label) and the per-pane failure card (`U-15`) |
-| 2.10 | Apply the Dashy-derived theming and the theme bridge to each application |
+| 2.10 | Apply the Dashy-derived theming, with the palette derived from FileBrowser Quantum's own values (`U-21`) and dark as the default |
+| 2.11 | Build the user menu: identity, admin badge, admin links and Logout (`U-7`) |
+| 2.12 | Build the **appearance control** — the light/dark switcher, dark labelled as the default (`U-17`) |
+| 2.13 | Build the **language control** — the language in use plus the flag button and its menu (`U-18`) |
+| 2.14 | Implement the **theme bridge**: `POST /api/broker/preferences`, the pane message, the mode cookie, and the per-application adapters so one switch changes all three applications (`U-11`, `U-20`) |
+| 2.15 | Implement the **language bridge** where the applications allow it (`U-23`) |
 
-**Exit criteria:** all three applications load inside the shell, the sidebar content changes with the active application, switching preserves state, and deep links work.
+**Exit criteria:** all three applications load inside the shell, the sidebar content changes with the active application, switching preserves state, deep links work, and a single mode switch visibly changes the shell and all three panes.
 
 **Depends on:** Phase 1.
 
@@ -644,9 +667,10 @@ Implement exactly the contract in [`production.md`](./production.md):
 | 4.5 | Skip the `.env`/OIDC checks for anything the script just created, and go straight to the Authentik deployment question |
 | 4.6 | OIDC branch logic exactly as specified in [`OIDC.md`](./OIDC.md): if not configured, ask whether the user has already created the Authentik applications/providers; if yes, create `Authentik/` and prompt for every OIDC variable into the right `.env` files; if no (default), detect a running Authentik, offer to deploy one, and either stop with the exact guidance message or continue |
 | 4.7 | Final bring-up: `docker compose up -d`, then poll until every service is healthy, printing a per-service report |
-| 4.8 | Idempotency tests: run `setup.sh` three times and assert convergence |
+| 4.8 | Branding (`U-22`): write the FileBrowser styling keys, the SOGo stylesheet and script hook, and the Mailcow custom CSS before bring-up; apply the Zulip realm name, icon, both logos and the dark default afterwards; print the one manual Mailcow logo step. Support `--brand` to re-apply it alone |
+| 4.9 | Idempotency tests: run `setup.sh` three times and assert convergence, branding included |
 
-**Exit criteria:** from a clean checkout on a bare host, `setup.sh` produces a running stack; the OIDC prompts match `OIDC.md` word for word; a second run makes no destructive change.
+**Exit criteria:** from a clean checkout on a bare host, `setup.sh` produces a running stack; the OIDC prompts match `OIDC.md` word for word; a second run makes no destructive change; and all three applications carry the Workcenter name, logo and palette.
 
 **Depends on:** Phase 3.
 

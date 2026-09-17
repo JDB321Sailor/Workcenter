@@ -38,7 +38,7 @@ At it's core, the application uses [**Vue.js**](https://github.com/vuejs/core), 
 
 ### Assets
 
-- [`dashboard-icons`](https://github.com/homarr-labs/dashboard-icons) - The application marks in [`icons/`](/icons) are the base (SVG) variants from the [Dashboard Icons](https://dashboardicons.com) collection by @homarr-labs and community `MIT`. Each mark remains the trademark of the project it represents; it is used to identify that project and for no other purpose.
+- [`dashboard-icons`](https://github.com/homarr-labs/dashboard-icons) - The application marks in [`icons/`](../icons) are the base (SVG) variants from the [Dashboard Icons](https://dashboardicons.com) collection by @homarr-labs and community `MIT`. Each mark remains the trademark of the project it represents; it is used to identify that project and for no other purpose.
 
 
 ---
