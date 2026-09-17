@@ -32,7 +32,6 @@ export const languages = [
   { name: 'Türkçe', code: 'tr', flag: '🇹🇷' },
   { name: 'Ukrainian', code: 'uk', flag: '🇺🇦' },
   { name: '简体中文', code: 'zh-CN', flag: '🇨🇳' },
-  { name: '繁體中文', code: 'zh-TW', flag: '🇹🇼' },
   { name: 'Pirate', code: 'zz-pirate', flag: '🏴‍☠️' },
 ];
 
