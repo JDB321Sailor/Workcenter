@@ -38,10 +38,10 @@ route. Deployment is **one script**: `./setup.sh`.
 > cross-application file broker are in the roadmap's later phases. The table below marks what
 > is shipped and what is planned.
 >
-> **Workcenter is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter).** Workcenter's *Workspace*
+> **Workcenter is a derivative of [Dashy](https://github.com/https://github.com/lissy93/dashy).** Dashy's *Workspace*
 > view — a persistent left sidebar with applications launched inside the page — is the seed from which
-> Workcenter grew. Workcenter's *Default* and *Minimal* views are intentionally not part of Workcenter.
-> See [`roadmap.md`](./roadmap.md) for exactly what was kept and what was discarded.
+> Workcenter grew. Dashy's *Default* and *Minimal* views are intentionally not part of Workcenter.
+> See [`roadmap.md`](./roadmap.md) for exactly what was kept and what was discarded by Workcenter.
 
 ---
 
