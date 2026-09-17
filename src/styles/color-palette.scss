@@ -96,24 +96,27 @@
   --side-bar-item-background: var(--side-bar-background);
   --side-bar-item-color: var(--side-bar-color);
   --workspace-web-content-background: var(--background);
-  // Minimal view
-  --minimal-view-background-color: var(--background);
-  --minimal-view-title-color: var(--primary);
-  --minimal-view-settings-color: var(--foreground);
-  --minimal-view-section-heading-color: var(--foreground);
-  --minimal-view-section-heading-background: var(--background-darker);
-  --minimal-view-search-background: var(--background-darker);
-  --minimal-view-search-color: var(--foreground);
-  --minimal-view-group-color: var(--foreground);
-  --minimal-view-group-background: var(--background-darker);
+  // Workcenter shell
+  --wc-surface: var(--background);
+  --wc-surface-raised: var(--background-darker);
+  --wc-border: var(--background-darker);
+  --wc-text: var(--foreground);
+  --wc-text-muted: var(--foreground);
+  --wc-accent-files: #4c9be8;
+  --wc-accent-chat: #9a7cf0;
+  --wc-accent-mail: #2fb8a8;
+  --wc-focus-ring: var(--primary);
+  --wc-scrim: var(--transparent-70);
+  --wc-status-healthy: var(--success);
+  --wc-status-degraded: var(--warning);
+  --wc-status-unhealthy: var(--danger);
+  --wc-status-unknown: var(--medium-grey);
+  --wc-radius: var(--curve-factor);
+  --wc-shadow-popover: 0 6px 22px #00000059;
   // Login page
   --login-form-color: var(--primary);
   --login-form-background: var(--background);
   --login-form-background-secondary: var(--background-darker);
-  // About page
-  --about-page-color: var(--foreground);
-  --about-page-background: var(--background);
-  --about-page-accent: var(--primary);
   // Webpage colors, highlight, scrollbar
   --scroll-bar-color: var(--primary);
   --scroll-bar-background: var(--background-darker);
@@ -123,8 +126,6 @@
   // Misc components
   --loading-screen-color: var(--primary);
   --loading-screen-background: var(--background);
-  --status-check-tooltip-background: var(--background-darker);
-  --status-check-tooltip-color: var(--primary);
   --welcome-popup-background: var(--background-darker);
   --welcome-popup-text-color: var(--primary);
   --toast-background: var(--primary);

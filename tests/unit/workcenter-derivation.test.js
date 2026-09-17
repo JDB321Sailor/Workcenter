@@ -133,12 +133,10 @@ describe('the removed subsystems stay removed', () => {
     }
     expect(appConfig.filter((k) => /statusCheck|pingCheck/.test(k))).toEqual([]);
 
-    const section = Object.keys(schema.properties.sections.items.properties);
-    expect(section).not.toContain('widgets');
-    expect(section).not.toContain('filteredItems');
-
-    const item = schema.properties.sections.items.properties.items.items.properties;
-    expect(Object.keys(item).filter((k) => /statusCheck|pingCheck/.test(k))).toEqual([]);
+    // The shell reads one address per application, and nothing else.
+    expect(appConfig).toContain('applications');
+    const applications = schema.properties.appConfig.properties.applications;
+    expect(Object.keys(applications.properties).sort()).toEqual(['chat', 'files', 'mail']);
   });
 
   it('serves no status-check or ping-check route', () => {

@@ -47,6 +47,38 @@ as described in [`contributions.md`](./contributions.md).
 ## [Unreleased]
 
 ### New Features
+ - The Workcenter shell. The rail now carries an application switcher with one status indicator
+   beneath each button and a `STATUS` label, the sidebar body follows the active application, and
+   all three panes stay mounted behind it.
+ - `src/utils/apps/registry.js` is the single source of truth for the three applications: id,
+   name, icon, accent token, configuration key, health key, route and sidebar surface. Adding or
+   renaming an application is a one-file change.
+ - `src/utils/apps/urls.js` resolves each pane's address from `appConfig.applications`, so an
+   operator can move an application without touching code, and builds the deep link for a sidebar
+   row.
+ - `src/utils/health/HealthService.js` polls `/api/broker/health` and exposes a state per
+   application. A failed poll reports `unknown` rather than `unhealthy`, because a check that did
+   not run is not a check that failed.
+ - The three sidebar surfaces: `FilesSidebar`, `ChatSidebar` and `MailSidebar`, sharing one row
+   primitive and one presentation, so they cannot drift apart.
+ - `PaneErrorCard` replaces a blank frame: unavailable, blocked, expired session and timeout each
+   say what happened and offer Retry, with Open in new tab always available.
+ - Configuration: `appConfig.applications` carries one address per application, validated by the
+   schema. `appConfig.sections` is accepted but ignored, so an existing configuration still
+   validates.
+
+### Improvements
+ - The switcher is a proper `tablist`, each pane is its `tabpanel`, and the indicators sit in a
+   labelled group that announces changes politely. The active application is signalled by an
+   accent underline, an accent icon and label, `aria-selected` and the roving `tabindex`, never by
+   colour alone.
+ - Panes load when first shown rather than all at once, and a frame that never fires load is
+   reported after thirty seconds instead of spinning.
+
+### Removals
+ - `src/components/Workspace/` — the sidebar that rendered the `sections` list, and the
+   URL-keyed iframe host it fed. The registry replaces both.
+ - `src/components/LinkItems/ItemIcon.vue`, the last consumer of which was that sidebar.
  - Workcenter stripped down to the Workspace view. Workcenter now renders a single view: the
    sidebar plus the embedded content surface. The Default view, the Minimal view and the
    config-download view are deleted, along with the widget engine, the status and ping

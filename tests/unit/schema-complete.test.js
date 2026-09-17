@@ -22,9 +22,9 @@ describe('schemaComplete', () => {
     expect(l).not.toContain('title');
   });
   it('completes root keys, excluding present ones', () => {
-    const l = labels(at('pa|\nsections: []\n'));
-    expect(l).toEqual(expect.arrayContaining(['pages', 'pageInfo', '$schema']));
-    expect(l).not.toContain('sections');
+    const l = labels(at('pa|\nappConfig: {}\n'));
+    expect(l).toEqual(expect.arrayContaining(['pageInfo', '$schema']));
+    expect(l).not.toContain('appConfig');
   });
   it('word that prefixes the PARENT key stays scoped to parent', () => {
     const l = labels(at('pageInfo:\n  pa|\n'));
@@ -40,9 +40,9 @@ describe('schemaComplete', () => {
   it('completes booleans', () => {
     expect(labels(at('appConfig:\n  enableFontAwesome: |\n'))).toEqual(['true', 'false']);
   });
-  it('completes keys inside a section item', () => {
-    const l = labels(at('sections:\n  - name: A\n    items:\n      - ti|\n'));
-    expect(l).toEqual(expect.arrayContaining(['title']));
+  it('completes the applications block', () => {
+    const l = labels(at('appConfig:\n  applications:\n    fi|\n'));
+    expect(l).toEqual(expect.arrayContaining(['files']));
   });
   it('silent for free-text values', () => {
     expect(at('pageInfo:\n  title: My|\n')).toBeNull();
@@ -54,11 +54,11 @@ describe('schemaComplete', () => {
     expect(l).toContain('navLinks');
     expect(l).not.toContain('title');
   });
-  it('offers item keys on a bare new list entry', () => {
-    expect(labels(at('sections:\n  - name: A\n  - |\n', true))).toContain('name');
+  it('completes a nested application key', () => {
+    expect(labels(at('appConfig:\n  applications:\n    files:\n      |\n', true))).toContain('url');
   });
   it('explicit trigger on empty root doc offers root keys', () => {
-    expect(labels(at('|', true))).toContain('sections');
+    expect(labels(at('|', true))).toContain('pageInfo');
   });
   it('mid-key edit applies name without a colon', () => {
     const r = at('pageInfo:\n  tit|le: x\n');

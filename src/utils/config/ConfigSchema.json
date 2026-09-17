@@ -4,9 +4,6 @@
   "title": "Workcenter Config",
   "description": "Validates a Workcenter configuration file against all supported options",
   "type": "object",
-  "required": [
-    "sections"
-  ],
   "additionalProperties": false,
   "patternProperties": {
     "^x-": {}
@@ -16,140 +13,6 @@
       "title": "Schema",
       "type": "string",
       "description": "Optional reference to this schema, used by external editors for validation and autocompletion. Ignored by Workcenter"
-    },
-    "pages": {
-      "title": "Page List",
-      "type": "array",
-      "description": "List of additional config files to load as extra pages",
-      "items": {
-        "title": "Page",
-        "type": "object",
-        "required": [
-          "name",
-          "path"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "title": "Name",
-            "type": "string",
-            "description": "Unique page identifier"
-          },
-          "path": {
-            "title": "Path",
-            "type": "string",
-            "description": "The file name, or path. If in public directory, use just `file-name.yml`"
-          },
-          "displayData": {
-            "title": "Display Data",
-            "type": "object",
-            "additionalProperties": false,
-            "description": "Optional meta data for customizing a page",
-            "properties": {
-              "hideForUsers": {
-                "title": "Hide for Users",
-                "type": "array",
-                "description": "Page will be visible to all users, except for those specified in this list",
-                "items": {
-                  "type": "string",
-                  "description": "Username for the user that will not be able to view this page"
-                }
-              },
-              "showForUsers": {
-                "title": "Show for Users",
-                "type": "array",
-                "description": "Page will be hidden from all users, except for those specified in this list",
-                "items": {
-                  "type": "string",
-                  "description": "Username for the user that will have access to this page"
-                }
-              },
-              "hideForGuests": {
-                "title": "Hide for Guests?",
-                "type": "boolean",
-                "default": false,
-                "description": "If set to true, page will be visible for logged in users, but not for guests"
-              },
-              "showForGroups": {
-                "title": "Show for Groups",
-                "type": "array",
-                "description": "Page will be hidden from all users except those with one or more of these SSO groups",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the group that will be able to view this page"
-                }
-              },
-              "hideForGroups": {
-                "title": "Hide for Groups",
-                "type": "array",
-                "description": "Page will be hidden from users with any of these SSO groups",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the group that will not be able to view this page"
-                }
-              },
-              "showForRoles": {
-                "title": "Show for Roles",
-                "type": "array",
-                "description": "Page will be hidden from all users except those with one or more of these SSO roles",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the role that will be able to view this page"
-                }
-              },
-              "hideForRoles": {
-                "title": "Hide for Roles",
-                "type": "array",
-                "description": "Page will be hidden from users with any of these SSO roles",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the role that will not be able to view this page"
-                }
-              },
-              "showForKeycloakUsers": {
-                "title": "Show for Groups/Roles (legacy)",
-                "type": "object",
-                "description": "Legacy form of showForGroups and showForRoles",
-                "additionalProperties": false,
-                "properties": {
-                  "groups": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "roles": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "hideForKeycloakUsers": {
-                "title": "Hide for Groups/Roles (legacy)",
-                "type": "object",
-                "description": "Legacy form of hideForGroups and hideForRoles",
-                "additionalProperties": false,
-                "properties": {
-                  "groups": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "roles": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     },
     "pageInfo": {
       "type": "object",
@@ -663,419 +526,55 @@
           "title": "Hide Components",
           "type": "object",
           "description": "Hide individual shell components. Each key is a component name and each value a boolean."
-        }
-      },
-      "additionalProperties": false
-    },
-    "sections": {
-      "type": "array",
-      "description": "Array of sections, containing items",
-      "items": {
-        "title": "Items",
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "title": "Section Name",
-            "type": "string",
-            "description": "Title/ heading for a section. Required and must be unique"
-          },
-          "icon": {
-            "title": "Section Icon",
-            "type": "string",
-            "description": "Icon will be displayed next to title"
-          },
-          "displayData": {
-            "title": "Display Data",
-            "type": "object",
-            "additionalProperties": false,
-            "description": "Optional meta data for customizing a section",
-            "properties": {
-              "sortBy": {
-                "title": "Sort By",
-                "type": "string",
-                "enum": [
-                  "default",
-                  "most-used",
-                  "last-used",
-                  "alphabetical",
-                  "reverse-alphabetical",
-                  "provider",
-                  "provider-reverse",
-                  "item-id",
-                  "item-id-reverse",
-                  "random"
-                ],
-                "default": "default",
-                "description": "How to sort items within the section. By default items are displayed in the order in which they are listed in within the config"
-              },
-              "collapsed": {
-                "title": "Is Collapsed?",
-                "type": "boolean",
-                "default": false,
-                "description": "If true, section needs to be clicked to open"
-              },
-              "cutToHeight": {
-                "title": "Cut to Height",
-                "type": "boolean",
-                "default": false,
-                "description": "By default, sections will fill available space. Set this option to true to match section height with content height"
-              },
-              "color": {
-                "title": "Color",
-                "type": "string",
-                "description": "Hex code, or HTML color for section fill"
-              },
-              "customStyles": {
-                "title": "Custom Styles",
-                "type": "string",
-                "description": "CSS overides for section container"
-              },
-              "itemSize": {
-                "title": "Item Size",
-                "type": "string",
-                "enum": [
-                  "small",
-                  "medium",
-                  "large"
-                ],
-                "default": "medium",
-                "description": "Size of items within the section"
-              },
-              "rows": {
-                "title": "Num Rows",
-                "type": "number",
-                "minimum": 1,
-                "maximum": 5,
-                "default": 1,
-                "description": "The amount of space that the section spans vertically (applies to the default 'auto' layout; ignored by 'masonry' where heights follow content)"
-              },
-              "cols": {
-                "title": "Num Cols",
-                "type": "number",
-                "minimum": 1,
-                "maximum": 5,
-                "default": 1,
-                "description": "The amount of space that the section spans horizontally"
-              },
-              "sectionLayout": {
-                "title": "Layout Type",
-                "type": "string",
-                "enum": [
-                  "grid",
-                  "auto"
-                ],
-                "default": "auto",
-                "description": "If set to grid, items have uniform width, and itemCount can be set"
-              },
-              "itemCountX": {
-                "title": "Item Count X",
-                "type": "number",
-                "minimum": 1,
-                "maximum": 12,
-                "description": "Number of items per row"
-              },
-              "itemCountY": {
-                "title": "Item Count Y",
-                "type": "number",
-                "minimum": 1,
-                "maximum": 12,
-                "description": "Number of items per column"
-              },
-              "hideForUsers": {
-                "title": "Hide for Users",
-                "type": "array",
-                "description": "Section will be visible to all users, except for those specified in this list",
-                "items": {
-                  "type": "string",
-                  "description": "Username for the user that will not be able to view this section"
-                }
-              },
-              "showForUsers": {
-                "title": "Show for Users",
-                "type": "array",
-                "description": "Section will be hidden from all users, except for those specified in this list",
-                "items": {
-                  "type": "string",
-                  "description": "Username for the user that will have access to this section"
-                }
-              },
-              "hideForGuests": {
-                "title": "Hide for Guests?",
-                "type": "boolean",
-                "default": false,
-                "description": "If set to true, section will be visible for logged in users, but not for guests"
-              },
-              "showForGroups": {
-                "title": "Show for Groups",
-                "type": "array",
-                "description": "Section will be hidden from all users except those with one or more of these SSO groups",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the group that will be able to view this section"
-                }
-              },
-              "hideForGroups": {
-                "title": "Hide for Groups",
-                "type": "array",
-                "description": "Section will be hidden from users with any of these SSO groups",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the group that will not be able to view this section"
-                }
-              },
-              "showForRoles": {
-                "title": "Show for Roles",
-                "type": "array",
-                "description": "Section will be hidden from all users except those with one or more of these SSO roles",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the role that will be able to view this section"
-                }
-              },
-              "hideForRoles": {
-                "title": "Hide for Roles",
-                "type": "array",
-                "description": "Section will be hidden from users with any of these SSO roles",
-                "items": {
-                  "type": "string",
-                  "description": "Name of the role that will not be able to view this section"
-                }
-              },
-              "hideFromWorkspace": {
-                "title": "Hide from Workspace",
-                "type": "boolean",
-                "default": false,
-                "description": "When true, this section and its items are not listed in the Workcenter sidebar. Defaults to `false`."
-              }
-            }
-          },
-          "items": {
-            "title": "Items",
-            "type": "array",
-            "description": "Array of items to display with a section",
-            "items": {
+        },
+        "applications": {
+          "title": "Applications",
+          "type": "object",
+          "description": "The address of each application the shell embeds. A pane with no address is shown as unavailable.",
+          "additionalProperties": false,
+          "properties": {
+            "files": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "title"
-              ],
               "properties": {
-                "title": {
-                  "title": "Item Text",
-                  "type": "string",
-                  "description": "Title of the item"
-                },
-                "description": {
-                  "title": "Description",
-                  "type": "string",
-                  "nullable": true,
-                  "description": "Short description, shown on hover or in a tooltip"
-                },
-                "icon": {
-                  "title": "Icon",
-                  "type": "string",
-                  "nullable": true,
-                  "description": "An icon, either as a font-awesome, simple-icon, selfh.st, or mdi identifier, emoji, favicon, generative or the URL/path to a local or remote icon asset"
-                },
                 "url": {
-                  "title": "Service URL",
                   "type": "string",
-                  "description": "The destination to navigate to when item is clicked, expressed as a valid URL, IP or hostname"
-                },
-                "localUrl": {
-                  "title": "Local URL",
+                  "description": "The FileBrowser Quantum address."
+                }
+              }
+            },
+            "chat": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "url": {
                   "type": "string",
-                  "description": "Optional alternative URL preferred when it is reachable from your browser (e.g. a LAN address)"
-                },
-                "localUrlTimeout": {
-                  "title": "Local URL Probe Timeout",
-                  "type": "number",
-                  "default": 1500,
-                  "description": "For local URLs, ms to wait for the Local URL reachability probe before falling back to normal URL"
-                },
-                "localUrlCheckInterval": {
-                  "title": "Local URL Re-check Interval",
-                  "type": "number",
-                  "default": 0,
-                  "description": "For local URLs, seconds between background re-checks of the Local URL. 0 = only check on page load"
-                },
-                "displayData": {
-                  "title": "Display Data",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "description": "Optional meta data for customizing an item",
-                  "properties": {
-                    "hideForUsers": {
-                      "title": "Hide for Users",
-                      "type": "array",
-                      "description": "Item will be visible to all users, except for those specified in this list",
-                      "items": {
-                        "type": "string",
-                        "description": "Username for the user that will not be able to view this item"
-                      }
-                    },
-                    "showForUsers": {
-                      "title": "Show for Users",
-                      "type": "array",
-                      "description": "Item will be hidden from all users, except for those specified in this list",
-                      "items": {
-                        "type": "string",
-                        "description": "Username for the user that will have access to this item"
-                      }
-                    },
-                    "hideForGuests": {
-                      "title": "Hide for Guests?",
-                      "type": "boolean",
-                      "default": false,
-                      "description": "If set to true, item will be visible for logged in users, but not for guests"
-                    },
-                    "showForGroups": {
-                      "title": "Show for Groups",
-                      "type": "array",
-                      "description": "Item will be hidden from all users except those with one or more of these SSO groups",
-                      "items": {
-                        "type": "string",
-                        "description": "Name of the group that will be able to view this item"
-                      }
-                    },
-                    "hideForGroups": {
-                      "title": "Hide for Groups",
-                      "type": "array",
-                      "description": "Item will be hidden from users with any of these SSO groups",
-                      "items": {
-                        "type": "string",
-                        "description": "Name of the group that will not be able to view this item"
-                      }
-                    },
-                    "showForRoles": {
-                      "title": "Show for Roles",
-                      "type": "array",
-                      "description": "Item will be hidden from all users except those with one or more of these SSO roles",
-                      "items": {
-                        "type": "string",
-                        "description": "Name of the role that will be able to view this item"
-                      }
-                    },
-                    "hideForRoles": {
-                      "title": "Hide for Roles",
-                      "type": "array",
-                      "description": "Item will be hidden from users with any of these SSO roles",
-                      "items": {
-                        "type": "string",
-                        "description": "Name of the role that will not be able to view this item"
-                      }
-                    },
-                    "hideFromWorkspace": {
-                      "title": "Hide from Workspace",
-                      "type": "boolean",
-                      "default": false,
-                      "description": "When true, this item is not listed in the Workcenter sidebar. Defaults to `false`."
-                    }
-                  }
-                },
-                "target": {
-                  "title": "Opening Method",
+                  "description": "The Zulip address."
+                }
+              }
+            },
+            "mail": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "url": {
                   "type": "string",
-                  "enum": [
-                    "newtab",
-                    "sametab",
-                    "parent",
-                    "top",
-                    "modal",
-                    "workspace",
-                    "clipboard",
-                    "newwindow"
-                  ],
-                  "default": "newtab",
-                  "description": "Where / how the item is opened when it's clicked"
-                },
-                "hotkey": {
-                  "title": "Hot Key",
-                  "type": "number",
-                  "description": "A numeric shortcut key, between 0 and 9. Useful for quickly launching frequently used applications"
-                },
-                "rel": {
-                  "title": "rel",
-                  "type": "string",
-                  "description": "The rel attribute for the link. For specifying the relationship between the current document and the linked document"
-                },
-                "id": {
-                  "title": "Item ID",
-                  "type": "string",
-                  "description": "Unique ID for each item. Generated automatically, shouldn't need to be set manually."
-                },
-                "subItems": {
-                  "title": "Sub-Items",
-                  "type": "array",
-                  "description": "Optional list of nested sub-items, displayed as smaller icons within the parent item. Each sub-item supports the same core fields as a regular item",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "title": {
-                        "title": "Title",
-                        "type": "string",
-                        "description": "The title of the sub-item, shown in the tooltip"
-                      },
-                      "url": {
-                        "title": "URL",
-                        "type": "string",
-                        "description": "The URL to open when the sub-item is clicked"
-                      },
-                      "icon": {
-                        "title": "Icon",
-                        "type": "string",
-                        "description": "The icon for the sub-item. Supports the same icon types as a regular item"
-                      },
-                      "target": {
-                        "title": "Target",
-                        "type": "string",
-                        "enum": [
-                          "newtab",
-                          "sametab",
-                          "modal",
-                          "workspace",
-                          "clipboard",
-                          "top",
-                          "parent"
-                        ],
-                        "description": "The opening method for the sub-item"
-                      },
-                      "color": {
-                        "title": "Color",
-                        "type": "string",
-                        "description": "An optional color for the sub-item icon"
-                      },
-                      "backgroundColor": {
-                        "title": "Background Color",
-                        "type": "string",
-                        "description": "An optional background color for the sub-item"
-                      }
-                    }
-                  }
-                },
-                "color": {
-                  "title": "Colour",
-                  "type": "string",
-                  "description": "A CSS colour override for this item in the sidebar."
-                },
-                "backgroundColor": {
-                  "title": "Background Colour",
-                  "type": "string",
-                  "description": "A CSS background colour for this item in the sidebar, for example `#ffffff1a`."
-                },
-                "provider": {
-                  "title": "Provider",
-                  "type": "string",
-                  "description": "The name of the service behind this item, shown as context in the sidebar."
+                  "description": "The SOGo address, normally https://mail.example.com/SOGo."
                 }
               }
             }
           }
         }
+      },
+      "additionalProperties": false
+    },
+    "sections": {
+      "title": "Sections (not used)",
+      "type": "array",
+      "description": "Not used by Workcenter. Accepted so an existing configuration validates; the shell reads appConfig.applications instead.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
       }
     }
   }
