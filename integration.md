@@ -219,6 +219,20 @@ hook and no public JavaScript API**.
 | IN-3.15 | Authentication order is `?auth=<token>` → `Authorization` header (Bearer, or Basic where the password is the token) → the `filebrowser_quantum_jwt` cookie. There is **no `X-Auth` header**. |
 | IN-3.16 | The broker uses a **minimal** API token for service-to-service work, and the user's own session for per-user operations. Never a full-admin token for routine transfers. |
 
+### 3.6 Appearance and language
+
+FileBrowser Quantum is Workcenter's appearance standard: its palette is the source the shell and the
+other applications derive from ([`design.md` §4.3.1](./design.md#431-where-the-palette-comes-from)).
+
+| Ref | Mechanism |
+| --- | --- |
+| IN-3.17 | **Instance branding (setup time).** `frontend.name`, `frontend.favicon`, `frontend.loginIcon`, `frontend.styling.lightBackground` and `frontend.styling.darkBackground` in `Filebrowser/config.yaml`; `frontend.styling.customCSS` points at the Workcenter stylesheet already used to make room for the switcher (IN-3.9), so branding adds no second injection point. |
+| IN-3.18 | **Instance defaults (setup time).** `userDefaults.ui.darkMode` is set `true` — Workcenter defaults to dark. `userDefaults.ui.themeColor` carries the Workcenter accent and `userDefaults.ui.locale` the deployment's default language. These apply to users created afterwards; they are never re-imposed on an existing user. |
+| IN-3.19 | **Per-user, at runtime.** `PATCH /api/users?username=<login>` with `{"which":["darkMode"],"data":{"darkMode":<bool>}}` (and/or `"locale"`), answering `204`. `darkMode` and `locale` are non-admin-editable, so the user's own session is sufficient and no admin token is used. |
+| IN-3.20 | The SPA reads `darkMode` from its own store at load and exposes **no inbound message channel and no theme query parameter**; the only outbound message is `{type:"filebrowser:navigation", url}`. The Files pane is therefore refreshed after a successful `PATCH`, at the path that message last reported ([`design.md` D-T6, D-T7](./design.md#442-the-mode-cookie)). |
+| IN-3.21 | `locale` values are FileBrowser's **own keys**, not BCP-47: `en`, `de`, `fr`, `ptBR`, `zhCN`, `svSE`. The mapping lives in the shell's locale registry (`design.md` D-I6), never inline in a caller. |
+| IN-3.22 | Unknown keys inside a valid `config.yaml` section are **fatal** — the parser rejects them. Every key `setup.sh` writes must exist in the pinned version; a branding key is verified before it is written, not after the container fails to start. |
+
 ---
 
 ## 4. ONLYOFFICE Docs (editing, inside Files)
@@ -394,6 +408,19 @@ Zulip/
 | IN-5.19 | `setup.sh` therefore propagates `workspaceadmin` **out of band** with `PATCH /api/v1/users/{user_id}` (role: owner 100, administrator 200, moderator 300, member 400, guest 600), and re-runs on demand. This is idempotent and safe to repeat. |
 | IN-5.20 | When Workcenter moves to Zulip 13, the out-of-band step is replaced by `SOCIAL_AUTH_SYNC_ATTRS_DICT` with `groups` and `role` entries and the `zulip_groups`/`zulip_role` claims listed in the IdP's `extra_attrs`. |
 
+### 5.8 Appearance and language
+
+| Ref | Mechanism |
+| --- | --- |
+| IN-5.21 | **Mode, per user, at runtime.** `PATCH /api/v1/settings` with `color_scheme` as a JSON-encoded integer: **1 automatic, 2 dark, 3 light**. Zulip pushes the resulting `user_settings` event to that user's open clients, which swap the `dark-theme` class on `:root` — so the Chat pane changes **live, without a reload**, and the night logo swaps with it. |
+| IN-5.22 | **Mode, for everyone, at setup.** `PATCH /api/v1/settings` also accepts `target_users` — `{"user_ids":[…],"group_ids":[…],"skip_if_already_edited":true}` — from feature level 444 (present on the pinned 12.2). Workcenter always passes `skip_if_already_edited: true`: Zulip then skips any user who has ever changed that setting themselves, which is exactly the advisory contract of `design.md` D-T1. |
+| IN-5.23 | `PATCH /api/v1/settings` is **`@human_users_only`**. A bot API key cannot call it. The realm-wide pass therefore uses a human realm-administrator account created by `setup.sh`, and the per-user path uses the user's own credentials. |
+| IN-5.24 | **New-user default.** `PATCH /api/v1/realm/user_settings_defaults` with `color_scheme=2` makes dark the default for accounts created later. It does **not** accept `default_language`. |
+| IN-5.25 | **Branding.** `PATCH /api/v1/realm` sets `name`, `description` and `default_language`; `POST /api/v1/realm/icon` uploads the organisation icon; `POST /api/v1/realm/logo` uploads the wordmark and is called **twice** — `night=false` and `night=true` — so Zulip swaps logos with the theme. All are admin-only and multipart. |
+| IN-5.26 | **Zulip cannot be restyled.** It exposes no custom-CSS mechanism; the production tarball ships compiled assets with no editable stylesheet, and docker-zulip's `custom_zulip_files/` is applied after the build, so CSS placed there has no effect. Workcenter brands Zulip with name, icon, logos and theme only. Nothing in Workcenter may fork Zulip's frontend for appearance. |
+| IN-5.27 | **Language.** `default_language` on `PATCH /api/v1/settings` takes Django language codes (`en`, `de`, `zh-hans`). Zulip's own client comment states a reload is fundamentally required because server-rendered strings cannot be swapped in place, so the Chat pane is refreshed after the call. |
+| IN-5.28 | The supported runtime hooks on the pinned image are `/data/post-setup.d/` scripts and `ZULIP_CUSTOM_SETTINGS`. Branding that needs to run inside the container uses those and nothing else. |
+
 ---
 
 ## 6. Mailcow Dockerized and SOGo (Mail)
@@ -542,6 +569,28 @@ by `bootstrap-sogo.sh`, as one `type = sql` source per mail domain against `_sog
 | IN-6.17 | SOGo exposes no stable public REST API for attachment extraction. IMAP is the reliable, standards-based path and does not depend on SOGo internals. |
 | IN-6.18 | The broker stores mail credentials **encrypted at rest**, keyed by a secret held only in `.env`. It never stores an administrator password for routine transfers. |
 | IN-6.19 | For F1, the broker writes into the FileBrowser source using **temp-file-then-atomic-rename**, so FileBrowser's indexer never sees a partial file. |
+
+### 6.9 Appearance and language
+
+SOGo is the hardest surface in Workcenter to make consistent, and this is where the shell's
+appearance work is most visible — so the constraints are stated plainly rather than designed around.
+
+**SOGo 5.12 has no dark mode.** It has no theme preference, no `prefers-color-scheme` handling and a
+single theme stylesheet. There is nothing to switch; the Workcenter palette has to be *supplied*.
+
+| Ref | Mechanism |
+| --- | --- |
+| IN-6.20 | **What Mailcow already mounts.** `Mailcow/data/conf/sogo/` is bind-mounted at `/etc/sogo/`, and four host files are mounted individually into SOGo's web resources: `custom-theme.js` → `js/theme.js`, `custom-sogo.js` → `js/custom-sogo.js`, plus `custom-fulllogo.svg` and `custom-shortlogo.svg`. `sogo.conf` loads the two scripts with `SOGoUIAdditionalJSFiles = ( js/theme.js, js/custom-sogo.js );`. |
+| IN-6.21 | **`custom-theme.js` is not usable for Workcenter.** It configures AngularJS Material's `$mdThemingProvider`, which SOGo only evaluates at runtime when `SOGoUIxDebugEnabled` is on; Mailcow ships it off, and the file's own example is commented out. Applying a palette through it would require regenerating and replacing SOGo's compiled `theme-default.css`. |
+| IN-6.22 | **What Workcenter does instead.** A Workcenter stylesheet is bind-mounted through `Mailcow/docker-compose.override.yml` at a **new** path inside SOGo's web resources — `/usr/local/lib/GNUstep/SOGo/WebServerResources/css/workcenter.css` — so it adds a mount rather than replacing one, and a delimited Workcenter block is appended to `custom-sogo.js`, which `sogo.conf` already loads. No new configuration key and no edit to `sogo.conf` is required. |
+| IN-6.23 | **What that block does, and nothing else:** links the stylesheet; sets `data-wc-mode` on `<html>` from the `wc_mode` cookie for a correct first paint; listens for `workcenter:mode` and updates the attribute. It verifies `event.origin` against the Workcenter origin, reads only the literal values `dark` and `light`, and ignores everything else. It never evaluates a received string, never touches mail content and never handles a credential. |
+| IN-6.24 | **Mailcow's own hook must survive.** `custom-sogo.js` already defines `mc_logout()`, called by the Mailcow navbar patch baked into the SOGo image. Workcenter **appends** to that file between markers and never rewrites it. |
+| IN-6.25 | **Update safety.** `data/conf/sogo/*` is tracked in Mailcow's git and `update.sh` merges with `-X theirs`, so an upgrade can revert an appended block. `setup.sh --brand` is idempotent and is listed as a post-upgrade step in [`production.md` §10](./production.md#10-upgrading). By contrast `data/web/css/build/0081-custom-mailcow.css`, `data/web/inc/vars.local.inc.php`, `docker-compose.override.yml` and `data/conf/nginx/*.custom` are untracked upstream and survive an update unaided — Workcenter prefers those wherever a choice exists. |
+| IN-6.26 | **The container must be restarted** after a theme, script or logo change: `bootstrap-sogo.sh` rsyncs SOGo's web resources into the nginx volume at start, so a changed file is not served until `sogo-mailcow` restarts. |
+| IN-6.27 | **Mailcow UI.** Its own dark mode is a `<link id="dark-mode-theme">` injected from `localStorage['mailcow_theme']`, with `prefers-color-scheme` as the fallback — a different origin's `localStorage`, which the shell cannot and must not write. Workcenter therefore brands the Mailcow UI (custom CSS, the `$UI_THEME` Bootswatch theme in `vars.local.inc.php`, light and dark logos) but leaves its mode to the user. It is an admin surface reached in a new tab, not a pane. |
+| IN-6.28 | Mailcow's light and dark logos are stored in **Redis** (`MAIN_LOGO`, `MAIN_LOGO_DARK`) and are uploaded through **Configuration → Customize** in the admin UI. There is no API for it, so this is a documented manual step, not a silent `setup.sh` failure. |
+| IN-6.29 | **Language, SOGo.** The per-user key is `SOGoLanguage` and its values are SOGo language *names* (`English`, `German`, `BrazilianPortuguese`), not tags. Resolution is: the user's own `SOGoLanguage` → the first `Accept-Language` value present in `SOGoSupportedLanguages` → the system default. Because the browser fallback already follows the user, Workcenter does **not** drive it; `sogo-tool user-preferences set defaults <user> SOGoLanguage …` exists but is a per-user shell command, not an API, and is out of scope for a shell control. |
+| IN-6.30 | **Language, Mailcow UI.** `?lang=<tag>` sets and persists it in the `mailcow_locale` cookie; tags are Mailcow's own (`en-gb`, `de-de`), with `Accept-Language` autodetection otherwise. Not driven by the shell, for the same reason as IN-6.27. |
 
 ---
 
@@ -826,8 +875,14 @@ manual check.
 | 18 | Traefik dashboard | Admin reaches it; non-admin is denied | ✅ |
 | 19 | Traefik ↔ Mailcow | No redirect loop (`HTTP_REDIRECT=n`) | ✅ |
 | 20 | Status indicators | All three indicators beneath the switcher buttons report healthy | ✅ |
-| 21 | Mailcow LDAP (optional) | An LDAP bind succeeds for an end-user password | ⚠️ manual |
-| 22 | Internal TLS (optional) | Services communicate over TLS with the internal CA | ⚠️ manual |
+| 21 | Mode → Files | Switching to light in the shell flips FileBrowser's stored `darkMode` and the pane renders light | ✅ |
+| 22 | Mode → Chat | Switching flips Zulip's `color_scheme`, and the open pane changes without a reload | ✅ |
+| 23 | Mode → Mail | Switching flips `data-wc-mode` inside the SOGo pane and the Workcenter palette applies | ✅ |
+| 24 | Mode default | A user who has never chosen lands in dark, in the shell and in all three applications | ✅ |
+| 25 | Language → Files/Chat | Changing language in the shell changes the stored locale in both, and the panes follow | ✅ |
+| 26 | Branding | The three applications carry the Workcenter name, logo and palette after `setup.sh` | ⚠️ manual |
+| 27 | Mailcow LDAP (optional) | An LDAP bind succeeds for an end-user password | ⚠️ manual |
+| 28 | Internal TLS (optional) | Services communicate over TLS with the internal CA | ⚠️ manual |
 
 ---
 

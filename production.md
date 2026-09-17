@@ -154,6 +154,8 @@ Options:
       --skip-pull         Do not pull images
       --skip-up           Configure only; do not bring the stack up
       --force             Reconfigure files that already exist (backs them up first)
+      --brand             Re-apply the Workcenter branding to the embedded applications and exit
+                          (see 5.2a). Implied by a normal run; useful on its own after an upgrade
   -v, --verbose           Trace command execution
 ```
 
@@ -188,8 +190,12 @@ Options:
 5. **Skip the `.env`/OIDC checks for anything this run created** — there is nothing to check yet — and
    go straight to the Authentik deployment question.
 6. **Resolve OIDC**, following the branch logic in [§5.5](#55-stage-e--oidc-resolution).
-7. **Bring the stack up** with `docker compose up -d` and wait for health.
-8. **Report** per-service health and exit accordingly.
+7. **Apply the Workcenter branding** to every provisioned application
+   (see [§5.2a](#52a-stage-b1--branding-the-embedded-applications)). File-level branding is written
+   before bring-up; the parts that need a running API are applied after health is reached.
+8. **Bring the stack up** with `docker compose up -d` and wait for health.
+9. **Report** per-service health, list any branding step that could not be applied, and exit
+   accordingly.
 
 ### 4.5 The stop message
 
@@ -271,6 +277,46 @@ sed -i 's/^HTTPS_BIND=.*/HTTPS_BIND=127.0.0.1/'               mailcow.conf
 
 **OnlyOffice** (templated, image pulled): write `.env`, `compose.yaml` with the JWT secret matching
 FileBrowser's `integrations.office.secret`, and the four bind-mounted directories.
+
+### 5.2a Stage B1 — Branding the embedded applications
+
+Workcenter is meant to read as one product rather than three tenants of a reverse proxy. The shell
+can only control its own chrome, so the rest is done here, once, against each application's own
+supported mechanism. The design rationale and the palette source are in
+[`design.md` §4.6](./design.md#46-branding-the-embedded-applications); the per-application mechanics
+are in [`integration.md`](./integration.md).
+
+**Written before bring-up (files):**
+
+| Application | Written |
+| --- | --- |
+| FileBrowser Quantum | `frontend.name`, `frontend.favicon`, `frontend.loginIcon`, `frontend.styling.lightBackground`, `frontend.styling.darkBackground`, `frontend.styling.customCSS`, `userDefaults.ui.darkMode: true`, `userDefaults.ui.themeColor` in `Filebrowser/config.yaml`, plus the stylesheet it points at |
+| SOGo | `Mailcow/data/conf/sogo/workcenter-sogo.css` (the Workcenter palette in both modes), a delimited Workcenter block appended to `Mailcow/data/conf/sogo/custom-sogo.js`, the mount for the stylesheet in `Mailcow/docker-compose.override.yml`, and `custom-fulllogo.svg` / `custom-shortlogo.svg` |
+| Mailcow UI | `Mailcow/data/web/css/build/0081-custom-mailcow.css` and `$UI_THEME` in `Mailcow/data/web/inc/vars.local.inc.php` |
+
+**Applied after health (APIs):**
+
+| Application | Applied |
+| --- | --- |
+| Zulip | `PATCH /api/v1/realm` (name, description), `POST /api/v1/realm/icon`, `POST /api/v1/realm/logo` with `night=false` and again with `night=true`, and `PATCH /api/v1/realm/user_settings_defaults` with `color_scheme=2` so new accounts start dark |
+| Zulip (existing users) | `PATCH /api/v1/settings` with `target_users` and **`skip_if_already_edited: true`**, from a human administrator account — a bot key cannot call it |
+
+**Left to the operator, and said so:**
+
+| Step | Why |
+| --- | --- |
+| Uploading the Mailcow light and dark logos in **Configuration → Customize** | They are stored in Redis by a form POST; Mailcow exposes no API for it. `setup.sh` prints the instruction rather than pretending it succeeded |
+
+| Ref | Requirement |
+| --- | --- |
+| P-29 | Branding is idempotent (P-1): a second run detects current branding and changes nothing, and `--brand` re-applies it after an upgrade has reverted a file. |
+| P-30 | Every colour written in this stage comes from the single palette source in [`design.md` §4.3.1](./design.md#431-where-the-palette-comes-from). `setup.sh` contains no colour literal that is not derived from it. |
+| P-31 | The appended SOGo block is delimited by `// >>> workcenter` / `// <<< workcenter` markers, is replaced rather than duplicated on re-run, and **preserves Mailcow's own `mc_logout()`**, which the SOGo navbar patch calls. |
+| P-32 | `sogo-mailcow` is restarted after a SOGo branding change: SOGo's web resources are rsynced into the nginx volume at container start, so an unrestarted container keeps serving the old files. |
+| P-33 | A branding step that fails is reported by name, does not abort the deployment, and does not leave a half-written file — each file is written temp-then-rename. |
+| P-34 | No branding step disables authentication, relaxes a security header, or writes a secret into a stylesheet, a script or a logo. |
+
+---
 
 ### 5.3 Stage C — Traefik
 
@@ -489,6 +535,18 @@ Before updating, back up ([§11](#11-backup-and-restore)). After updating, re-ch
 `HTTP_REDIRECT=n` and the other Workcenter settings survived — `update.sh` merges upstream changes
 into tracked files, and `mailcow.conf` is tracked upstream.
 
+Then re-apply the branding:
+
+```bash
+cd ..
+./setup.sh --brand
+```
+
+`update.sh` merges with `-X theirs`, and everything under `Mailcow/data/conf/sogo/` is tracked by
+Mailcow — so a Mailcow upgrade can revert the SOGo stylesheet hook and leave the Mail pane looking
+like stock SOGo. `--brand` is idempotent (P-29): run it after every Mailcow update whether or not the
+pane looks wrong.
+
 ### 10.3 Other applications
 
 | Application | How |
@@ -504,7 +562,8 @@ into tracked files, and `mailcow.conf` is tracked upstream.
 1. Back up.
 2. Read the changelogs of everything you are bumping.
 3. Authentik, then Traefik, then the applications, then Workcenter last.
-4. Verify with `docker compose ps` and the [integration matrix](./integration.md#12-integration-verification-matrix).
+4. Re-apply branding with `./setup.sh --brand`.
+5. Verify with `docker compose ps` and the [integration matrix](./integration.md#12-integration-verification-matrix).
 
 ---
 
