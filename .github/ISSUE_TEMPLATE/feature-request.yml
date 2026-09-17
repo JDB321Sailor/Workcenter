@@ -1,0 +1,76 @@
+name: Feature request
+description: Suggest a capability for Workcenter
+title: '[FEATURE] <title>'
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Workcenter is deliberately narrow: three applications, one login, and four
+        file-movement flows. Before opening this request, check roadmap.md section 14
+        (Non-goals). Requests that reintroduce a removed Dashy subsystem, add a fourth
+        application, or fork a bundled application need a roadmap change agreed first.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What can you not do today?
+      description: Describe the problem in user terms, not the solution.
+      placeholder: When I am doing X, I cannot Y, so I have to ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+      placeholder: An outline of the behaviour you want, with as much detail as you can give.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: area
+    attributes:
+      label: Which area does this touch?
+      options:
+        - label: The shell (switcher, sidebars, panes, theming)
+        - label: Files - FileBrowser Quantum or ONLYOFFICE
+        - label: Chat - Zulip
+        - label: Mail - Mailcow / SOGo
+        - label: File movement between applications
+        - label: Authentication / OIDC
+        - label: Deployment, setup.sh or compose
+        - label: Documentation
+    validations:
+      required: true
+
+  - type: input
+    id: goal
+    attributes:
+      label: Which roadmap goal does this serve?
+      description: Name a goal from roadmap.md section 3 (G1-G12), or say that it needs a new goal.
+      placeholder: e.g. G3, or "needs a new goal"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - Low - nice to have
+        - Medium - would be very useful
+        - High - I cannot use Workcenter without it
+    validations:
+      required: true
+
+  - type: dropdown
+    id: implement
+    attributes:
+      label: Would you be willing to implement it?
+      options:
+        - 'No'
+        - 'Maybe'
+        - 'Yes'
+    validations:
+      required: false

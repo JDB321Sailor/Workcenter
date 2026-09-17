@@ -1,0 +1,56 @@
+{
+  "splash-screen": {
+    "loading": "Завантаження"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Гостьовий доступ",
+    "username-label": "Ім'я користувача",
+    "password-label": "Пароль",
+    "login-button": "Увійти",
+    "remember-me-label": "Запам'ятати мене для",
+    "remember-me-never": "Ніколи не запам'ятовувати",
+    "remember-me-hour": "4 години",
+    "remember-me-day": "1 день",
+    "remember-me-week": "1 тиждень",
+    "remember-me-long-time": "Довгий час",
+    "error-missing-username": "Відсутнє ім'я користувача",
+    "error-missing-password": "Відсутній пароль",
+    "error-incorrect-username": "Користувача не знайдено",
+    "error-incorrect-password": "Неправильний пароль",
+    "success-message": "Вхід...",
+    "logout-message": "Вихід",
+    "already-logged-in-title": "Вхід вже виконано",
+    "already-logged-in-text": "Ви увійшли як",
+    "proceed-to-dashboard": "Перейти до інформаційної панелі",
+    "log-out-button": "Вийти",
+    "proceed-guest-button": "Продовжити як гість",
+    "guest-intro-1": "У цій системі увімкнено гостьовий доступ.",
+    "guest-intro-2": "Гості мають доступ лише для перегляду до інформаційних панелей, тому не можуть записати жодних змін на диск.",
+    "error": "Помилка",
+    "error-no-user-configured": "Автентифікацію не ввімкнено, або користувачі не налаштовані",
+    "error-go-home-button": "Повернутися на головну",
+    "logged-in-guest": "Ви увійшли як гість, перенаправлення...",
+    "error-guest-access": "Гостьовий доступ не дозволено"
+  },
+  "settings": {
+    "theme-label": "Тема",
+    "sign-out-tooltip": "Вийти",
+    "sign-in-tooltip": "Увійти",
+    "sign-in-welcome": "Вітаємо {username}!"
+  },
+  "language-switcher": {
+    "title": "Змінити мову програми",
+    "dropdown-label": "Оберіть мову",
+    "save-button": "Зберегти",
+    "success-msg": "Мову оновлено"
+  },
+  "critical-error": {
+    "title": "Помилка завантаження налаштування",
+    "subtitle": "Workcenter не вдалося правильно завантажити через помилку налаштування.",
+    "sub-ensure-that": "Переконайтеся в цьому",
+    "sub-error-details": "Деталі помилки",
+    "sub-next-steps": "Наступні кроки",
+    "ignore-button": "Ігнорувати критичні помилки"
+  }
+}

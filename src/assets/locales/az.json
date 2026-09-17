@@ -1,0 +1,90 @@
+{
+  "general": {
+    "close-modal": "Dialoqu bağla",
+    "confirm": "Təsdiqlə",
+    "cancel": "Ləğv et"
+  },
+  "splash-screen": {
+    "loading": "Yüklənir"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Qonaq girişi",
+    "oidc-label": "Vahid giriş (SSO)",
+    "oidc-login-button": "SSO ilə daxil ol",
+    "username-label": "İstifadəçi adı",
+    "password-label": "Parol",
+    "login-button": "Daxil ol",
+    "remember-me-label": "Məni yadda saxla",
+    "remember-me-never": "Heç vaxt",
+    "remember-me-hour": "4 saat",
+    "remember-me-day": "1 gün",
+    "remember-me-week": "1 həftə",
+    "remember-me-long-time": "Uzun müddət",
+    "error-missing-username": "İstifadəçi adı yazılmayıb",
+    "error-missing-password": "Parol yazılmayıb",
+    "error-incorrect-username": "İstifadəçi tapılmadı",
+    "error-incorrect-password": "Parol yanlışdır",
+    "success-message": "Daxil olunur...",
+    "logout-message": "Çıxış edildi",
+    "already-logged-in-title": "Artıq daxil olmusunuz",
+    "already-logged-in-text": "Bu istifadəçi ilə daxil olmusunuz:",
+    "proceed-to-dashboard": "İdarə panelinə keç",
+    "log-out-button": "Çıxış",
+    "proceed-guest-button": "Qonaq kimi davam et",
+    "guest-intro-1": "Bu nüsxədə qonaq girişi aktivdir.",
+    "guest-intro-2": "Qonaqlar idarə panelini yalnız görə bilər, ona görə də diskə heç bir dəyişiklik yaza bilmirlər.",
+    "error": "Xəta",
+    "error-no-user-configured": "Kimlik doğrulaması aktiv deyil və ya heç bir istifadəçi təyin edilməyib",
+    "error-go-home-button": "Ana səhifəyə qayıt",
+    "logged-in-guest": "Qonaq kimi daxil olundu, yönləndirilir...",
+    "authenticated-redirecting": "Kimlik təsdiqləndi, yönləndirilir...",
+    "error-guest-access": "Qonaq girişinə icazə verilmir"
+  },
+  "remote-config": {
+    "title": "Uzaq konfiqurasiya yüklənsin?",
+    "apply-button": "Önizləməni tətbiq et",
+    "intro": "Kənar URL-dən konfiqurasiya yükləyirsiniz. Davam etmək istəyirsiniz?",
+    "warning": "Davam etməzdən əvvəl yüklədiyiniz məzmunu oxuduğunuzdan əmin olun. Yükləndikdən sonra brauzeriniz bu konfiqurasiyada göstərilən istənilən müştəri tərəfi kodunu icra edə biləcək.",
+    "field-title": "Başlıq",
+    "field-source": "Mənbə",
+    "field-sections": "Bölmələr",
+    "field-items": "Elementlər",
+    "preview-note": "Yalnız önizləmə. Bu, diskdə heç nəyi dəyişmir və Workcenter nüsxənizə heç bir təsir etmir.",
+    "applied-toast": "Uzaq konfiqurasiya tətbiq edildi (yalnız önizləmə)",
+    "previewing-banner": "Uzaq konfiqurasiya önizlənir",
+    "revert-button": "Geri qaytar",
+    "error-invalid-url": "Uzaq konfiqurasiyanın URL-i düzgün deyil (http və ya https olmalıdır)",
+    "error-fetch": "Uzaq konfiqurasiya alınmadı. URL-in əlçatan olduğunu və CORS-a icazə verildiyini yoxlayın.",
+    "error-parse": "Uzaq konfiqurasiya düzgün YAML deyil",
+    "error-not-config": "Uzaq fayl Workcenter konfiqurasiyasına oxşamır",
+    "error-apply": "Uzaq konfiqurasiya tətbiq edilmədi"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "language-label": "Dil",
+    "toggle-nav-aria": "Naviqasiya menyusunu aç/bağla",
+    "sign-out-tooltip": "Çıxış et",
+    "sign-in-tooltip": "Daxil ol",
+    "sign-in-welcome": "Salam, {username}!",
+    "please-login": "Tam giriş üçün daxil olun"
+  },
+  "updates": {
+    "sw-update-available": "Workcenter-nin yeni versiyası mövcuddur.",
+    "sw-update-action": "Yenilə"
+  },
+  "language-switcher": {
+    "title": "Tətbiqin dilini dəyiş",
+    "dropdown-label": "Dil seçin",
+    "save-button": "Yadda saxla",
+    "success-msg": "Dil dəyişdirildi:"
+  },
+  "critical-error": {
+    "title": "Konfiqurasiya yüklənmə xətası",
+    "subtitle": "Konfiqurasiya xətasına görə Workcenter düzgün yüklənə bilmədi.",
+    "sub-ensure-that": "Əmin olun ki,",
+    "sub-error-details": "Xəta təfərrüatları",
+    "sub-next-steps": "Növbəti addımlar",
+    "ignore-button": "Kritik xətaları nəzərə alma"
+  }
+}

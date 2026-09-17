@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- Workcenter - MIT licensed. Portions derived from Dashy, (C) Alicia Sykes. -->
+<!-- Served while the client bundle is still being built or fetched. -->
+<html lang="en">
+<head>
+  <title>Workcenter</title>
+  <meta name="description" content="Files, chat and mail in one self-hosted workspace">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <style>
+    :root { color-scheme: dark light; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      background: #0b1021;
+      color: #e6e9f2;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.75rem; margin: 0; letter-spacing: 0.02em; }
+    p { margin: 0; opacity: 0.75; }
+    .spinner {
+      width: 1.75rem;
+      height: 1.75rem;
+      border: 3px solid #ffffff33;
+      border-top-color: #00ccb4;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; }
+    }
+    #error { display: none; max-width: 34rem; line-height: 1.5; }
+    #error.visible { display: block; }
+    code { background: #ffffff14; padding: 0.1rem 0.35rem; border-radius: 4px; }
+  </style>
+</head>
+
+<body>
+  <div class="spinner" role="status" aria-label="Loading Workcenter"></div>
+  <h1>Workcenter</h1>
+  <p>Starting up…</p>
+
+  <div id="error">
+    <p>
+      Workcenter has not finished loading. The client bundle is usually served from
+      <code>dist/</code>, which is produced by <code>yarn build</code>.
+    </p>
+    <p>
+      Run <code>yarn build</code> and reload, or start the development server with
+      <code>yarn dev</code>.
+    </p>
+  </div>
+
+  <script>
+    // If the app has not taken over after a few seconds, show the explanation
+    // rather than an indefinite spinner.
+    setTimeout(function () {
+      var el = document.getElementById('error');
+      if (el) el.classList.add('visible');
+    }, 8000);
+  </script>
+</body>
+</html>

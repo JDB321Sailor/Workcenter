@@ -1,0 +1,36 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Użytkownik",
+    "password-label": "Hasło",
+    "login-button": "Zaloguj",
+    "remember-me-label": "Zapamiętaj mnie",
+    "remember-me-never": "Nigdy",
+    "remember-me-hour": "4 godziny",
+    "remember-me-day": "Dzień",
+    "remember-me-week": "Tydzień",
+    "error-missing-username": "Nie podano nazwy użytkownika",
+    "error-missing-password": "Nie podano hasła",
+    "error-incorrect-username": "Nie znaleziono użytkownika",
+    "error-incorrect-password": "Niepoprawne hasło",
+    "success-message": "Zalogowano...",
+    "logout-message": "Wylogowano",
+    "already-logged-in-title": "Jesteś już zalogowany",
+    "already-logged-in-text": "Zalogowano jako",
+    "proceed-to-dashboard": "Przejdź do panelu",
+    "log-out-button": "Wyloguj",
+    "proceed-guest-button": "Kontynuuj jako gość"
+  },
+  "settings": {
+    "theme-label": "Motyw",
+    "sign-out-tooltip": "Wyloguj",
+    "sign-in-tooltip": "Zaloguj",
+    "sign-in-welcome": "Cześć {username}!"
+  },
+  "language-switcher": {
+    "title": "Zmień język",
+    "dropdown-label": "Wybierz język",
+    "save-button": "Zapisz",
+    "success-msg": "Język zmieniony na"
+  }
+}

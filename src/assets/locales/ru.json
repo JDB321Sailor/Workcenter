@@ -1,0 +1,56 @@
+{
+  "splash-screen": {
+    "loading": "Загрузка"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Гостевой доступ",
+    "username-label": "Имя пользователя",
+    "password-label": "Пароль",
+    "login-button": "Войти",
+    "remember-me-label": "Запомнить меня на",
+    "remember-me-never": "Никогда",
+    "remember-me-hour": "4 часа",
+    "remember-me-day": "1 день",
+    "remember-me-week": "1 неделю",
+    "remember-me-long-time": "Надолго",
+    "error-missing-username": "Отсутствует имя пользователя",
+    "error-missing-password": "Отсутствует пароль",
+    "error-incorrect-username": "Пользователь не найден",
+    "error-incorrect-password": "Неверный пароль",
+    "success-message": "Вход в систему...",
+    "logout-message": "Вы вышли из системы",
+    "already-logged-in-title": "Вы уже вошли в систему",
+    "already-logged-in-text": "Вы вошли как",
+    "proceed-to-dashboard": "Перейти к панели управления",
+    "log-out-button": "Выйти",
+    "proceed-guest-button": "Продолжить как гость",
+    "guest-intro-1": "Этот экземпляр приложения имеет гостевой доступ.",
+    "guest-intro-2": "Гости имеют имеют доступ к панелям управления только для чтения, так что они не могут записать изменения на диск.",
+    "error": "Ошибка",
+    "error-no-user-configured": "Аутентификация отключена или не было настроено ни одного пользователя.",
+    "error-go-home-button": "Домой",
+    "logged-in-guest": "Вы вошли как гость, переадресация...",
+    "error-guest-access": "Гостевой доступ запрещён"
+  },
+  "settings": {
+    "theme-label": "Тема",
+    "sign-out-tooltip": "Выход",
+    "sign-in-tooltip": "Авторизоваться",
+    "sign-in-welcome": "Здравствуйте, {username}!"
+  },
+  "language-switcher": {
+    "title": "Выбрать язык приложения",
+    "dropdown-label": "Выберите язык",
+    "save-button": "Сохранить",
+    "success-msg": "Выбран язык: "
+  },
+  "critical-error": {
+    "title": "Ошибка загрузки конфигурации",
+    "subtitle": "Приложение не смогло загрузиться из-за ошибки в конфигурации.",
+    "sub-ensure-that": "Удостоверьтесь, что",
+    "sub-error-details": "Сведения об ошибке",
+    "sub-next-steps": "Следующие шаги",
+    "ignore-button": "Игнорировать критические ошибки"
+  }
+}

@@ -122,19 +122,19 @@ Workcenter uses **three long-lived branches**, promoted in one direction only.
 
 | Branch | Role | Default? |
 | --- | --- | --- |
-| **`Dev`** | **The default target for every pull request.** Integration branch. May be temporarily broken between merges. | Default **PR base** |
-| **`Beta`** | Promoted from `Dev` once the E2E suite is green. Release candidates. | — |
-| **`Stable`** | Promoted from `Beta`. **The GitHub default branch** and the source of production images and tags. | GitHub default |
+| **`Dev`** | **The base for every pull request.** Integration branch, and where the application lives. May be temporarily broken between merges. | Default **PR base** |
+| **`Beta`** | **The promotion target for `Dev`.** Receives the whole of `Dev` once production testing is ready, creating the first beta. Release candidates live here. | — |
+| **`Stable`** | **The promotion target for `Beta`.** Receives the whole of `Beta` once beta testing completes. **The GitHub default branch**, and what a visitor sees first. | GitHub default |
 
 ### The rules
 
 | Ref | Rule |
 | --- | --- |
-| C-3.1 | **All PRs merge into `Dev`.** Never open a feature PR against `Beta` or `Stable`. |
-| C-3.2 | Promotion is strictly `Dev → Beta → Stable`, one step at a time, each with a green E2E run. |
-| C-3.3 | Bug fixes for `Beta` or `Stable` go through the same `Dev → Beta → Stable` path. Fix forward; do not branch off a release. |
-| C-3.4 | **The only exception:** non-functional changes (documentation, workflow configuration, issue templates) may target `Beta` or `Stable` directly, with maintainer approval recorded in the PR. |
-| C-3.5 | `Stable` is the default branch, so a fresh `git clone` gives you production code. **Switch to `Dev` before you start work.** |
+| C-3.1 | **Every pull request targets `Dev`.** This is enforced by the `Pull-request base branch` check in `ci.yml`, which fails a pull request whose base is not `Dev` unless it is a promotion. |
+| C-3.2 | **`Dev` targets `Beta`.** When `Dev` is ready for production testing, the whole of `Dev` is promoted into `Beta` in one promotion pull request, creating the first beta. |
+| C-3.3 | **`Beta` targets `Stable`.** When beta testing completes, the whole of `Beta` is promoted into `Stable` in one promotion pull request, creating the release. |
+| C-3.4 | **The only exception to C-3.1 is a promotion.** A promotion is a pull request whose title starts with `chore(release): promote`. Nothing else may target `Beta` or `Stable`; a feature or fix always lands on `Dev` first. |
+| C-3.5 | `Stable` is the default branch, so a fresh `git clone` gives you the documentation. **Switch to `Dev` before you start work.** |
 | C-3.6 | Promotion is performed by maintainers using the `promote.yml` workflow with a semantic version argument (`X.Y.Z`), mirroring FileBrowser Quantum's `promote-dev-to-beta` workflow. |
 | C-3.7 | Never force-push a long-lived branch. Never rewrite published history. |
 | C-3.8 | Release branches, if ever needed for a hotfix, are named `hotfix/vX.Y.Z` and merge back into `Dev` as well as the release branch. |

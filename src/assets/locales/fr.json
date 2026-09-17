@@ -1,0 +1,87 @@
+{
+  "general": {
+    "close-modal": "Fermer la fenêtre",
+    "confirm": "Confirmer",
+    "cancel": "Annuler"
+  },
+  "splash-screen": {
+    "loading": "Chargement"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Accès invité",
+    "username-label": "Nom d'utilisateur",
+    "password-label": "Mot de passe",
+    "login-button": "Connexion",
+    "remember-me-label": "Se souvenir de moi",
+    "remember-me-never": "Jamais",
+    "remember-me-hour": "4 heures",
+    "remember-me-day": "1 jour",
+    "remember-me-week": "1 semaine",
+    "remember-me-long-time": "Un long moment",
+    "error-missing-username": "Nom d'utilisateur manquant",
+    "error-missing-password": "Mot de passe manquant",
+    "error-incorrect-username": "Utilisateur inexistant",
+    "error-incorrect-password": "Mot de passe incorrect",
+    "success-message": "Connexion ...",
+    "logout-message": "Déconnexion",
+    "already-logged-in-title": "Déjà connecté",
+    "already-logged-in-text": "Vous êtes connecté en tant que",
+    "proceed-to-dashboard": "Accéder au Tableau de bord",
+    "log-out-button": "Déconnexion",
+    "proceed-guest-button": "Continuer en tant qu'invité",
+    "guest-intro-1": "L'accès invité est activé pour cette instance.",
+    "guest-intro-2": "Les invités n'ont qu'un accès en mode lecture aux tableaux de bord, et ne peuvent donc pas écrire de modifications sur le disque.",
+    "error": "Erreur",
+    "error-no-user-configured": "L'authentification n'est pas activée ou aucun utilisateur n'a été configuré.",
+    "error-go-home-button": "Retour à l'accueil",
+    "logged-in-guest": "Connecté en tant qu'invité, redirection...",
+    "error-guest-access": "L'accès invité n'est pas autorisé"
+  },
+  "remote-config": {
+    "title": "Charger la configuration distante ?",
+    "apply-button": "Appliquer l'aperçu",
+    "intro": "Vous chargez une configuration depuis une URL externe. Souhaitez-vous continuer ?",
+    "warning": "Vous devez vous assurer que vous avez lu le contenu que vous chargez avant de continuer. Une fois chargé, votre navigateur pourra exécuter tout code client spécifié dans cette configuration.",
+    "field-title": "Titre",
+    "field-source": "Source",
+    "field-sections": "Sections",
+    "field-items": "Items",
+    "preview-note": "Aperçu seulement. Cela ne modifiera pas les fichiers sur le disque ni n'affectera votre instance Workcenter en aucune manière.",
+    "applied-toast": "Configuration distante appliquée (aperçu seulement)",
+    "previewing-banner": "Aperçu de la configuration distante",
+    "revert-button": "Revenir en arrière",
+    "error-invalid-url": "L'URL de la configuration distante n'est pas valide (doit être http ou https)",
+    "error-fetch": "Impossible de récupérer la configuration distante. Vérifiez que l'URL est accessible et que les CORS sont autorisés.",
+    "error-parse": "La configuration distante n'est pas un YAML valide",
+    "error-not-config": "Le fichier distant ne ressemble pas à une configuration Workcenter",
+    "error-apply": "Échec de l'application de la configuration distante"
+  },
+  "settings": {
+    "theme-label": "Thème",
+    "language-label": "Langue",
+    "toggle-nav-aria": "Basculer le menu de navigation",
+    "sign-out-tooltip": "Déconnexion",
+    "sign-in-tooltip": "Connexion",
+    "sign-in-welcome": "Bonjour {username} !",
+    "please-login": "Veuillez vous connecter pour un accès complet"
+  },
+  "updates": {
+    "sw-update-available": "Une nouvelle version de Workcenter est disponible.",
+    "sw-update-action": "Actualiser"
+  },
+  "language-switcher": {
+    "title": "Changer la langue",
+    "dropdown-label": "Sélectionnez une langue",
+    "save-button": "Enregistrer",
+    "success-msg": "Langue mise à jour vers"
+  },
+  "critical-error": {
+    "title": "Erreur de chargement de la configuration",
+    "subtitle": "Workcenter n'a pas réussi à se charger correctement en raison d'une erreur de configuration.",
+    "sub-ensure-that": "Assurez-vous que",
+    "sub-error-details": "Détails de l'erreur",
+    "sub-next-steps": "Étapes suivantes",
+    "ignore-button": "Ignorer les erreurs critiques"
+  }
+}

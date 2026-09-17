@@ -1,0 +1,37 @@
+{
+  "login": {
+    "title": "Даши",
+    "username-label": "Потребител",
+    "password-label": "Парола",
+    "login-button": "Вход",
+    "remember-me-label": "Запомни ме за",
+    "remember-me-never": "Никога",
+    "remember-me-hour": "4 Часа",
+    "remember-me-day": "1 Ден",
+    "remember-me-week": "1 Седмица",
+    "remember-me-long-time": "дълго време",
+    "error-missing-username": "Липсва потребителско име",
+    "error-missing-password": "Липсва парола",
+    "error-incorrect-username": "Не е намерен такъв потребител",
+    "error-incorrect-password": "Грешна парола",
+    "success-message": "Влизане...",
+    "logout-message": "Изход",
+    "already-logged-in-title": "Вече логнат",
+    "already-logged-in-text": "Логнат като",
+    "proceed-to-dashboard": "Към Dashboard",
+    "log-out-button": "Изход",
+    "proceed-guest-button": "Продължи като гост"
+  },
+  "settings": {
+    "theme-label": "Тема",
+    "sign-out-tooltip": "Изход",
+    "sign-in-tooltip": "Вход",
+    "sign-in-welcome": "Здравей {username}!"
+  },
+  "language-switcher": {
+    "title": "Промяна на езика на приложението",
+    "dropdown-label": "Избор на език",
+    "save-button": "Запазване",
+    "success-msg": "Езикът е сменен на"
+  }
+}

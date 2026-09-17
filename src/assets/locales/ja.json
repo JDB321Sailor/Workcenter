@@ -1,0 +1,48 @@
+{
+  "splash-screen": {
+    "loading": "読み込み中"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "ゲストアクセス",
+    "username-label": "ユーザー名",
+    "password-label": "パスワード",
+    "login-button": "ログイン",
+    "remember-me-label": "ログイン状態を記憶する",
+    "remember-me-never": "記憶しない",
+    "remember-me-hour": "4時間",
+    "remember-me-day": "1日",
+    "remember-me-week": "1週間",
+    "remember-me-long-time": "ずっと",
+    "error-missing-username": "ユーザー名が入力されていません",
+    "error-missing-password": "パスワードが入力されていません",
+    "error-incorrect-username": "ユーザーが見つかりません",
+    "error-incorrect-password": "パスワードが正しくありません",
+    "success-message": "ログインしています...",
+    "logout-message": "ログアウトしました",
+    "already-logged-in-title": "ログイン済み",
+    "already-logged-in-text": "ログインしています: ",
+    "proceed-to-dashboard": "ダッシュボードに進みます",
+    "log-out-button": "ログアウト",
+    "proceed-guest-button": "ゲストとして続行",
+    "guest-intro-1": "このインスタンスではゲストアクセスが有効になっています。",
+    "guest-intro-2": "ゲストは読み込み専用でダッシュボードにアクセスでき、変更をディスクに書き込むことはできません。",
+    "error": "エラー",
+    "error-no-user-configured": "認証が有効になっていないか、ユーザーが登録されていません",
+    "error-go-home-button": "ホームに戻る",
+    "logged-in-guest": "ゲストとしてログインしました。リダイレクトしています...",
+    "error-guest-access": "ゲストによるアクセスは許可されていません"
+  },
+  "settings": {
+    "theme-label": "テーマ",
+    "sign-out-tooltip": "サインアウト",
+    "sign-in-tooltip": "ログイン",
+    "sign-in-welcome": "{username}さん、こんにちは!"
+  },
+  "language-switcher": {
+    "title": "アプリケーション言語の変更",
+    "dropdown-label": "言語を選択してください",
+    "save-button": "保存",
+    "success-msg": "言語が更新されました"
+  }
+}

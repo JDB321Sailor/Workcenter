@@ -1,0 +1,45 @@
+{
+  "login": {
+    "title": "ড্যাশি",
+    "guest-label": "অতিথি প্রবেশ",
+    "username-label": "ব্যবহারকারীর নাম",
+    "password-label": "পাসওয়ার্ড",
+    "login-button": "প্রবেশ করুন",
+    "remember-me-label": "মনে রাখুন",
+    "remember-me-never": "কখনোই না",
+    "remember-me-hour": "৪ ঘন্টা",
+    "remember-me-day": "১ দিন",
+    "remember-me-week": "১ সপ্তাহ",
+    "remember-me-long-time": "দীর্ঘকাল",
+    "error-missing-username": "ব্যবহারকারীর নাম অনুপস্থিত",
+    "error-missing-password": "পাসওয়ার্ড অনুপস্থিত",
+    "error-incorrect-username": "ব্যবহারকারী পাওয়া যায়নি",
+    "error-incorrect-password": "চাল পাসওয়ার্ড",
+    "success-message": "প্রবেশ হচ্ছে...",
+    "logout-message": "প্রস্থান",
+    "already-logged-in-title": "ইতিমধ্যে প্রবেশ করা",
+    "already-logged-in-text": "আপনি প্রবেশ করা আছেন এই নামে-",
+    "proceed-to-dashboard": "ড্যাশবোর্ডে যান",
+    "log-out-button": "প্রস্থান",
+    "proceed-guest-button": "অতিথি হিসেবে অগ্রসর হন",
+    "guest-intro-1": "এই উদাহরণে অতিথি অভিগমন সক্রিয় করা আছে।",
+    "guest-intro-2": "অতিথিদের ড্যাশবোর্ডে শুধুমাত্র দেখার অধিকার আছে, তাই আপনি ডিস্কে কোনো পরিবর্তন লিখতে পারবেন না।",
+    "error": "ত্রুটি",
+    "error-no-user-configured": "প্রমাণীকরণ সক্ষম করা নেই, বা কোনো ব্যবহারকারী কনফিগার করা হয়নি",
+    "error-go-home-button": "নীড়ে ফিরে যান",
+    "logged-in-guest": "অতিথি হিসাবে প্রবেশ করেছেন, পুনঃনির্দেশ করা হচ্ছে...",
+    "error-guest-access": "অতিথি প্রবেশ অনুমোদিত নয়"
+  },
+  "settings": {
+    "theme-label": "থিম",
+    "sign-out-tooltip": "প্রস্থান",
+    "sign-in-tooltip": "প্রবেশ",
+    "sign-in-welcome": "শুভেচ্ছা {username}!"
+  },
+  "language-switcher": {
+    "title": "অ্যাপ্লিকেশনের ভাষা পরিবর্তন",
+    "dropdown-label": "একটি ভাষা নির্বাচন করুন",
+    "save-button": "সংরক্ষণ করুন",
+    "success-msg": "ভাষা হালনাগাদ করা হয়েছে "
+  }
+}

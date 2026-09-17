@@ -1,0 +1,108 @@
+# Promotion — Dev → Beta → Stable.
+#
+# Promotion runs in one direction only and one step at a time:
+#
+#     feature branch ──PR──▶ Dev ──promote──▶ Beta ──promote──▶ Stable
+#
+# Dev is the target for every pull request. Beta is a release candidate.
+# Stable is the GitHub default branch and the source of production releases.
+#
+# See contributions.md §10 for the full promotion procedure.
+name: promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version to promote (format: X.Y.Z)"
+        required: true
+        type: string
+      from:
+        description: "Source branch"
+        required: true
+        type: choice
+        options:
+          - Dev
+          - Beta
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.from }} → ${{ inputs.from == 'Dev' && 'Beta' || 'Stable' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve target branch
+        id: target
+        run: |
+          if [ "${{ inputs.from }}" = "Dev" ]; then
+            echo "branch=Beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=Stable" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ inputs.version }}"
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version must be in X.Y.Z format, got '$VERSION'"
+            exit 1
+          fi
+          echo "Version format validated: $VERSION"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the source branch exists
+        run: |
+          if ! git ls-remote --exit-code origin "${{ inputs.from }}"; then
+            echo "::error::Source branch '${{ inputs.from }}' does not exist"
+            exit 1
+          fi
+
+      - name: Confirm the promotion direction
+        run: |
+          echo "Promoting ${{ inputs.from }} → ${{ steps.target.outputs.branch }} at version ${{ inputs.version }}"
+          if [ "${{ inputs.from }}" = "Dev" ] && [ "${{ steps.target.outputs.branch }}" != "Beta" ]; then
+            echo "::error::Dev may only be promoted to Beta"
+            exit 1
+          fi
+          if [ "${{ inputs.from }}" = "Beta" ] && [ "${{ steps.target.outputs.branch }}" != "Stable" ]; then
+            echo "::error::Beta may only be promoted to Stable"
+            exit 1
+          fi
+
+      - name: Merge source into target
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout "${{ steps.target.outputs.branch }}"
+          git merge --no-ff "origin/${{ inputs.from }}" \
+            -m "chore(release): promote ${{ inputs.from }} to ${{ steps.target.outputs.branch }} v${{ inputs.version }}"
+          git push origin "${{ steps.target.outputs.branch }}"
+
+      - name: Tag Stable
+        if: steps.target.outputs.branch == 'Stable'
+        run: |
+          git tag -a "v${{ inputs.version }}" \
+            -m "Workcenter v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Promotion complete"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| From | \`${{ inputs.from }}\` |"
+            echo "| To | \`${{ steps.target.outputs.branch }}\` |"
+            echo "| Version | \`v${{ inputs.version }}\` |"
+            echo
+            echo "Cut the \`## [Unreleased]\` section of \`CHANGELOG.md\` into"
+            echo "\`## [v${{ inputs.version }}]\` on the promoted branch, and add a fresh"
+            echo "\`## [Unreleased]\` heading above it."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -380,8 +380,10 @@ yarn test:e2e                  # needs the test stack
 | `yarn validate-config` | Validates `user-data/conf.yml` against the schema |
 | `yarn health-check` | Probes the server's `/healthz` |
 
-**Branches:** `Dev` is the default target for every pull request. `Stable` is the GitHub default
-branch and holds production code — switch to `Dev` before you start.
+**Branches:** every pull request targets `Dev`, which is where the application lives.
+`Dev` is promoted into `Beta` when production testing is ready, and `Beta` is promoted into
+`Stable` when beta testing completes. `Stable` is the GitHub default branch and holds the
+documentation — switch to `Dev` before you start work.
 
 See [`contributions.md`](./contributions.md) for the full workflow and
 [`standards.md`](./standards.md) for the conventions.

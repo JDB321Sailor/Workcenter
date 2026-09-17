@@ -1,0 +1,88 @@
+{
+  "general": {
+    "close-modal": "关闭对话框",
+    "confirm": "确认",
+    "cancel": "取消"
+  },
+  "splash-screen": {
+    "loading": "加载中"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "访客访问",
+    "username-label": "用户名",
+    "password-label": "密码",
+    "login-button": "登录",
+    "remember-me-label": "记住我",
+    "remember-me-never": "永不",
+    "remember-me-hour": "4 小时",
+    "remember-me-day": "1 天",
+    "remember-me-week": "1 周",
+    "remember-me-long-time": "长期",
+    "error-missing-username": "用户名空缺",
+    "error-missing-password": "密码空缺",
+    "error-incorrect-username": "用户不存在",
+    "error-incorrect-password": "密码不正确",
+    "success-message": "正在登录...",
+    "logout-message": "已注销",
+    "already-logged-in-title": "已登录",
+    "already-logged-in-text": "你已登录为",
+    "proceed-to-dashboard": "前往仪表板",
+    "log-out-button": "注销",
+    "proceed-guest-button": "以游客身份前往",
+    "guest-intro-1": "该实例已启用访客访问.",
+    "guest-intro-2": "访客只有访问权限，无法保存变更",
+    "error": "错误",
+    "error-no-user-configured": "没有启用验证，或者未配置用户",
+    "error-go-home-button": "返回首页",
+    "logged-in-guest": "以访客身份登录，正在跳转...",
+    "authenticated-redirecting": "已认证，正在跳转...",
+    "error-guest-access": "不允许访客访问"
+  },
+  "remote-config": {
+    "title": "加载远程配置？",
+    "apply-button": "应用预览",
+    "intro": "你正在从外部 URL 加载配置。是否继续？",
+    "warning": "请确保在继续之前已阅读所加载的内容。一旦加载，你的浏览器将能够执行此配置中指定的任何客户端代码。",
+    "field-title": "标题",
+    "field-source": "来源",
+    "field-sections": "分组",
+    "field-items": "项目",
+    "preview-note": "仅预览。这不会对磁盘做任何更改，也不会以任何方式影响你的 Workcenter 实例。",
+    "applied-toast": "已应用远程配置（仅预览）",
+    "previewing-banner": "正在预览远程配置",
+    "revert-button": "还原",
+    "error-invalid-url": "远程配置 URL 无效（必须为 http 或 https）",
+    "error-fetch": "无法获取远程配置。请检查 URL 是否可达，且允许 CORS。",
+    "error-parse": "远程配置不是有效的 YAML",
+    "error-not-config": "远程文件不像是 Workcenter 配置",
+    "error-apply": "应用远程配置失败"
+  },
+  "settings": {
+    "theme-label": "主题",
+    "language-label": "语言",
+    "toggle-nav-aria": "切换导航菜单",
+    "sign-out-tooltip": "注销",
+    "sign-in-tooltip": "登录",
+    "sign-in-welcome": "你好 {username}！",
+    "please-login": "登录以获得完整访问权限"
+  },
+  "updates": {
+    "sw-update-available": "Workcenter 有新版本可用。",
+    "sw-update-action": "刷新"
+  },
+  "language-switcher": {
+    "title": "更改应用语言",
+    "dropdown-label": "选择语言",
+    "save-button": "保存",
+    "success-msg": "语言切换至"
+  },
+  "critical-error": {
+    "title": "配置加载错误",
+    "subtitle": "由于配置错误，Workcenter 未能正确加载。",
+    "sub-ensure-that": "请确保",
+    "sub-error-details": "错误详情",
+    "sub-next-steps": "后续步骤",
+    "ignore-button": "忽略严重错误"
+  }
+}

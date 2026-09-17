@@ -1,0 +1,24 @@
+# Workcenter — single-service compose for running the shell on its own.
+#
+# For the full stack (Traefik, Authentik, FileBrowser Quantum, ONLYOFFICE, Zulip,
+# Mailcow/SOGo) use the root compose.yaml, or run ./setup.sh.
+services:
+  workcenter:
+    container_name: workcenter
+    build: .
+    # Or pin a published image instead of building:
+    # image: ghcr.io/<your-org>/workcenter:latest
+    ports:
+      - 4000:8080
+    # Mount the directory holding conf.yml and any assets you want served.
+    volumes:
+      - ./user-data:/app/user-data
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '/app/services/healthcheck.js']
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

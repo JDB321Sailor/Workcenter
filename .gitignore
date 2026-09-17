@@ -1,0 +1,75 @@
+# ---------------------------------------------------------------------------
+# Workcenter
+# Never commit generated artefacts, secrets or runtime data.
+# ---------------------------------------------------------------------------
+
+# Dependencies and build output
+node_modules
+/dist
+/coverage
+
+# ---------------------------------------------------------------------------
+# Secrets and generated configuration
+# Every application folder keeps its own .env and secrets; none are tracked.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/secrets/
+**/*.local.yaml
+**/*.local.yml
+acme.json
+**/acme.json
+
+# ---------------------------------------------------------------------------
+# Runtime data owned by integrated applications
+# Volumes are bind-mounted inside each application's folder.
+# ---------------------------------------------------------------------------
+**/data/
+**/logs/
+**/office-cache/
+**/database/
+**/rabbitmq/
+**/redis/
+**/postgres/
+**/media/
+**/templates/
+
+# Broker token store
+user-data/broker/
+user-data/config-backups/
+
+# ---------------------------------------------------------------------------
+# Test and tooling artefacts
+# ---------------------------------------------------------------------------
+/test-results
+/playwright-report
+/e2e/test-results
+/e2e/playwright-report
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------------------------------------------------------------------------
+# Editors and operating systems
+# ---------------------------------------------------------------------------
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

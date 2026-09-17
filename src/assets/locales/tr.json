@@ -1,0 +1,56 @@
+{
+  "splash-screen": {
+    "loading": "Yükleniyor"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Misafir Erişimi",
+    "username-label": "Kullanıcı Adı",
+    "password-label": "Şifre",
+    "login-button": "Giriş",
+    "remember-me-label": "Beni hatırla",
+    "remember-me-never": "Hiçbir zaman",
+    "remember-me-hour": "4 Saat",
+    "remember-me-day": "1 Gün",
+    "remember-me-week": "1 Hafta",
+    "remember-me-long-time": "Uzun süre",
+    "error-missing-username": "Kullanıcı adı eksik",
+    "error-missing-password": "Şifre eksik",
+    "error-incorrect-username": "Kullanıcı Bulunamadı",
+    "error-incorrect-password": "Hatalı Şifre",
+    "success-message": "Giriş Yapılıyor...",
+    "logout-message": "Çıkış Yapıldı",
+    "already-logged-in-title": "Önceden giriş yapılmış",
+    "already-logged-in-text": "Şu kullanıcı olarak giriş yaptınız",
+    "proceed-to-dashboard": "Dashboard'a ilerleyin",
+    "log-out-button": "Çıkış yap",
+    "proceed-guest-button": "Misafir olarak devam et",
+    "guest-intro-1": "Bu örneğin misafir erişimi etkin.",
+    "guest-intro-2": "Misafirler panolara salt görüntüleme erişimine sahiptir, bu nedenle disk üzerinde herhangi bir değişiklik yazamazlar.",
+    "error": "Hata",
+    "error-no-user-configured": "Kimlik doğrulama etkinleştirilmemiş veya hiçbir kullanıcı yapılandırılmamış",
+    "error-go-home-button": "Anasayfaya git",
+    "logged-in-guest": "Misafir olarak giriş yapıldı, Yönlendiriliyor...",
+    "error-guest-access": "Misafir Erişimine İzin Verilmiyor"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Çıkış Yap",
+    "sign-in-tooltip": "Giriş Yap",
+    "sign-in-welcome": "Merhaba {username}!"
+  },
+  "language-switcher": {
+    "title": "Uygulama Dilini Değiştir",
+    "dropdown-label": "Bir Dil Seçin",
+    "save-button": "Kaydet",
+    "success-msg": "Dil şununla güncellendi:"
+  },
+  "critical-error": {
+    "title": "Yapılandırma Yükleme Hatası",
+    "subtitle": "Workcenter bir yapılandırma hatası nedeniyle düzgün yüklenemedi.",
+    "sub-ensure-that": "Şunlardan emin olun",
+    "sub-error-details": "Hata Detayları",
+    "sub-next-steps": "Sonraki Adımlar",
+    "ignore-button": "Kritik Hataları Yoksay"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "splash-screen": {
+    "loading": "Cargando"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Acceso de convidado",
+    "username-label": "Nome de usuario",
+    "password-label": "Contrasinal",
+    "login-button": "Iniciar sesión",
+    "remember-me-label": "Lembrar durante",
+    "remember-me-never": "Nunca",
+    "remember-me-hour": "4 horas",
+    "remember-me-day": "1 día",
+    "remember-me-week": "1 semana",
+    "remember-me-long-time": "Moito tempo",
+    "error-missing-username": "Falta o nome de usuario",
+    "error-missing-password": "Falta o contrasinal",
+    "error-incorrect-username": "Usuario non encontrado",
+    "error-incorrect-password": "Contrasinal incorrecto",
+    "success-message": "Iniciando sesión...",
+    "logout-message": "Sesión pechada",
+    "already-logged-in-title": "Sesión xa iniciada",
+    "already-logged-in-text": "Estás identificado como",
+    "proceed-to-dashboard": "Ir ao panel",
+    "log-out-button": "Pechar sesión",
+    "proceed-guest-button": "Continuar como convidado",
+    "guest-intro-1": "Esta instancia ten o acceso de convidado habilitado.",
+    "guest-intro-2": "Os convidados só teñen acceso de visualización aos paneis e non poden facer cambios no disco.",
+    "error": "Erro",
+    "error-no-user-configured": "A autenticación non está habilitada ou non se configuraron usuarios",
+    "error-go-home-button": "Ir á páxina principal",
+    "logged-in-guest": "Identificado como convidado, redirixindo...",
+    "error-guest-access": "Acceso de convidado non permitido"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Pechar sesión",
+    "sign-in-tooltip": "Iniciar sesión",
+    "sign-in-welcome": "Ola {username}!"
+  },
+  "language-switcher": {
+    "title": "Cambiar idioma da aplicación",
+    "dropdown-label": "Selecciona un idioma",
+    "save-button": "Gardar",
+    "success-msg": "Idioma actualizado a"
+  }
+}
