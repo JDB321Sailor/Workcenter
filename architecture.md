@@ -1,7 +1,7 @@
 # Workcenter — Architecture
 
 > **Scope:** folder structure, file breakdown and layout requirements for the Workcenter repository.
-> **Starting point:** [Dashy](https://github.com/lissy93/dashy). Workcenter keeps Dashy's folder
+> **Starting point:** [Workcenter](https://github.com/JDB321Sailor/Workcenter). Workcenter keeps Workcenter's folder
 > conventions, build pipeline, theming layout and documentation layout, and removes everything that
 > serves the Default and Minimal views.
 > **Companions:** [`roadmap.md`](./roadmap.md) · [`design.md`](./design.md) · [`standards.md`](./standards.md) ·
@@ -18,11 +18,11 @@ Workcenter is a **two-part application shipped from one repository**:
 | **Shell** | Vue 3 + Vite SPA: the application switcher, the swappable sidebars, the pane surfaces, theming and the OIDC client | `src/` | Static assets served by `server.js` inside the Workcenter container |
 | **Broker** | OIDC-protected HTTP API that performs cross-application file movement and reports integration health | `src/broker/` and `services/` | The same container, a second Node process managed by the entrypoint |
 
-Derived Dashy subsystems that **remain** because the shell depends on them: the Vuex store and
+Derived Workcenter subsystems that **remain** because the shell depends on them: the Vuex store and
 config accumulator, the configuration schema, the authentication utilities, the theming styles, the
 i18n locales, the Express server, and the healthcheck service.
 
-Derived Dashy subsystems that are **removed**: the Default view, the Minimal view, the widget engine,
+Derived Workcenter subsystems that are **removed**: the Default view, the Minimal view, the widget engine,
 the status/ping monitoring engine, the tile grid, and the multi-view router.
 
 ```
@@ -66,7 +66,7 @@ the status/ping monitoring engine, the tile grid, and the multi-view router.
 
 ## 2. Top-level repository layout
 
-Workcenter's repository root **is** the Workcenter application folder. Dashy's top-level entries are
+Workcenter's repository root **is** the Workcenter application folder. Workcenter's top-level entries are
 preserved in name and purpose wherever they still apply; new entries are marked **NEW**.
 
 ```
@@ -131,13 +131,13 @@ Workcenter/                          # repository root == the Workcenter applica
 ├── index.html
 ├── package.json
 ├── README.md                        # GitHub landing page -> Readme.md content
-├── Dockerfile-postgresql            # (removed: Dashy-only Postgres variant)
+├── Dockerfile-postgresql            # (removed: Workcenter-only Postgres variant)
 ├── server.js                        # Express static server + API host      [kept from Dashy]
 ├── tsconfig.json
 ├── vite.config.mjs
 ├── vitest.config.mjs
 ├── yarn.lock
-├── CNAME / netlify.toml / render.yaml   # (removed: Dashy hosting artifacts)
+├── CNAME / netlify.toml / render.yaml   # (removed: Workcenter hosting artifacts)
 └── *.md                             # the Workcenter specification set (see §8)
 ```
 
@@ -149,7 +149,7 @@ Workcenter/                          # repository root == the Workcenter applica
 | AR-2 | Every **integrated application** gets exactly one top-level folder, named for the application (`Filebrowser/`, `Zulip/`, `Mailcow/`, `OnlyOffice/`, `Authentik/`, `Traefik/`). |
 | AR-3 | Every file an integrated application owns — configuration, secrets, volumes, logs — lives **inside that application's folder**. Nothing is written outside it. |
 | AR-4 | Volumes are **bind mounts** expressed as `./<AppFolder>/<subpath>:<container path>`, never anonymous volumes, for anything Workcenter must back up or inspect. |
-| AR-5 | Dashy top-level names are preserved where the purpose is unchanged. Renaming a kept entry requires an entry in [`CHANGELOG.md`](./CHANGELOG.md). |
+| AR-5 | Workcenter top-level names are preserved where the purpose is unchanged. Renaming a kept entry requires an entry in [`CHANGELOG.md`](./CHANGELOG.md). |
 | AR-6 | No generated artifact (`.env`, `node_modules/`, `dist/`, `*.sqlite`, `acme.json`) is committed. |
 | AR-7 | Documentation Markdown lives at the repository root (the specification set) or in `docs/` (the long-form guides). Nothing else may be added to the root. |
 | AR-46 | `icons/` holds exactly one SVG per integrated application, named for the application, and is the **single source of truth** for every application mark in the shell. Components reach it through the `@icons` build alias, never by a relative path and never from a remote URL. See [`design.md` D-2I](./design.md#d-2i--switcher-icons). |
@@ -158,8 +158,8 @@ Workcenter/                          # repository root == the Workcenter applica
 
 ## 3. `src/` — the shell
 
-Dashy's `src/` layout is the template. Directories that survive are kept with their names; removed
-directories are listed in [§3.3](#33-removed-from-dashy).
+Workcenter's `src/` layout is the template. Directories that survive are kept with their names; removed
+directories are listed in [§3.3](#33-removed-from-workcenter).
 
 ```
 src/
@@ -260,7 +260,7 @@ src/
 
 | Ref | Requirement |
 | --- | --- |
-| AR-8 | `src/views/Workspace.vue` remains the single functional view and is the direct descendant of Dashy's `src/views/Workspace.vue`. Its three children are `AppSwitcher`, `AppSidebar` and `PaneHost`. `AppSwitcher` renders both the application buttons and their status indicators, plus the `STATUS` label; there is no separate status component or rail region. |
+| AR-8 | `src/views/Workspace.vue` remains the single functional view and is the direct descendant of Workcenter's `src/views/Workspace.vue`. Its three children are `AppSwitcher`, `AppSidebar` and `PaneHost`. `AppSwitcher` renders both the application buttons and their status indicators, plus the `STATUS` label; there is no separate status component or rail region. |
 | AR-9 | `src/utils/apps/registry.js` is the **single source of truth** for the three applications. Adding or renaming an application is a one-file change plus locale strings. |
 | AR-10 | Every component directory contains at most one `.vue` per exported component, a co-located `.scss` when the styles exceed ~40 lines, and a co-located `.test.js` for unit-tested components. |
 | AR-11 | All user-visible strings live in `src/assets/locales/en.json` and are referenced with `$t('...')`. No literal user-facing text in components. |
@@ -269,7 +269,7 @@ src/
 
 ### 3.2 Files inherited from Dashy and their status
 
-| Dashy path | Workcenter status |
+| Workcenter path | Workcenter status |
 | --- | --- |
 | `src/views/Workspace.vue` | **Kept** — becomes the only view, extended with the switcher and pane host |
 | `src/views/Home.vue` | **Removed** |
@@ -291,7 +291,7 @@ src/
 | `src/components/InteractiveEditor/*`, `src/components/Configuration/JsonEditor*` | **Removed** — only reachable from the Default view. Workcenter configuration is a file (`user-data/conf.yml`) validated at startup and by `yarn validate-config`, not an in-app editor. `Configuration/RemoteConfigLoader.vue` is **kept** |
 | `src/components/LinkItems/ItemIcon.vue` | **Kept** — the sidebar renders icons through it |
 | `src/components/LinkItems/Item.vue`, `ItemContextMenu.vue`, `SectionContextMenu.vue`, `ItemOpenMethodIcon.vue`, `IframeModal.vue` | **Removed** (tile grid and home-only) |
-| `src/components/LinkItems/StatusIndicator.vue` (Dashy's per-item status badge) | **Removed** with the status-check subsystem. Its file name is reused in the new shell for `src/components/AppSwitcher/StatusIndicator.vue`, which is an unrelated component driven by Docker healthchecks rather than per-item HTTP probes |
+| `src/components/LinkItems/StatusIndicator.vue` (Workcenter's per-item status badge) | **Removed** with the status-check subsystem. Its file name is reused in the new shell for `src/components/AppSwitcher/StatusIndicator.vue`, which is an unrelated component driven by Docker healthchecks rather than per-item HTTP probes |
 | `src/utils/auth/*` | **Kept** — extended with `Logout.js` |
 | `src/utils/config/*` | **Kept** — `ConfigSchema.json` trimmed |
 | `src/mixins/HomeMixin.js` | **Kept but trimmed** — `Workspace.vue` mixes it in; home-only helpers (`filterTiles`, `checkIfResults`, `getBackgroundImage`) are removed |
@@ -313,7 +313,7 @@ src/components/MinimalView/
 src/components/PageStrcture/            # (kept only: Header, Nav, PageTitle, Footer, LoadingScreen, CriticalError)
 src/components/Widgets/
 src/components/Workspace/WidgetView.vue
-src/components/LinkItems/StatusIndicator.vue   # Dashy's per-item badge; the shell's own lives in AppSwitcher/
+src/components/LinkItems/StatusIndicator.vue   # Workcenter's per-item badge; the shell's own lives in AppSwitcher/
 src/components/Settings/ViewSwitcher.vue
 src/components/Settings/OptionsPanel.vue
 src/components/Settings/SettingsContainer.vue
@@ -663,7 +663,7 @@ broker:
 
 | Container | Built from | Exposure | Network |
 | --- | --- | --- | --- |
-| `workcenter` | `Dockerfile` (Dashy's multi-stage, extended) | Traefik → `:8080` | `proxy`, `internal` |
+| `workcenter` | `Dockerfile` (Workcenter's multi-stage, extended) | Traefik → `:8080` | `proxy`, `internal` |
 | `filebrowser` | `gtstef/filebrowser:2.0.6-beta` | Traefik → `:80` | `proxy`, `internal` |
 | `onlyoffice` | `onlyoffice/documentserver` | `internal` only (or Traefik if public editing is required) | `internal`, `proxy` |
 | `zulip` `database` `memcached` `rabbitmq` `redis` | docker-zulip images | `zulip` via Traefik → `:80`; the rest internal | `internal` |
@@ -695,7 +695,7 @@ services:
 
 ### 7.3 Dockerfile
 
-Dashy's three-stage Dockerfile is kept and extended:
+Workcenter's three-stage Dockerfile is kept and extended:
 
 | Stage | Change |
 | --- | --- |
@@ -705,8 +705,8 @@ Dashy's three-stage Dockerfile is kept and extended:
 
 | Ref | Requirement |
 | --- | --- |
-| AR-38 | The image runs as the non-root `node` user, exactly as Dashy's does. |
-| AR-39 | The image ships a `HEALTHCHECK` invoking `services/healthcheck.js`, exactly as Dashy's does. |
+| AR-38 | The image runs as the non-root `node` user, exactly as Workcenter's does. |
+| AR-39 | The image ships a `HEALTHCHECK` invoking `services/healthcheck.js`, exactly as Workcenter's does. |
 | AR-40 | The image supports `NODE_EXTRA_CA_CERTS` so it can trust the optional internal CA (roadmap D-7). |
 
 ---
@@ -742,8 +742,8 @@ Workcenter/
 | Ref | Requirement |
 | --- | --- |
 | AR-41 | Every file listed above must exist and must be linked from `docs/readme.md` and, where operator-facing, from `Readme.md`. |
-| AR-42 | `docs/` keeps Dashy's kebab-case file naming and task-oriented headings. |
-| AR-43 | Documentation for a removed Dashy feature is deleted, not left describing something that no longer exists. |
+| AR-42 | `docs/` keeps Workcenter's kebab-case file naming and task-oriented headings. |
+| AR-43 | Documentation for a removed Workcenter feature is deleted, not left describing something that no longer exists. |
 
 ---
 
@@ -768,8 +768,8 @@ Workcenter is deliberately closed to arbitrary tiles but open in three controlle
 
 | # | Decision | Rationale |
 | --- | --- | --- |
-| AD-1 | Keep Dashy's top-level folder layout | Lowest-risk derivation; upstream docs, build and theming keep working |
-| AD-2 | One view, three panes, panes always mounted | Preserves sessions; matches Dashy's `enableMultiTasking` semantics |
+| AD-1 | Keep Workcenter's top-level folder layout | Lowest-risk derivation; upstream docs, build and theming keep working |
+| AD-2 | One view, three panes, panes always mounted | Preserves sessions; matches Workcenter's `enableMultiTasking` semantics |
 | AD-3 | One repository, one root folder per integrated application | Satisfies the "files used by the application live within its named folder" requirement, and makes backup a single `rsync` |
 | AD-4 | Mailcow is orchestrated by its own tooling, customised only by `docker-compose.override.yml` | Keeps `update.sh` working; upstream-endorsed mechanism |
 | AD-5 | Broker rather than direct iframe scripting | Cross-origin isolation makes any other approach impossible |
@@ -781,4 +781,4 @@ Workcenter is deliberately closed to arbitrary tiles but open in three controlle
 
 ---
 
-<p align="center"><sub>Workcenter architecture · derived from <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>
+<p align="center"><sub>Workcenter architecture · derived from <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>

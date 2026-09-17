@@ -1,33 +1,25 @@
 # Header Authentication
 
-Header authentication lets Workcenter trust a reverse proxy in front of it to handle login. The proxy authenticates the user, then passes their username to Workcenter in an HTTP header. Workcenter reads that header and signs them in automatically, so there's no separate Workcenter login page.
+Header authentication lets Workcenter take a username from a request header, set by a reverse proxy
+that has already authenticated the user. The shell has no login form of its own in this mode: the
+proxy decides who gets in, and Workcenter maps the forwarded username to a user in `conf.yml`.
 
-Use this when you already run something like [Authelia](https://www.authelia.com/), [Authentik](https://goauthentik.io/), Traefik's `forwardAuth`, Caddy's `forward_auth`, or nginx's `auth_request` in front of your services, and you want Workcenter to pick up the same session.
-
-### Contents
-
-- [Configure Workcenter](#configure-dashy)
-- [Configure your proxy](#configure-your-proxy)
-- [Logging out](#logging-out)
-- [Example: oauth2-proxy and nginx](#example-oauth2-proxy-and-nginx)
-- [Troubleshooting](#troubleshooting)
-- [Security notes](#security-notes)
-- [How it works](#how-it-works)
-
+This is the mechanism behind a forward-auth setup — Traefik with Authentik, nginx with
+`auth_request`, Caddy with `forward_auth`, or oauth2-proxy — where the proxy holds the session and
+the upstream application only receives an identity.
 ## Configure Workcenter
-
-In `/user-data/conf.yml`, set the `auth` block under `appConfig`:
 
 ```yaml
 appConfig:
   auth:
     enableHeaderAuth: true
+    logoutRedirectUrl: https://workcenter.example.com/oauth2/sign_out
     users:
-      - user: alice
-        hash: 0a7b1d4c2e...   # SHA-256 hash, see below
+      - user: alicia
+        hash: 5994471ABB01112AFCC18159F6CC74B4F511B99806DA59B3CAF5A9C173CACFC5
         type: admin
       - user: bob
-        hash: 3f8e2b1a9d...
+        hash: EF797C8118F02DFB649607DD5D3F8C7623048C9C063D532CC95C5ED7A898A64F
         type: normal
     headerAuth:
       userHeader: Remote-User
@@ -35,184 +27,125 @@ appConfig:
         - 172.18.0.2
 ```
 
-- `enableHeaderAuth` - turns the mode on
-- `userHeader` - the header holding the username. Defaults to `Remote-User`. Authelia sends `Remote-User`, Authentik sends `X-authentik-username`; use whatever yours forwards. The name is case-insensitive
-- `proxyWhitelist` - the IP(s) Workcenter will accept the header from. Anything not on this list is rejected, which is what stops a client from setting the header itself. Required in practice: if it's empty, nothing gets through
-- `users` - the people allowed in. The forwarded username is matched (case-insensitive) against this list to find their `type` (`admin` or `normal`). They still need an entry here even though the proxy did the actual auth
+| Key | Type | Description |
+| --- | --- | --- |
+| `enableHeaderAuth` | `boolean` | Turns the mode on. Required. |
+| `headerAuth.userHeader` | `string` | The header carrying the username. Defaults to `Remote-User`. Header names are matched case-insensitively. |
+| `headerAuth.proxyWhitelist` | `array` | The addresses the header is accepted from. Required by the schema. |
+| `auth.users` | `array` | The identities allowed in, each with `user` and a `hash`. |
+| `logoutRedirectUrl` | `string` | Where to send the browser so the proxy can end its own session. Optional. |
 
-The `hash` is a SHA-256 of any string. Nobody types it, since the proxy already logged them in, but Workcenter uses it to derive the session token it keeps in the browser, so each user needs one. Generate it the same way as for [built-in auth](./built-in.md#generating-a-password-hash).
+The whitelist is compared against the address of the connection that reaches Workcenter, not the
+address of the original client. Behind Docker that is the proxy container's address on the shared
+network. Find it with `docker inspect` on the proxy container.
 
-## Configure your proxy
+A forwarded username must match a `user` in `auth.users`, case-insensitively. The match supplies the
+`type`, and its `hash` — any 64-character SHA-256 hex value — is the input from which the shell
+derives its session token. Nobody types that password; it exists so that the session has a value to
+derive. Generate one as described in [`built-in.md`](./built-in.md#generating-a-password-hash).
 
-Two things the proxy has to do:
+## Configure the proxy
 
-1. Forward the username header on every request to Workcenter (e.g. `Remote-User: alice`). On most forward-auth setups this is a one-line setting
-2. Connect to Workcenter from an IP that's in `proxyWhitelist`
+The proxy has two jobs:
 
-The whitelist is the security boundary, so Workcenter must only be reachable through the proxy. If someone can hit Workcenter directly and their IP happens to be whitelisted, they can forge the header. See [Security notes](#security-notes).
+1. Authenticate the user, and forward the username on every request to Workcenter, for example
+   `Remote-User: alicia`.
+2. Connect from an address that is listed in `proxyWhitelist`.
 
-## Logging out
+**Workcenter must not be reachable except through the proxy.** The whitelist is the only thing
+separating a genuine header from a forged one, and a client that can reach Workcenter directly from
+a whitelisted address can claim any username. Bind the shell to an internal network, or restrict it
+at the firewall.
 
-Workcenter's logout button only clears Workcenter's own session. Your session at the proxy stays alive, so the next page load signs you straight back in. To end both, point `logoutRedirectUrl` at your proxy's sign-out endpoint:
+## Forward auth with Traefik and Authentik
+
+Traefik terminates TLS, Authentik's proxy outpost answers the forward-auth check, and the
+authenticated username reaches the upstream service as a header. [`OIDC.md`](../../OIDC.md) creates the
+proxy provider, the `Traefik` application and the group binding for the Traefik dashboard.
+
+Point the Workcenter router at the forward-auth middleware, set `userHeader` to the header the
+outpost forwards, and list Traefik's address on the shared Docker network in `proxyWhitelist`. The
+proxy and `userHeader` must agree on the header name; read it from the outpost's configuration
+rather than assuming a default.
+
+Leave `logoutRedirectUrl` unset unless the proxy exposes a sign-out endpoint you want a sign-out to
+reach.
+
+## Ending a session
+
+There is no logout control in the shell, and header authentication has no session of its own — the
+session lives at the proxy. Clearing anything in the browser signs the user straight back in on the
+next request, because the proxy still holds a session and still sends the header.
+
+Set `logoutRedirectUrl` to the proxy's sign-out endpoint:
 
 ```yaml
 appConfig:
   auth:
-    logoutRedirectUrl: https://dashy.example.com/oauth2/sign_out
+    logoutRedirectUrl: https://workcenter.example.com/oauth2/sign_out
 ```
 
-Logging out then sends the browser to that URL, where the proxy can destroy its session.
+A sign-out then sends the browser to that URL. For oauth2-proxy the endpoint is usually
+`/oauth2/sign_out`, and an `rd` query parameter chains the identity provider's own logout:
 
-The specific endpoint depends on your proxy, but for oauth2-proxy it's usually `/oauth2/sign_out` with an `rd` query param to chain your identity provider's logout, e.g. `/oauth2/sign_out?rd=https://sso.example.com/logout` (the `rd` domain must be in oauth2-proxy's `whitelist_domains`).
-
----
-
-
-## Example: oauth2-proxy and nginx
-
-The following example was from [@vmario89](https://github.com/vmario89) (in [#2233](https://github.com/lissy93/dashy/issues/2233#issuecomment-4924556178)).
-
-[oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) handles login against any OIDC or OAuth2 provider (Synology SSO here). nginx checks each request against its `/oauth2/auth` endpoint, then forwards the username to Workcenter as `X-Remote-User`.
-
-Workcenter config, on top of [the setup above](#configure-dashy). The whitelist is loopback because nginx proxies to Workcenter on `127.0.0.1:4000`:
-
-```yaml
-appConfig:
-  auth:
-    logoutRedirectUrl: https://dashy.example.com/oauth2/sign_out?rd=https://sso.example.com/logout
-    headerAuth:
-      userHeader: X-Remote-User
-      proxyWhitelist:
-        - 127.0.0.1
-        - '::1'
-        - '::ffff:127.0.0.1'
+```text
+https://workcenter.example.com/oauth2/sign_out?rd=https://auth.example.com/application/o/workcenter/end-session/
 ```
 
-<details>
-<summary>oauth2-proxy config</summary>
-
-```ini
-provider              = "oidc"
-oidc_issuer_url       = "https://login.synology.nas/webman/sso"
-oidc_jwks_url         = "https://login.synology.nas/webman/sso/openid-jwks.json"
-scope                 = "openid profile email"
-oidc_email_claim      = "sub"
-client_id             = "<client-id>"
-client_secret         = "<client-secret>"
-cookie_secret         = "<secret>"   # openssl rand -base64 32
-cookie_name           = "cookie_dashy"
-cookie_domains        = ".example.com"
-cookie_secure         = true
-email_domains         = [ "*" ]
-http_address          = "127.0.0.1:4180"
-upstreams             = [ "static://200" ]
-set_xauthrequest      = true
-whitelist_domains     = [ "dashy.example.com", "login.synology.nas" ]
-```
-
-And a systemd unit to run it:
-
-```ini
-[Unit]
-Description=OAuth2 Proxy (Workcenter)
-After=network.target
-
-[Service]
-User=oauth2proxy
-Group=oauth2proxy
-ExecStart=/opt/oauth2-proxy/oauth2-proxy --config=/etc/oauth2-proxy/dashy.cfg --trusted-proxy-ip=127.0.0.1/32
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-</details>
-
-The load-bearing options:
-
-- `set_xauthrequest = true` - returns the username on auth responses (`X-Auth-Request-User`) for nginx to pick up
-- `upstreams = [ "static://200" ]` - oauth2-proxy only answers auth checks here; nginx proxies to Workcenter itself
-- `whitelist_domains` - must include the `rd=` logout domain, or the redirect is dropped
-- `--trusted-proxy-ip` - makes oauth2-proxy trust the `X-Forwarded-*` headers nginx sets
-
-<details>
-<summary>nginx site config</summary>
-
-```nginx
-map $auth_user $auth_user_local {
-    ""                  "";
-    ~^(?<lp>[^@]+)@.*   $lp;
-    default             $auth_user;
-}
-
-server {
-    server_name dashy.example.com;
-    # TLS config here
-
-    location / {
-        auth_request /oauth2/auth;
-        auth_request_set $auth_user $upstream_http_x_auth_request_user;
-        proxy_set_header X-Remote-User $auth_user_local;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        error_page 401 = /oauth2/sign_in;
-        proxy_pass http://127.0.0.1:4000;
-    }
-
-    location /oauth2/ {
-        proxy_pass http://127.0.0.1:4180;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Scheme $scheme;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Auth-Request-Redirect $request_uri;
-        proxy_set_header Content-Length "";
-        proxy_pass_request_body off;
-    }
-}
-```
-
-</details>
-
-`auth_request_set` reads the username from oauth2-proxy's response, and the `map` strips `@domain` from it, since oauth2-proxy forwards an email but Workcenter matches the bare names in `auth.users`.
-
----
+The `rd` target must be listed in oauth2-proxy's `whitelist_domains`, or the redirect is dropped.
+The parameter name is oauth2-proxy's; another proxy will use its own.
 
 ## Troubleshooting
 
-#### 401 "Unauthorized - not from trusted proxy"
-The request reached Workcenter from an IP that isn't in `proxyWhitelist`. The check is on the direct connection IP, so with Docker that's the proxy container's address on the shared network, not the host or the client's IP. Find it with `docker inspect <proxy-container>` (or read the rejected IP from Workcenter's logs) and add it.
+### `401 Unauthorized - not from trusted proxy`
 
-#### 401 "Unauthorized - missing user header"
-The request came from a trusted IP but had no username header. Either the proxy isn't forwarding it, or `userHeader` doesn't match the header name the proxy actually sends. Check the exact header in your proxy config.
+The request reached Workcenter from an address that is not in `proxyWhitelist`. The check is on the
+direct connection address, so behind Docker it is the proxy container's address, not the host's and
+not the client's. Read the address from the rejected request in Workcenter's logs, or from
+`docker inspect` on the proxy container, and add it.
 
-#### "User '...' from upstream proxy was not found in conf.yml"
-The proxy sent a username with no matching entry in `auth.users`. Add a user whose `user` matches it (case doesn't matter).
+### `401 Unauthorized - missing user header`
 
-#### Logged in but can't save the config
-That user's `type` isn't `admin`. Saving is admin-only, so set `type: admin` on their entry.
+The request came from a trusted address but carried no value in the configured header. Either the
+proxy is not forwarding it, or `userHeader` names a header the proxy does not send.
 
-#### Logging out just logs me back in
-Expected with the default config. Logout clears Workcenter's cookie, but you're still signed in at the proxy, so the next page load re-authenticates from the header. Set `logoutRedirectUrl` to your proxy's sign-out endpoint to end both sessions — see [Logging out](#logging-out).
+### `User '...' from upstream proxy was not found in conf.yml`
 
-## Security notes
+The proxy authenticated someone who has no entry in `appConfig.auth.users`. Add an entry whose
+`user` matches the forwarded name. Removing an entry blocks that person even while the proxy still
+lets them through, which is the intended place to revoke access.
 
-- Header auth is only as strong as the proxy in front of it. Workcenter trusts any whitelisted IP that sends the header, so the whole model depends on Workcenter being unreachable except through the proxy. Lock that down at the network or firewall level
-- Keep `proxyWhitelist` tight: just the proxy's real connecting IP(s), nothing broader
-- The username and role come from `conf.yml`. A user the proxy authenticates but that you haven't listed is refused, so removing someone from `auth.users` blocks them even if the proxy still lets them through
+### The workspace keeps reloading or shows an authentication failure
+
+The user entry matched, but the session token could not be derived. Confirm the entry carries a
+`hash` of exactly 64 hexadecimal characters, and that the forwarded username and the `user` value
+are the same name.
+
+### Signed out, then signed straight back in
+
+The proxy's session is still alive. Set `logoutRedirectUrl` to the proxy's sign-out endpoint, as
+described above.
 
 ## How it works
 
-1. The user hits Workcenter through the proxy. The proxy authenticates them and adds the username header
-2. On load, Workcenter's frontend calls `/get-user`. The server checks the request IP against `proxyWhitelist`, and if it's trusted, reads the username from `userHeader` and returns it
-3. The frontend looks that username up in `auth.users`, derives a session token from the user and hash, sets the auth cookie, and stores the username
-4. From there it's normal Workcenter auth: `isLoggedIn`, the admin check, and the per-page, section and item visibility rules all work as usual
+1. The browser loads the shell through the proxy. The proxy authenticates the request and adds the
+   username header.
+2. The shell asks the server for the current user. The server checks the request's address against
+   `proxyWhitelist`, reads the header if the address is trusted, and returns the username.
+3. The shell matches that username against `appConfig.auth.users` and stores a session derived from
+   the matched user.
+4. On every later request the proxy re-authenticates, and the server enforces the same whitelist on
+   the routes it protects.
 
-Server-side, the same proxy-whitelist middleware guards the config and API routes, so a request from an untrusted IP is rejected before it reaches anything. Writes (saving config) additionally require the matched user to be `type: admin`.
+The client side is
+[`src/utils/auth/HeaderAuth.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/auth/HeaderAuth.js).
+The server side is
+[`services/endpoints/get-user.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/services/endpoints/get-user.js),
+with the whitelist middleware in
+[`services/app.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/services/app.js).
 
-The relevant code is `src/utils/auth/HeaderAuth.js` on the frontend, and `services/app.js` with `services/endpoints/get-user.js` on the server.
+## Read next
+
+- [`authentik.md`](./authentik.md) — the identity provider and the forward-auth outpost
+- [`oidc.md`](./oidc.md) — signing the shell in directly, instead of through a proxy
+- [`security.md`](../security.md) — trust boundaries and the intended deployment

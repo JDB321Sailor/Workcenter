@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=./src/utils/config/ConfigSchema.json
+---
+# Page meta info. The title appears in the browser tab and the page title.
+pageInfo:
+  title: Workcenter
+  description: Files, chat and mail in one place
+
+# Shell settings
+appConfig:
+  theme: default
+  # The address of each application the shell embeds. A pane with no address is
+  # shown as unavailable rather than silently blank.
+  applications:
+    files:
+      url: https://filebrowser.example.com
+    chat:
+      url: https://chat.example.com
+    mail:
+      url: https://mail.example.com
+  # Workcenter renders one page. The three applications are sidebar sections,
+  # each pane deep-linkable at /files, /chat and /mail.
+  defaultOpeningMethod: newtab
+
+  auth:
+    # Authentik is the identity provider for Workcenter and for every
+    # application it deploys. See OIDC.md.
+    enableOidc: false
+    oidc:
+      clientId: workcenter
+      endpoint: https://auth.example.com/application/o/workcenter/
+      adminGroup: workspaceadmin
+      scope: openid profile email groups
+      enableSilentRenew: true

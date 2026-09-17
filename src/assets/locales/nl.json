@@ -1,0 +1,22 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Gebruikersnaam",
+    "password-label": "Wachtwoord",
+    "login-button": "Aanmelden",
+    "remember-me-label": "Onthoud mij voor",
+    "remember-me-never": "Nooit",
+    "remember-me-hour": "4 Uur",
+    "remember-me-day": "1 Dag",
+    "remember-me-week": "1 Week"
+  },
+  "settings": {
+    "theme-label": "Thema"
+  },
+  "language-switcher": {
+    "title": "Verander Applicatie Taal",
+    "dropdown-label": "Selecteer een Taal",
+    "save-button": "Opslaan",
+    "success-msg": "Taal Veranderd naar"
+  }
+}

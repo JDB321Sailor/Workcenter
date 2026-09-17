@@ -1,0 +1,26 @@
+/* Shared presentation for the three sidebar surfaces. Each surface imports
+ * this in its scoped style block, so the three look identical without
+ * duplicating the rules. */
+
+.wc-app-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0.5rem;
+}
+
+.wc-app-sidebar__notice {
+  margin: 0.75rem 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--wc-border);
+  border-radius: var(--wc-radius);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.wc-app-sidebar__footnote {
+  margin: 0.5rem 0.6rem 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  opacity: 0.5;
+}

@@ -1,0 +1,193 @@
+{
+  "general": {
+    "close-modal": "Close dialog",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "splash-screen": {
+    "loading": "Loading"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Guest Access",
+    "oidc-label": "Single Sign-On",
+    "oidc-login-button": "Sign In with SSO",
+    "username-label": "Username",
+    "password-label": "Password",
+    "login-button": "Login",
+    "remember-me-label": "Remember me for",
+    "remember-me-never": "Never",
+    "remember-me-hour": "4 Hours",
+    "remember-me-day": "1 Day",
+    "remember-me-week": "1 Week",
+    "remember-me-long-time": "A long time",
+    "error-missing-username": "Missing Username",
+    "error-missing-password": "Missing Password",
+    "error-incorrect-username": "User not found",
+    "error-incorrect-password": "Incorrect Password",
+    "success-message": "Logging in...",
+    "logout-message": "Logged Out",
+    "already-logged-in-title": "Already Logged In",
+    "already-logged-in-text": "You're logged in as",
+    "proceed-to-dashboard": "Proceed to Dashboard",
+    "log-out-button": "Logout",
+    "proceed-guest-button": "Proceed as Guest",
+    "guest-intro-1": "This instance has guest access enabled.",
+    "guest-intro-2": "Guests have view-only access to dashboards, so cannot write any changes to disk.",
+    "error": "Error",
+    "error-no-user-configured": "Authentication is not enabled, or no users have been configured",
+    "error-go-home-button": "Go Home",
+    "logged-in-guest": "Logged in as Guest, Redirecting...",
+    "authenticated-redirecting": "Authenticated, Redirecting...",
+    "error-guest-access": "Guest Access Not Allowed"
+  },
+  "remote-config": {
+    "title": "Load Remote Config?",
+    "apply-button": "Apply Preview",
+    "intro": "You are loading a configuration from an external URL. Would you like to continue?",
+    "warning": "You should ensure that you've read the content you are loading before proceeding. Once loaded, your browser will be able to execute any client-side code specified within this config.",
+    "field-title": "Title",
+    "field-source": "Source",
+    "field-sections": "Sections",
+    "field-items": "Items",
+    "preview-note": "Preview only. This won't make any changes on disk, nor affect your Workcenter instance in any way.",
+    "applied-toast": "Remote config applied (preview only)",
+    "previewing-banner": "Previewing remote config",
+    "revert-button": "Revert",
+    "error-invalid-url": "Remote config URL is not valid (must be http or https)",
+    "error-fetch": "Could not fetch remote config. Check the URL is reachable and CORS is allowed.",
+    "error-parse": "Remote config is not valid YAML",
+    "error-not-config": "Remote file does not look like a Workcenter config",
+    "error-apply": "Failed to apply remote config"
+  },
+  "settings": {
+    "theme-label": "Theme",
+    "language-label": "Language",
+    "toggle-nav-aria": "Toggle navigation menu",
+    "sign-out-tooltip": "Sign Out",
+    "sign-in-tooltip": "Log In",
+    "sign-in-welcome": "Hello {username}!",
+    "please-login": "Log in for full access"
+  },
+  "updates": {
+    "sw-update-available": "A new version of Workcenter is available.",
+    "sw-update-action": "Refresh"
+  },
+  "language-switcher": {
+    "title": "Change Application Language",
+    "dropdown-label": "Select a Language",
+    "save-button": "Save",
+    "success-msg": "Language Updated to"
+  },
+  "critical-error": {
+    "title": "Configuration Load Error",
+    "subtitle": "Workcenter has failed to load correctly due to a configuration error.",
+    "sub-ensure-that": "Ensure that",
+    "sub-error-details": "Error Details",
+    "sub-next-steps": "Next Steps",
+    "ignore-button": "Ignore Critical Errors"
+  },
+  "context-menus": {
+    "item": {
+      "copied-toast": "Copied to clipboard"
+    }
+  },
+  "shell": {
+    "rail-label": "Workcenter navigation"
+  },
+  "switcher": {
+    "label": "Applications",
+    "unavailable": "{app} is not configured. Set its address in appConfig.applications.",
+    "shortcut-hint": "Alt+1 Files, Alt+2 Chat, Alt+3 Mail"
+  },
+  "status": {
+    "label": "Status",
+    "indicator-label": "{app} status: {state}",
+    "state": {
+      "healthy": "healthy",
+      "degraded": "degraded",
+      "unhealthy": "unavailable",
+      "unknown": "not checked yet"
+    }
+  },
+  "pane": {
+    "retry": "Retry",
+    "open-new-tab": "Open in new tab",
+    "loading-hint": "This is taking longer than usual. The application may be starting up.",
+    "reason": {
+      "unavailable": {
+        "title": "{app} is not responding",
+        "message": "The application could not be loaded, or its address is not configured.",
+        "check-failed": "The health check for this application is failing."
+      },
+      "blocked": {
+        "title": "{app} cannot be shown here",
+        "message": "The application refuses to be embedded. It must allow Workcenter as a frame ancestor."
+      },
+      "auth-error": {
+        "title": "Your session for {app} has expired",
+        "message": "Sign in again, or open the application in a new tab."
+      },
+      "timeout": {
+        "title": "{app} did not finish loading",
+        "message": "The application did not respond in time. It may still be starting up."
+      }
+    }
+  },
+  "sidebar": {
+    "label": "{app} navigation",
+    "files": {
+      "unconfigured": "The Files pane has no address configured. Set appConfig.applications.files.url.",
+      "sources": "Sources",
+      "all-files": "All files",
+      "recent": "Recent",
+      "shared": "Shared with me",
+      "favourites": "Favourites",
+      "tools": "Tools",
+      "search": "Search",
+      "size-viewer": "Size viewer",
+      "activity": "Activity",
+      "footnote": "Rows open FileBrowser at that view. Browsing inside the pane arrives with the file broker."
+    },
+    "chat": {
+      "unconfigured": "The Chat pane has no address configured. Set appConfig.applications.chat.url.",
+      "views": "Views",
+      "inbox": "Inbox",
+      "recent": "Recent conversations",
+      "combined": "Combined feed",
+      "mentions": "Mentions",
+      "starred": "Starred",
+      "drafts": "Drafts",
+      "messages": "Messages",
+      "direct": "Direct messages",
+      "new-topic": "New topic",
+      "footnote": "Your channels and direct messages are read from Zulip once the broker carries the chat adapter."
+    },
+    "mail": {
+      "unconfigured": "The Mail pane has no address configured. Set appConfig.applications.mail.url.",
+      "folders": "Mail",
+      "inbox": "Inbox",
+      "drafts": "Drafts",
+      "sent": "Sent",
+      "junk": "Junk",
+      "trash": "Trash",
+      "archive": "Archive",
+      "calendars": "Calendars",
+      "calendar": "Calendar",
+      "contacts": "Address books",
+      "address-book": "Personal",
+      "footnote": "Rows open SOGo at that view. Folder counts are read from the mailbox once the broker carries the mail adapter."
+    }
+  },
+  "apps": {
+    "files": {
+      "description": "Browse, search and edit your files"
+    },
+    "chat": {
+      "description": "Team chat, organised by channel and topic"
+    },
+    "mail": {
+      "description": "Mail, calendars and contacts"
+    }
+  }
+}

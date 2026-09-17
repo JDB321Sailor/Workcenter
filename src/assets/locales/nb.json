@@ -1,0 +1,34 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Brukernavn",
+    "password-label": "Passord",
+    "login-button": "Logg inn",
+    "remember-me-label": "Husk meg",
+    "remember-me-never": "Aldri",
+    "remember-me-hour": "4 timer",
+    "remember-me-day": "1 dag",
+    "remember-me-week": "1 uke",
+    "error-missing-username": "Mangler brukernavn",
+    "error-missing-password": "Manglende passord",
+    "error-incorrect-username": "Bruker ikke funnet",
+    "error-incorrect-password": "Feil passord",
+    "success-message": "Logger på...",
+    "logout-message": "Logget ut",
+    "already-logged-in-title": "Allerede logget inn",
+    "already-logged-in-text": "Du er logget inn som",
+    "log-out-button": "Logg ut"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Logg av",
+    "sign-in-tooltip": "Logg inn",
+    "sign-in-welcome": "Hei {brukernavn}!"
+  },
+  "language-switcher": {
+    "title": "Endre språk",
+    "dropdown-label": "Velg et språk",
+    "save-button": "Lagre",
+    "success-msg": "Språk oppdatert til"
+  }
+}

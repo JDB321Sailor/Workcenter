@@ -1,0 +1,87 @@
+{
+  "splash-screen": {
+    "loading": "Încărcare"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Acces Vizitator",
+    "username-label": "Nume utilizator",
+    "password-label": "Parolă",
+    "login-button": "Autentificare",
+    "remember-me-label": "Ține-mă minte pentru",
+    "remember-me-never": "Niciodată",
+    "remember-me-hour": "4 Ore",
+    "remember-me-day": "1 Zi",
+    "remember-me-week": "1 Săptămână",
+    "remember-me-long-time": "O perioadă lungă",
+    "error-missing-username": "Lipsește numele de utilizator",
+    "error-missing-password": "Lipsește parola",
+    "error-incorrect-username": "Utilizator negăsit",
+    "error-incorrect-password": "Parolă incorectă",
+    "success-message": "Autentificare...",
+    "logout-message": "Deconectat",
+    "already-logged-in-title": "Deja autentificat",
+    "already-logged-in-text": "Ești autentificat ca",
+    "proceed-to-dashboard": "Continuă către Tabloul de bord",
+    "log-out-button": "Deconectare",
+    "proceed-guest-button": "Continuă ca Vizitator",
+    "guest-intro-1": "Această instanță are acces pentru vizitatori activat.",
+    "guest-intro-2": "Vizitatorii au acces doar pentru vizualizare la tablourile de bord, deci nu pot scrie modificări pe disc.",
+    "error": "Eroare",
+    "error-no-user-configured": "Autentificarea nu este activată, sau nu au fost configurați utilizatori",
+    "error-go-home-button": "Mergi la Pagina Principală",
+    "logged-in-guest": "Autentificat ca Vizitator, Redirecționare...",
+    "error-guest-access": "Acces Vizitator Interzis"
+  },
+  "settings": {
+    "theme-label": "Temă",
+    "sign-out-tooltip": "Deconectare",
+    "sign-in-tooltip": "Conectare",
+    "sign-in-welcome": "Bună {username}!",
+    "language-label": "Limbă",
+    "toggle-nav-aria": "Comută meniul de navigare",
+    "please-login": "Autentifică-te pentru acces complet"
+  },
+  "updates": {
+    "sw-update-available": "O nouă versiune Workcenter este disponibilă.",
+    "sw-update-action": "Reîmprospătează"
+  },
+  "language-switcher": {
+    "title": "Schimbă Limba Aplicației",
+    "dropdown-label": "Selectați o Limbă",
+    "save-button": "Salvează",
+    "success-msg": "Limba Actualizată la"
+  },
+  "general": {
+    "close-modal": "Închide dialogul",
+    "confirm": "Confirmă",
+    "cancel": "Anulează"
+  },
+  "remote-config": {
+    "title": "Încărcăm configurația de la distanță?",
+    "apply-button": "Aplică previzualizarea",
+    "intro": "Se încarcă o configurație dintr-un URL extern. Dorești să continui?",
+    "warning": "Asigură-te că ai citit conținutul pe care îl încarci înainte de a continua. După încărcare, browserul va putea executa orice cod client specificat în această configurație.",
+    "field-title": "Titlu",
+    "field-source": "Sursă",
+    "field-sections": "Secțiuni",
+    "field-items": "Elemente",
+    "preview-note": "Doar previzualizare. Aceasta nu va face modificări pe disc și nu va afecta în niciun fel instanța ta de Workcenter.",
+    "applied-toast": "Configurație de la distanță aplicată (doar previzualizare)",
+    "previewing-banner": "Se previzualizează configurația de la distanță",
+    "revert-button": "Revino",
+    "error-invalid-url": "URL-ul configurației de la distanță nu este valid (trebuie să fie http sau https)",
+    "error-fetch": "Nu am putut prelua configurația de la distanță. Verifică dacă URL-ul este accesibil și dacă CORS este permis.",
+    "error-parse": "Configurația de la distanță nu este YAML valid",
+    "error-not-config": "Fișierul de la distanță nu pare să fie o configurație Workcenter",
+    "error-apply": "Aplicarea configurației de la distanță a eșuat"
+  },
+  "critical-error": {
+    "title": "Eroare la încărcarea configurației",
+    "subtitle": "Workcenter nu s-a încărcat corect din cauza unei erori de configurare.",
+    "sub-ensure-that": "Asigură-te că",
+    "sub-error-details": "Detalii eroare",
+    "sub-next-steps": "Pașii următori",
+    "ignore-button": "Ignoră erorile critice"
+  }
+}

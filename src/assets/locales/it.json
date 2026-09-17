@@ -1,0 +1,37 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Nome utente",
+    "password-label": "Password",
+    "login-button": "Login",
+    "remember-me-label": "Ricordami per",
+    "remember-me-never": "Mai",
+    "remember-me-hour": "4 ore",
+    "remember-me-day": "1 giorno",
+    "remember-me-week": "1 settimana",
+    "remember-me-long-time": "Molto tempo",
+    "error-missing-username": "Nome utente mancante",
+    "error-missing-password": "Password mancante",
+    "error-incorrect-username": "Utente non trovato",
+    "error-incorrect-password": "Password errata",
+    "success-message": "Login in corso...",
+    "logout-message": "Disconnesso",
+    "already-logged-in-title": "Ha già effettuato il login",
+    "already-logged-in-text": "Hai effettuato il login come",
+    "proceed-to-dashboard": "Vai alla dashboard",
+    "log-out-button": "Disconnessione",
+    "proceed-guest-button": "Procedi come Ospite"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Disconnessione",
+    "sign-in-tooltip": "Accesso",
+    "sign-in-welcome": "Ciao {username}!"
+  },
+  "language-switcher": {
+    "title": "Cambia lingua applicazione",
+    "dropdown-label": "Seleziona una lingua",
+    "save-button": "Salva",
+    "success-msg": "Lingua aggiornata a"
+  }
+}

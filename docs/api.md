@@ -1,111 +1,109 @@
 # REST API
 
-Workcenter includes an optional REST API, for reading and writing your config programmatically — from the command line, scripts or third-party applications. It covers whole config files, as well as individual sections and items.
-
-> [!NOTE]
-> The API is served by Workcenter's Node server, so it's available with Docker and bare-metal deployments, but not on static hosting providers (Netlify, Vercel, EdgeOne, CDN).
+Workcenter ships an HTTP API for reading and replacing its configuration files. It is off unless it
+is explicitly enabled, and writes require an administrative identity.
 
 ## Enabling the API
 
-The API is disabled by default. To enable it, set the `ENABLE_API` environmental variable to `true`. For example, with Docker Compose:
-
-```yaml
-environment:
-  - ENABLE_API=true
+```bash
+ENABLE_API=true
 ```
 
-Or with `docker run`, pass `-e ENABLE_API=true`. While disabled, all `/api/*` requests return a 404.
+While the variable is unset or set to anything else, every route under `/api` answers `404`:
+
+```json
+{ "success": false, "message": "API not enabled. Set ENABLE_API=true to use the REST API." }
+```
+
+The gate is deliberate: the API can replace the whole configuration file, so it is opt-in.
 
 ## Authentication
 
-By default, the API uses Workcenter's existing [server-side authentication](/docs/authentication.md). Read endpoints require any authenticated user, and write endpoints require an admin. If no auth is configured, the API is open — the same as Workcenter's other endpoints.
+| Environment | Identity accepted |
+| --- | --- |
+| `API_TOKEN` set | `Authorization: Bearer <token>`, treated as an administrator. |
+| Workcenter auth configured (`ENABLE_HTTP_AUTH`, or an OIDC/proxy identity) | The caller's normal session, with administrative rights required for writes. |
+| Neither configured | The API is open to anyone who can reach the port. Do not run it that way on a reachable network. |
 
-```bash
-# With HTTP Basic Auth (ENABLE_HTTP_AUTH or BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD)
-curl -u alice:hunter2 http://localhost:8080/api/config
+A token is compared in constant time and must match exactly. With Workcenter auth in place and no
+token, an unauthenticated request receives `401`:
 
-# With OIDC / Keycloak, pass your ID token
-curl -H 'Authorization: Bearer <id-token>' http://localhost:8080/api/config
+```json
+{ "success": false, "message": "Unauthorized" }
 ```
-
-### API token
-
-If you have no auth configured, or would prefer a dedicated credential for the API, set the `API_TOKEN` environmental variable and send it as a bearer token. A valid token grants full (admin) access, and works alongside any other configured auth method.
-
-```yaml
-environment:
-  - ENABLE_API=true
-  - API_TOKEN=your-long-random-secret
-```
-
-```bash
-curl -H 'Authorization: Bearer your-long-random-secret' http://localhost:8080/api/config
-```
-
-> [!NOTE]
-> Setting `API_TOKEN` also secures the API on deployments that have no other auth — anonymous requests are then rejected. Use a long, random value (e.g. `openssl rand -hex 32`) and only send it over HTTPS. The token applies to the API only, not Workcenter's other endpoints.
 
 ## Endpoints
 
-`:filename` is any YAML config file in your user-data directory (e.g. `conf.yml`, or a sub-page like `home-lab.yml`). `:key` is one of the top-level config keys: `pageInfo`, `appConfig`, `sections` or `pages`.
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/config` | List the configuration files. |
+| `GET` | `/api/config/:filename` | Read one configuration file as JSON. |
+| `PUT` | `/api/config/:filename` | Replace a configuration file. Admin. |
+| `GET` | `/api/config/:filename/:key` | Read one top-level key of a file. |
+| `PUT` | `/api/config/:filename/:key` | Replace one top-level key of a file. Admin. |
 
-**Method** | **Path** | **Description**
---- | --- | ---
-`GET` | `/api/config` | List config files
-`GET` | `/api/config/:filename` | Get a full config file, as JSON
-`PUT` | `/api/config/:filename` | Replace a full config file
-`GET` | `/api/config/:filename/:key` | Get a top-level key
-`PUT` | `/api/config/:filename/:key` | Replace a top-level key
-`POST` | `/api/config/:filename/sections` | Add a section (`name` required)
-`GET` | `/api/config/:filename/sections/:sid` | Get a section
-`PATCH` | `/api/config/:filename/sections/:sid` | Update fields on a section
-`DELETE` | `/api/config/:filename/sections/:sid` | Delete a section
-`GET` | `/api/config/:filename/sections/:sid/items` | List a section's items
-`POST` | `/api/config/:filename/sections/:sid/items` | Add an item (`title` required)
-`GET` | `/api/config/:filename/sections/:sid/items/:iid` | Get an item
-`PATCH` | `/api/config/:filename/sections/:sid/items/:iid` | Update fields on an item
-`DELETE` | `/api/config/:filename/sections/:sid/items/:iid` | Delete an item
+`:filename` is a bare name ending in `.yml` or `.yaml`. A path separator, a control character or a
+`..` segment is rejected with `400`, so the API cannot reach outside the user-data directory.
 
-All bodies are JSON. Errors return `{ "success": false, "message": "..." }` with an appropriate status code (400 bad input, 401/403 auth, 404 not found).
+`:key` is one of `pageInfo`, `appConfig` or `sections`. Anything else is rejected with
+`400`.
 
-### Addressing Sections and Items
+Responses:
 
-`:sid` and `:iid` can be either a zero-based index (`0`, `1`, ...) or an exact match on the section's `name` / item's `title` (URL-encoded). If multiple entries share a name, the first match wins. A section literally named `2` can only be addressed by index.
+- `GET /api/config` → `{ "success": true, "files": ["conf.yml"] }`, sorted.
+- `GET /api/config/:filename` → the file itself, as a JSON object with no wrapper.
+- `GET /api/config/:filename/:key` → the value of that key, with no wrapper.
+- `PUT` → `{ "success": true, "message": "Config saved successfully in ..." }`.
 
-### Updating
+Errors take the shape `{ "success": false, "message": "..." }` with the status that goes with them:
+`400` for a bad request or a schema failure, `401` for a missing or rejected identity, `404` for a
+missing file or key, and `500` for a file that cannot be parsed or written.
 
-`PATCH` does a shallow merge: only the fields you send are changed, but nested values (like a section's `items` array) are replaced wholesale if included. `PUT` replaces the target entirely.
+## Rules
+
+| Ref | Rule |
+| --- | --- |
+| A-1 | `conf.yml` is validated against the config schema before it is written, and a failure is reported as `400` with the offending paths. Other files are written as given. |
+| A-2 | A request body is limited to 1 MB by the JSON parser, and a configuration may be at most 256 KB. |
+| A-3 | Every write backs up the previous file into `user-data/config-backups/`, unless `DISABLE_CONFIG_BACKUPS=true`. Move it with `BACKUP_DIR`. |
+| A-4 | `PUT` replaces its target. It does not merge, so a partial body writes a partial configuration: read the file, change it, send the whole object back. |
+| A-5 | A `$schema` modeline already in the file is preserved. |
 
 ## Examples
 
 ```bash
-# List config files
-curl http://localhost:8080/api/config
+# List the configuration files
+curl -s http://localhost:4000/api/config \
+  -H "Authorization: Bearer $API_TOKEN"
 
-# Get your main config as JSON
-curl http://localhost:8080/api/config/conf.yml
+# Read the main configuration
+curl -s http://localhost:4000/api/config/conf.yml \
+  -H "Authorization: Bearer $API_TOKEN"
 
-# Add an item to the first section
-curl -X POST -H 'Content-Type: application/json' \
-  -d '{"title": "Grafana", "url": "https://grafana.local", "icon": "hl-grafana"}' \
-  http://localhost:8080/api/config/conf.yml/sections/0/items
+# Read a single top-level key
+curl -s http://localhost:4000/api/config/conf.yml/appConfig \
+  -H "Authorization: Bearer $API_TOKEN"
 
-# Rename a section
-curl -X PATCH -H 'Content-Type: application/json' \
-  -d '{"name": "Monitoring"}' \
-  'http://localhost:8080/api/config/conf.yml/sections/Old%20Name'
+# Replace one key
+curl -s -X PUT http://localhost:4000/api/config/conf.yml/appConfig \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"language":"en","applications":{"files":{"url":"https://filebrowser.example.com"}}}'
 
-# Update the theme
-curl -X PUT -H 'Content-Type: application/json' \
-  -d '{"theme": "nord-frost"}' \
-  http://localhost:8080/api/config/conf.yml/appConfig
+# Replace a whole file, from a file on disk
+curl -s -X PUT http://localhost:4000/api/config/conf.yml \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary @new-conf.json
 ```
 
-After modifying your config, refresh the page to see changes.
+With HTTP Basic Auth instead of a token, replace the header with `-u alice:hunter2`.
 
-## Limitations & Notes
+Wait for `"success": true` before assuming a write landed. A rejected write leaves the previous file
+untouched, and the message names the reason.
 
-- Writes re-serialize the YAML file, so comments, anchors and custom formatting are discarded (the same applies to saving via the UI). A timestamped backup is saved to `user-data/config-backups/` before every write, unless `DISABLE_CONFIG_BACKUPS=true`
-- Writes to `conf.yml` are validated against [the schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json) and rejected if invalid. Sub-page files are not schema-validated, since they may contain only a subset of fields
-- Config files are capped at 256 KB
-- Concurrent writes are last-write-wins; there is no locking or optimistic concurrency
+## Read next
+
+- [`configuring.md`](./configuring.md) — what each configuration key means
+- [`security.md`](./security.md) — how the API is protected, and what to do before exposing it
+- [`management.md`](./management.md) — backups, and the environment variables the server reads

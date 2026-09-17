@@ -1,0 +1,36 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Uporabniško ime",
+    "password-label": "Geslo",
+    "login-button": "Prijava",
+    "remember-me-label": "Zapomni si me za",
+    "remember-me-never": "Nikoli",
+    "remember-me-hour": "4 Ure",
+    "remember-me-day": "1 Dan",
+    "remember-me-week": "1 Teden",
+    "error-missing-username": "Manjka Uporabniško Ime",
+    "error-missing-password": "Manjka Geslo",
+    "error-incorrect-username": "Uporabnik ne obstaja",
+    "error-incorrect-password": "Napačno Geslo",
+    "success-message": "Prijavljanje...",
+    "logout-message": "Odjavljen",
+    "already-logged-in-title": "Že prijavljeni",
+    "already-logged-in-text": "Prijavljeni ste kot",
+    "proceed-to-dashboard": "Nadaljujte na nadzorno ploščo",
+    "log-out-button": "Odjava",
+    "proceed-guest-button": "Nadaljujte kot gost"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Odjava",
+    "sign-in-tooltip": "Vpiši se",
+    "sign-in-welcome": "Pozdravljen {username}!"
+  },
+  "language-switcher": {
+    "title": "Spremenite Jezik Aplikacije",
+    "dropdown-label": "Izberite Jezik",
+    "save-button": "Shrani",
+    "success-msg": "Jezik Posodobljen na"
+  }
+}

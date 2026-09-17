@@ -1,0 +1,96 @@
+version: 2
+updates:
+
+  # The application lives on Dev, so that is where dependency updates belong.
+  # Stable holds the documentation and has no manifest to update, and Beta
+  # receives promotions only.
+  - package-ecosystem: npm
+    directory: /
+    target-branch: Dev
+    schedule:
+      interval: weekly
+      day: friday
+    open-pull-requests-limit: 8
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps): "
+      prefix-development: "chore(deps-dev): "
+      include: scope
+    versioning-strategy: increase
+    groups:
+      vue-ecosystem:
+        patterns:
+          - "vue*"
+          - "@vue/*"
+        update-types:
+          - minor
+          - patch
+      eslint:
+        patterns:
+          - "eslint*"
+        update-types:
+          - minor
+          - patch
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+        update-types:
+          - minor
+          - patch
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vue-i18n"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vue-router"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/plugin-vue"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: Dev
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps): "
+      include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    target-branch: Dev
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps): "
+      include: scope
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: devcontainers
+    directory: /
+    target-branch: Dev
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps): "
+      include: scope

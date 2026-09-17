@@ -87,7 +87,7 @@ rather than by a user.
 | Shell scripts | ShellCheck | CI invocation |
 | Compose validity | `docker compose config` | CI invocation |
 
-Workcenter keeps Dashy's Vitest conventions exactly: `environment: 'happy-dom'`, `globals: true`, a
+Workcenter keeps Workcenter's Vitest conventions exactly: `environment: 'happy-dom'`, `globals: true`, a
 setup file at `tests/setup.js`, `@` aliased to `./src`, and an explicit
 `import { describe, it, expect } from 'vitest'` in every test file.
 

@@ -28,8 +28,8 @@ You will need either the latest or LTS version of **[Node.js](https://nodejs.org
 
 ### Running the Project
 
-1. Get Code: `git clone https://github.com/Lissy93/dashy.git`
-2. Navigate into the directory: `cd dashy`
+1. Get Code: `git clone https://github.com/JDB321Sailor/Workcenter.git`
+2. Navigate into the directory: `cd workcenter`
 3. Install dependencies: `yarn`
 4. Start dev server: `yarn dev`
 
@@ -50,7 +50,7 @@ Workcenter should now be being served on <http://localhost:8080/>. Hot reload is
 
 #### Utils and Checks
 
-- **`yarn validate-config`** - If you have quite a long configuration file, you may wish to check that it's all good to go, before deploying the app. This can be done with `yarn validate-config` or `docker exec -it [container-id] yarn validate-config`. Your config file needs to be in `/user-data/conf.yml` (or within your Docker container at `/app/user-data/conf.yml`). This will first check that your YAML is valid, and then validates it against Workcenter's [schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json).
+- **`yarn validate-config`** - If you have quite a long configuration file, you may wish to check that it's all good to go, before deploying the app. This can be done with `yarn validate-config` or `docker exec -it [container-id] yarn validate-config`. Your config file needs to be in `/user-data/conf.yml` (or within your Docker container at `/app/user-data/conf.yml`). This will first check that your YAML is valid, and then validates it against Workcenter's [schema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json).
 - **`yarn health-check`** - Checks that the application is up and running on it's specified port, and outputs current status and response times. Useful for integrating into your monitoring service, if you need to maintain high system availability
 
 #### Alternate Start Commands
@@ -67,7 +67,7 @@ Workcenter should now be being served on <http://localhost:8080/>. Hot reload is
 
 All environmental variables are optional. Currently there are not many environmental variables used, as most of the user preferences are stored under `appConfig` in the `conf.yml` file.
 
-You can set variables either in your environment, or using the [`.env`](https://github.com/Lissy93/dashy/blob/master/.env) file.
+You can set variables either in your environment, or using the `.env` file.
 
 - `NODE_ENV` - Current environment, can be either development, production or test
 - `PORT` - The port to expose the running application on
@@ -352,7 +352,7 @@ Styleguides:
 
 #### Visualisation of Source Directory
 
-![File Breakdown](https://raw.githubusercontent.com/Lissy93/dashy/master/docs/assets/repo-visualization.svg)
+![File Breakdown](https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/docs/assets/repo-visualization.svg)
 
 ---
 

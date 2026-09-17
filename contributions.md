@@ -2,7 +2,7 @@
 
 Thank you for considering a contribution. Workcenter is a self-hosted workspace application that
 brings **FileBrowser Quantum**, **Zulip** and **SOGo on Mailcow** into one page with one sign-in and
-one set of cross-application file actions. It is a derivative of [Dashy](https://github.com/lissy93/dashy).
+one set of cross-application file actions. It is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter).
 
 This guide is the **process** document: how to set up, how to branch, how to raise a pull request, how
 it is reviewed, and how a release reaches `Stable`.
@@ -63,9 +63,9 @@ it is reviewed, and how a release reaches `Stable`.
 | New integrated application pane | PR into `Dev`, **after a roadmap change is agreed** | Large |
 | Translations | PR into `Dev` adding a locale JSON | Small |
 | Theme | PR into `Dev` adding a theme partial | Small |
-| Security report | **Private** — see [`SECURITY.md`](../.github/SECURITY.md) | — |
+| Security report | **Private** — see [`SECURITY.md`](./.github/SECURITY.md) | — |
 
-> **Not accepted:** PRs that reintroduce a removed Dashy subsystem (Default view, Minimal view,
+> **Not accepted:** PRs that reintroduce a removed Workcenter subsystem (Default view, Minimal view,
 > widgets, status/ping monitoring), PRs that fork and patch a bundled application, and PRs that weaken
 > authentication, TLS or authorisation.
 
@@ -122,19 +122,19 @@ Workcenter uses **three long-lived branches**, promoted in one direction only.
 
 | Branch | Role | Default? |
 | --- | --- | --- |
-| **`Dev`** | **The default target for every pull request.** Integration branch. May be temporarily broken between merges. | Default **PR base** |
-| **`Beta`** | Promoted from `Dev` once the E2E suite is green. Release candidates. | — |
-| **`Stable`** | Promoted from `Beta`. **The GitHub default branch** and the source of production images and tags. | GitHub default |
+| **`Dev`** | **The base for every pull request.** Integration branch, and where the application lives. May be temporarily broken between merges. | Default **PR base** |
+| **`Beta`** | **The promotion target for `Dev`.** Receives the whole of `Dev` once production testing is ready, creating the first beta. Release candidates live here. | — |
+| **`Stable`** | **The promotion target for `Beta`.** Receives the whole of `Beta` once beta testing completes. **The GitHub default branch**, and what a visitor sees first. | GitHub default |
 
 ### The rules
 
 | Ref | Rule |
 | --- | --- |
-| C-3.1 | **All PRs merge into `Dev`.** Never open a feature PR against `Beta` or `Stable`. |
-| C-3.2 | Promotion is strictly `Dev → Beta → Stable`, one step at a time, each with a green E2E run. |
-| C-3.3 | Bug fixes for `Beta` or `Stable` go through the same `Dev → Beta → Stable` path. Fix forward; do not branch off a release. |
-| C-3.4 | **The only exception:** non-functional changes (documentation, workflow configuration, issue templates) may target `Beta` or `Stable` directly, with maintainer approval recorded in the PR. |
-| C-3.5 | `Stable` is the default branch, so a fresh `git clone` gives you production code. **Switch to `Dev` before you start work.** |
+| C-3.1 | **Every pull request targets `Dev`.** This is enforced by the `Pull-request base branch` check in `ci.yml`, which fails a pull request whose base is not `Dev` unless it is a promotion. |
+| C-3.2 | **`Dev` targets `Beta`.** When `Dev` is ready for production testing, the whole of `Dev` is promoted into `Beta` in one promotion pull request, creating the first beta. |
+| C-3.3 | **`Beta` targets `Stable`.** When beta testing completes, the whole of `Beta` is promoted into `Stable` in one promotion pull request, creating the release. |
+| C-3.4 | **The only exception to C-3.1 is a promotion.** A promotion is a pull request whose title starts with `chore(release): promote`. Nothing else may target `Beta` or `Stable`; a feature or fix always lands on `Dev` first. |
+| C-3.5 | `Stable` is the default branch, so a fresh `git clone` gives you the documentation. **Switch to `Dev` before you start work.** |
 | C-3.6 | Promotion is performed by maintainers using the `promote.yml` workflow with a semantic version argument (`X.Y.Z`), mirroring FileBrowser Quantum's `promote-dev-to-beta` workflow. |
 | C-3.7 | Never force-push a long-lived branch. Never rewrite published history. |
 | C-3.8 | Release branches, if ever needed for a hotfix, are named `hotfix/vX.Y.Z` and merge back into `Dev` as well as the release branch. |
@@ -621,7 +621,7 @@ Use the **Feature request** template and state:
    new goal.
 4. Whether it is already in the roadmap's build plan.
 
-Feature requests that require a new integrated application, or that reintroduce a removed Dashy
+Feature requests that require a new integrated application, or that reintroduce a removed Workcenter
 subsystem, must be agreed **before** a PR is opened.
 
 ---
@@ -651,7 +651,7 @@ maintainers.
 
 ## 18. Licence and attribution
 
-Workcenter is a derivative work of [Dashy](https://github.com/lissy93/dashy), which is MIT licensed.
+Workcenter is a derivative work of [Workcenter](https://github.com/JDB321Sailor/Workcenter), which is MIT licensed.
 By contributing, you agree that your contribution is licensed under the same terms as this repository.
 
 Workcenter integrates, but does not vendor, the following projects. Their licences apply to their own
@@ -659,7 +659,7 @@ code:
 
 | Project | Licence |
 | --- | --- |
-| [Dashy](https://github.com/lissy93/dashy) | MIT |
+| [Workcenter](https://github.com/JDB321Sailor/Workcenter) | MIT |
 | [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) | Apache-2.0 |
 | [Zulip](https://github.com/zulip/zulip) | Apache-2.0 |
 | [Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized) | GPL-3.0 |

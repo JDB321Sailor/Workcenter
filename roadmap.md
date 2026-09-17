@@ -38,7 +38,7 @@ Mailcow** (mail and calendar) — inside one page, with one sign-in, one navigat
 and one set of move-file actions that work *between* those services without the user
 ever leaving the page.
 
-Workcenter is a **derivative of [Dashy](https://github.com/lissy93/dashy)**. Dashy's
+Workcenter is a **derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter)**. Workcenter's
 Workspace view is the seed: a left-hand navigation sidebar plus an iframe surface that
 launches web applications without leaving the dashboard. Workcenter takes that seed and
 turns it into a purpose-built, three-application product with a real backend, a real
@@ -63,21 +63,21 @@ deployment and real cross-application data flows.
 
 ## 2. Origin: what we take from Dashy, and what we discard
 
-Dashy ships [three views](https://github.com/Lissy93/dashy/blob/master/docs/alternate-views.md):
+Workcenter ships `docs/alternate-views.md`:
 **Default** (a tile grid dashboard), **Minimal** (a fast tabbed start page) and
 **Workspace** (sidebar + in-app iframe launch surface).
 
 ### Kept
 
-| Dashy asset | Why Workcenter keeps it |
+| Workcenter asset | Why Workcenter keeps it |
 | --- | --- |
 | `src/views/Workspace.vue` and `src/components/Workspace/*` | The entire shell concept: sidebar sections, item launch, embedded web content, multi-tasking iframes |
-| Dashy's OIDC client (`src/utils/auth/OidcAuth.js`, `oidc-client-ts`) and route guards | Proven Authentik-compatible PKCE flow, group→admin mapping, silent renewal |
-| Dashy's Vuex store + `ConfigAccumalator` config pipeline and `ConfigSchema.json` | The configuration contract; Workcenter keeps a trimmed, renamed schema |
-| Dashy's theming system (`src/styles/`, CSS custom properties, `color-themes.scss`) | Zero-cost theming, light/dark, per-user custom CSS |
-| Dashy's Dockerfile / `server.js` / `services/healthcheck.js` pattern | Small, hardened Node image with a built-in healthcheck |
-| Dashy's docs conventions (`docs/*.md`, kebab-case, task-oriented) | Documentation is a first-class deliverable |
-| Dashy's i18n approach (`src/assets/locales/*.json`) | Multi-language support from day one |
+| Workcenter's OIDC client (`src/utils/auth/OidcAuth.js`, `oidc-client-ts`) and route guards | Proven Authentik-compatible PKCE flow, group→admin mapping, silent renewal |
+| Workcenter's Vuex store + `ConfigAccumalator` config pipeline and `ConfigSchema.json` | The configuration contract; Workcenter keeps a trimmed, renamed schema |
+| Workcenter's theming system (`src/styles/`, CSS custom properties, `color-themes.scss`) | Zero-cost theming, light/dark, per-user custom CSS |
+| Workcenter's Dockerfile / `server.js` / `services/healthcheck.js` pattern | Small, hardened Node image with a built-in healthcheck |
+| Workcenter's docs conventions (`docs/*.md`, kebab-case, task-oriented) | Documentation is a first-class deliverable |
+| Workcenter's i18n approach (`src/assets/locales/*.json`) | Multi-language support from day one |
 | Item `target`/opening-method model (`sametab`, `newtab`, `modal`, `workspace`) | Workcenter narrows this but keeps the semantics for **Open in new tab** escapes |
 
 ### Discarded
@@ -90,7 +90,7 @@ Dashy ships [three views](https://github.com/Lissy93/dashy/blob/master/docs/alte
 | The cloud config sync / config-manager editing UI for arbitrary sections | Workcenter's navigation is derived from its integrations, not hand-authored tiles |
 | `docs/alternate-views.md`'s multi-view switching | Only one view exists |
 
-> **Rule:** removing a Dashy subsystem is a **deletion commit** with the reason recorded in
+> **Rule:** removing a Workcenter subsystem is a **deletion commit** with the reason recorded in
 > [`CHANGELOG.md`](./CHANGELOG.md). Nothing is left half-wired.
 
 ---
@@ -325,7 +325,7 @@ roadmap-listed requirements below are the acceptance contract.
 | I-AK-4 | A **`groups` scope mapping** must exist so group membership is present in the id_token (required by FileBrowser's `adminGroup` and Workcenter's own admin check) |
 | I-AK-5 | Groups `workspaceusers` and `workspaceadmin` are created and used consistently by every application |
 | I-AK-6 | `AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS` must include the Traefik/Docker network, and Traefik must send `X-Forwarded-Proto: https`, so the advertised issuer matches the public HTTPS URL |
-| I-AK-7 | No application is issued an **encryption** key — signed JWTs only (encrypted JWE tokens are rejected by Dashy-derived clients) |
+| I-AK-7 | No application is issued an **encryption** key — signed JWTs only (encrypted JWE tokens are rejected by Workcenter-derived clients) |
 | I-AK-8 | The Traefik dashboard is protected by an Authentik **forward-auth** middleware, restricted to `workspaceadmin` |
 | I-AK-9 | An Authentik **LDAP outpost** is deployed to back Mailcow's LDAP identity provider (I-MC-6), with the same `workspaceusers` / `workspaceadmin` group model |
 
@@ -442,7 +442,7 @@ requirements are:
 
 | Ref | Requirement |
 | --- | --- |
-| U-8 | Styling derives from **Dashy's theming model**: CSS custom properties, `color-palette.scss` variables, `--side-bar-*` tokens, light/dark themes and per-user custom CSS |
+| U-8 | Styling derives from **Workcenter's theming model**: CSS custom properties, `color-palette.scss` variables, `--side-bar-*` tokens, light/dark themes and per-user custom CSS |
 | U-9 | The three applications are visually distinguished by an accent colour used on the active switcher button, the active sidebar affordance and the pane loading state |
 | U-10 | Workcenter chrome must be **quiet**: neutral surfaces, one accent, no gradients or decoration that competes with embedded applications |
 | U-11 | Because embedded applications carry their own theming, Workcenter must apply a **theme bridge**: one switch in the shell changes the shell *and* all three applications. FileBrowser Quantum through its per-user `darkMode`, Zulip through `color_scheme`, SOGo through the Workcenter stylesheet supplied at setup — SOGo has no dark mode of its own |
@@ -463,7 +463,7 @@ requirements are:
 
 ### 8.4 What the UI must NOT do
 
-* Must not show Dashy's Default or Minimal views, view-switcher links, tile grid or widgets.
+* Must not show Workcenter's Default or Minimal views, view-switcher links, tile grid or widgets.
 * Must not expose the Traefik dashboard, Mailcow admin UI or Authentik admin UI to
   non-admin users anywhere in the shell.
 * Must not embed any application in a way that requires the user to sign in twice.
@@ -583,9 +583,9 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 
 ---
 
-### Phase 1 — Strip Dashy down to the Workspace view
+### Phase 1 — Strip Workcenter down to the Workspace view
 
-**Goal:** Workcenter is Dashy minus everything that is not the workspace.
+**Goal:** Workcenter is Workcenter minus everything that is not the workspace.
 
 | Step | Work |
 | --- | --- |
@@ -597,7 +597,7 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 | 1.6 | Rebuild `docs/` — keep authentication, deployment, management, security, theming; delete the docs for removed features |
 | 1.7 | Delete dead dependencies from `package.json` and confirm the bundle size drops |
 
-**Exit criteria:** the app builds, loads a single workspace view, authenticates via OIDC, and no reference to "Dashy", "Minimal" or "Default view" remains in `src/` (enforced by a lint rule/test).
+**Exit criteria:** the app builds, loads a single workspace view, authenticates via OIDC, and no reference to "Workcenter", "Minimal" or "Default view" remains in `src/` (enforced by a lint rule/test).
 
 **Depends on:** Phase 0.
 
@@ -618,7 +618,7 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 | 2.7 | Make panes **persistent**: all three iframes stay mounted; switching toggles visibility and restores focus/scroll |
 | 2.8 | Implement routing: `/files`, `/chat`, `/mail`, deep-linkable, with the pane restored on reload |
 | 2.9 | Implement the status indicators inside the application switcher (one beneath each button, plus the `STATUS` label) and the per-pane failure card (`U-15`) |
-| 2.10 | Apply the Dashy-derived theming, with the palette derived from FileBrowser Quantum's own values (`U-21`) and dark as the default |
+| 2.10 | Apply the shell theming, with the palette derived from FileBrowser Quantum's own values (`U-21`) and dark as the default |
 | 2.11 | Build the user menu: identity, admin badge, admin links and Logout (`U-7`) |
 | 2.12 | Build the **appearance control** — the light/dark switcher, dark labelled as the default (`U-17`) |
 | 2.13 | Build the **language control** — the language in use plus the flag button and its menu (`U-18`) |
@@ -775,7 +775,7 @@ Implement exactly the contract in [`production.md`](./production.md):
 | Milestone | Phase | Demonstrable outcome | Goal refs |
 | --- | --- | --- | --- |
 | **M0 — Scaffold** | 0 | Repository builds, lints and tests on a clean clone | G6, G11 |
-| **M1 — Workspace only** | 1 | A Dashy-derived app with one view and no legacy surface | G1 |
+| **M1 — Workspace only** | 1 | A Workcenter-derived app with one view and no legacy surface | G1 |
 | **M2 — Shell** | 2 | Switcher + three swappable sidebars + persistent panes | G1, G2, G8 |
 | **M3 — Stack up** | 3 | All services healthy behind Traefik on subdomains | G4, G12 |
 | **M4 — One command** | 4 | Bare host → running stack with `setup.sh` | G4 |
@@ -793,7 +793,7 @@ Workcenter 1.0 will **not**:
 
 1. Ship a mobile app, a desktop app, or an offline/PWA mode.
 2. Integrate a fourth application, or provide a plugin API for arbitrary tiles.
-3. Retain Dashy's Default or Minimal views, tile grid, widgets, or status/ping monitoring.
+3. Retain Workcenter's Default or Minimal views, tile grid, widgets, or status/ping monitoring.
 4. Fork and patch a bundled application's source; bundled applications are pinned and configured only.
 5. Support FileBrowser **v1** (the deprecated original) or filebrowser v1 data migration.
 6. Replace Mailcow's own installer, updater, or compose file.
@@ -817,7 +817,7 @@ Workcenter 1.0 will **not**:
 | R5 | **Cross-origin credential handling in the broker** | Security exposure of mail/chat credentials | Encrypted per-user token store; no plaintext at rest; strict per-user authorisation tests; broker is the only writer into the file source |
 | R6 | **Resource footprint** (Zulip + Mailcow + OnlyOffice + Authentik together) | Won't run on small VPS | Document minimums (D-11), allow `SKIP_*` flags for optional Mailcow components, and publish a "minimum viable" profile |
 | R7 | **Issuer/hostname mismatch behind Traefik** | OIDC redirect loops in every app | One canonical public HTTPS issuer; `AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS`; `X-Forwarded-Proto`; a dedicated troubleshooting section in `OIDC.md` |
-| R8 | **Scope creep back toward Dashy** | Rebuilt dashboard instead of a workspace | This roadmap's non-goals, plus a lint/schema test that fails if removed Dashy features reappear |
+| R8 | **Scope creep back toward Workcenter** | Rebuilt dashboard instead of a workspace | This roadmap's non-goals, plus a lint/schema test that fails if removed Workcenter features reappear |
 | R9 | **Playwright suite flakiness** | Lost trust in CI | Deterministic seeds, fixed users, stub external edges, retries only for known-timing assertions, artifacts always uploaded |
 | R10 | **Two-way file flows hitting size/time limits** | Failed transfers confuse users | Streaming with explicit size caps, cancellation, resumable upload for Zulip (`/api/v1/tus`), and a visible failure reason |
 
@@ -856,4 +856,4 @@ Workcenter 1.0 is done when **all** of the following are true:
 
 ---
 
-<p align="center"><sub>Workcenter roadmap · derived from <a href="https://github.com/lissy93/dashy">Dashy</a> · built on FileBrowser Quantum, Zulip, Mailcow/SOGo, OnlyOffice, Authentik and Traefik</sub></p>
+<p align="center"><sub>Workcenter roadmap · derived from <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a> · built on FileBrowser Quantum, Zulip, Mailcow/SOGo, OnlyOffice, Authentik and Traefik</sub></p>

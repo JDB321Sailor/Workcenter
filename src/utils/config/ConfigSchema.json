@@ -1,0 +1,581 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/<your-org>/workcenter/Dev/src/utils/config/ConfigSchema.json",
+  "title": "Workcenter Config",
+  "description": "Validates a Workcenter configuration file against all supported options",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$schema": {
+      "title": "Schema",
+      "type": "string",
+      "description": "Optional reference to this schema, used by external editors for validation and autocompletion. Ignored by Workcenter"
+    },
+    "pageInfo": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string",
+          "description": "Title and heading for the app"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string",
+          "description": "Sub-title, displayed in header"
+        },
+        "navLinks": {
+          "type": "array",
+          "maxItems": 6,
+          "title": "Navigation Links",
+          "description": "Quick access links, displayed in header",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "title",
+              "path"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "target": {
+                "title": "Opening Method",
+                "type": "string",
+                "enum": [
+                  "newtab",
+                  "sametab",
+                  "parent",
+                  "top",
+                  "newwindow"
+                ],
+                "default": "newtab",
+                "description": "Where / how the item is opened when it's clicked"
+              }
+            }
+          }
+        },
+        "footer": {
+          "title": "Footer",
+          "description": "Content to display within the global page footer. Supports inline HTML (sanitized before render).",
+          "type": "string"
+        },
+        "logo": {
+          "title": "App Logo",
+          "type": "string",
+          "description": "Path to an optional image asset, to be displayed in the header",
+          "pattern": "^(http|/)(.*?)",
+          "examples": [
+            "/web-icons/workcenter-logo.png",
+            "/web-icons/workcenter-logo.png"
+          ]
+        },
+        "favicon": {
+          "title": "Favicon",
+          "type": "string",
+          "description": "URL or path to a custom favicon shown in the browser tab. Absolute (https://...), root-relative (/icons/x.png), or a data: URI.",
+          "examples": [
+            "/web-icons/favicon-64x64.png",
+            "https://example.com/favicon.ico"
+          ]
+        },
+        "color": {
+          "title": "Theme Color",
+          "type": "string",
+          "description": "Color applied to the browser chrome (mobile address bar). Any valid CSS color value.",
+          "examples": [
+            "#2a7cf0",
+            "rebeccapurple",
+            "rgb(40, 60, 120)"
+          ]
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "appConfig": {
+      "type": "object",
+      "properties": {
+        "defaultOpeningMethod": {
+          "title": "Default Opening Method",
+          "type": "string",
+          "enum": [
+            "newtab",
+            "sametab",
+            "parent",
+            "top",
+            "modal",
+            "workspace",
+            "clipboard",
+            "newwindow"
+          ],
+          "default": "newtab",
+          "description": "The default opening method for items. Only used if no item.target is specified"
+        },
+        "language": {
+          "title": "Language",
+          "type": "string",
+          "description": "The ISO code of your desired language, must have translations present, check docs for more info"
+        },
+        "theme": {
+          "title": "Theme",
+          "type": "string",
+          "default": "default",
+          "description": "A theme to be applied by default on first load",
+          "examples": [
+            "callisto",
+            "thebe",
+            "dracula",
+            "material",
+            "material-dark",
+            "colorful",
+            "nord",
+            "nord-frost",
+            "minimal-dark",
+            "minimal-light",
+            "matrix",
+            "matrix-red",
+            "hacker-girl",
+            "raspberry-jam",
+            "bee",
+            "tiger",
+            "material-original",
+            "material-dark-original",
+            "vaporware",
+            "high-contrast-dark",
+            "high-contrast-light",
+            "tokyo-night",
+            "gruvbox",
+            "rose-pine",
+            "parchment",
+            "aurora",
+            "zinc",
+            "solarized-dark",
+            "solarized-light",
+            "brutalist",
+            "midnight",
+            "catppuccin"
+          ]
+        },
+        "dayTheme": {
+          "title": "Day Theme",
+          "type": "string",
+          "description": "Theme to apply when the OS is set to light mode. Overrides theme on initial load"
+        },
+        "nightTheme": {
+          "title": "Night Theme",
+          "type": "string",
+          "description": "Theme to apply when the OS is set to dark mode. Overrides theme on initial load"
+        },
+        "backgroundImg": {
+          "title": "Background Image",
+          "type": "string",
+          "description": "A URL to an image asset to be displayed as background"
+        },
+        "faviconApi": {
+          "title": "Favicon API",
+          "type": "string",
+          "enum": [
+            "local",
+            "allesedv",
+            "iconhorse",
+            "faviconkit",
+            "duckduckgo",
+            "yandex",
+            "google",
+            "besticon",
+            "webmasterapi",
+            "mcapi"
+          ],
+          "default": "allesedv",
+          "description": "Which service to use to resolve favicons. Set to local to do this locally instead"
+        },
+        "defaultIcon": {
+          "title": "Default Icon",
+          "type": "string",
+          "description": "An icon to apply to any items which don't yet have the icon set"
+        },
+        "contentMaxWidth": {
+          "title": "Content Max Width",
+          "type": [
+            "string"
+          ],
+          "description": "Max width of the main sections area on the homepage. Pass as a percentage or CSS unit. Leave blank for the responsive default",
+          "examples": [
+            "98%",
+            "1400px",
+            95
+          ]
+        },
+        "workspaceLandingUrl": {
+          "title": "Workspace Landing URL",
+          "type": "string",
+          "description": "The URL of the application pane to open when Workcenter loads, for example `https://filebrowser.example.com`. If it matches an item in the sidebar, that section is expanded."
+        },
+        "customCss": {
+          "title": "Custom CSS",
+          "type": "string",
+          "description": "Any custom CSS overides to be applied globally, should be minified"
+        },
+        "auth": {
+          "title": "Authentication",
+          "type": "object",
+          "description": "Settings for enabling authentication",
+          "additionalProperties": false,
+          "properties": {
+            "enableGuestAccess": {
+              "title": "Enable Guest Mode?",
+              "type": "boolean",
+              "default": false,
+              "description": "If set to true, an unauthenticated user will be able to have read-only access to dashboard, without needing to login. Requires auth to be configured."
+            },
+            "logoutRedirectUrl": {
+              "title": "Logout Redirect URL",
+              "type": "string",
+              "description": "If set, the logout button will redirect here after logging out. Useful with header auth / to end auth proxy session"
+            },
+            "users": {
+              "title": "Users",
+              "type": "array",
+              "description": "Usernames and hashed credentials for frontend authentication. Needs to be set at build-time.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "title": "Username",
+                    "type": "string",
+                    "description": "The username for a user"
+                  },
+                  "hash": {
+                    "title": "Hashed Pass",
+                    "type": "string",
+                    "description": "A SHA-256 hashed password for that user",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "password": {
+                    "title": "Password",
+                    "type": "string",
+                    "description": "The environmental variable pointing to a plaintext password for that user. Must start with VITE_APP_",
+                    "pattern": "^VITE_APP_.*"
+                  },
+                  "type": {
+                    "title": "Privileges",
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "normal"
+                    ],
+                    "description": "User type, denoting privilege level, either admin or normal",
+                    "default": "normal"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "user"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "hash"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "password"
+                    ]
+                  }
+                ]
+              }
+            },
+            "enableOidc": {
+              "title": "Enable OIDC?",
+              "type": "boolean",
+              "default": false,
+              "description": "If set to true, enable OIDC. See appConfig.auth.oidc"
+            },
+            "oidc": {
+              "type": "object",
+              "description": "Configuration for OIDC",
+              "additionalProperties": false,
+              "required": [
+                "clientId",
+                "endpoint"
+              ],
+              "properties": {
+                "endpoint": {
+                  "title": "OIDC Endpoint",
+                  "type": "string",
+                  "description": "Endpoint of OIDC provider"
+                },
+                "clientId": {
+                  "title": "OIDC Client Id",
+                  "type": "string",
+                  "description": "ClientId from OIDC provider"
+                },
+                "adminRole": {
+                  "title": "Admin Role",
+                  "type": "string",
+                  "description": "The role that will be considered as admin. If not set, no roles will be considered as admin"
+                },
+                "adminGroup": {
+                  "title": "Admin Group",
+                  "type": "string",
+                  "description": "The group that will be considered as admin. If not set, no groups will be considered as admin"
+                },
+                "scope": {
+                  "title": "OIDC Scope",
+                  "type": "string",
+                  "description": "The scope(s) to request from the OIDC provider"
+                },
+                "showLoginPage": {
+                  "title": "Show Workcenter's Login Page",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "If set to true, signed-out users are shown Workcenter's login page (with sign-in and guest buttons), instead of being redirected straight to the OIDC provider"
+                },
+                "enableSilentRenew": {
+                  "title": "Enable Silent Token Renewal",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "If set to true, Workcenter automatically renews your session in the background before it expires. Requires your OIDC provider to issue refresh tokens"
+                },
+                "postLogoutRedirectUri": {
+                  "title": "Post-Logout Redirect URI",
+                  "type": "string",
+                  "description": "URL to send users back to after logging out at the OIDC provider. Must be registered as a valid post-logout redirect URI with your provider"
+                },
+                "allowedIssuers": {
+                  "title": "Allowed Token Issuers",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of issuer URLs to accept tokens from, overriding the issuer in the discovery document. Only needed for multi-tenant providers where the token issuer differs from the configured endpoint"
+                },
+                "disableServerSideCheck": {
+                  "title": "Disable Server-Side Check",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "If set to true, the server skips token verification and endpoint protection, making OIDC client-side only. Not recommended"
+                }
+              }
+            },
+            "enableHeaderAuth": {
+              "title": "Enable HeaderAuth?",
+              "type": "boolean",
+              "default": false,
+              "description": "If set to true, enable Header Authentication. See appConfig.auth.headerAuth"
+            },
+            "headerAuth": {
+              "type": "object",
+              "description": "Configuration for headerAuth",
+              "additionalProperties": false,
+              "required": [
+                "proxyWhitelist"
+              ],
+              "properties": {
+                "userHeader": {
+                  "title": "User Header",
+                  "type": "string",
+                  "description": "Header name which contains username",
+                  "default": "Remote-User"
+                },
+                "proxyWhitelist": {
+                  "title": "Upstream Proxy Auth Trust",
+                  "type": "array",
+                  "description": "Upstream proxy servers to expect authenticated requests from",
+                  "items": {
+                    "type": "string",
+                    "description": "IPs of upstream proxies that will be trusted"
+                  }
+                }
+              }
+            },
+            "enableKeycloak": {
+              "title": "Enable Keycloak?",
+              "type": "boolean",
+              "default": false,
+              "description": "If set to true, and auth.keycloak is also configured, then Keycloak will be used for app auth"
+            },
+            "keycloak": {
+              "type": "object",
+              "description": "Configuration for Keycloak server",
+              "additionalProperties": false,
+              "required": [
+                "serverUrl",
+                "realm",
+                "clientId"
+              ],
+              "properties": {
+                "serverUrl": {
+                  "title": "Server URL",
+                  "type": "string",
+                  "description": "The URL (or URL/ IP + Port) where your keycloak server is running"
+                },
+                "realm": {
+                  "title": "Realm",
+                  "type": "string",
+                  "description": "The name of the realm (must already be created) that you want to use"
+                },
+                "clientId": {
+                  "title": "Client ID",
+                  "type": "string",
+                  "description": "The Client ID of the client you created for use with Workcenter"
+                },
+                "idpHint": {
+                  "title": "IdP hint",
+                  "type": "string",
+                  "description": "Set to the 'Alias' of an existing Identity Provider in the specified realm to skip the Keycloak login page and redirect straight to the external IdP for authentication"
+                },
+                "adminRole": {
+                  "title": "Admin Role",
+                  "type": "string",
+                  "description": "The realm or client role that grants admin privileges (mapped into realm_access.roles in the id_token). If not set, no roles will be considered admin."
+                },
+                "adminGroup": {
+                  "title": "Admin Group",
+                  "type": "string",
+                  "description": "The group claim value that grants admin privileges. Requires a Keycloak mapper that puts a 'groups' claim into the id_token. If not set, no groups will be considered admin."
+                },
+                "legacySupport": {
+                  "title": "Legacy Support",
+                  "type": "boolean",
+                  "description": "If using Keycloak 17 or older, then set this to true"
+                }
+              }
+            }
+          }
+        },
+        "enableServiceWorker": {
+          "title": "Enable Service Worker",
+          "type": "boolean",
+          "default": false,
+          "description": "If set to true, then service workers will be used to cache page contents"
+        },
+        "enableAuthProxyCompat": {
+          "title": "Enable Auth Proxy Compatibility",
+          "type": "boolean",
+          "default": false,
+          "description": "If set to true, when an authentication proxy (e.g. Cloudflare Zero Trust, Authelia) redirects after session expiry, the service worker is unregistered and the page reloaded so the login redirect can proceed. Only relevant when enableServiceWorker is true"
+        },
+        "enableErrorReporting": {
+          "title": "Enable Error Reporting",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable anonymous crash reports. This helps bugs be found and fixed, in order to make Workcenter more stable. Reporting is off by default, and no data will EVER be collected without your explicit and active concent."
+        },
+        "sentryDsn": {
+          "title": "Custom Sentry DSN",
+          "type": "string",
+          "description": "The DSN to your self-hosted Sentry server, if you need to collect bug reports. Only used if enableErrorReporting is enabled"
+        },
+        "iconSize": {
+          "title": "Icon Size",
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "default": "medium",
+          "description": "The default size for icons in the sidebar and the page title."
+        },
+        "enableFontAwesome": {
+          "title": "Enable Font Awesome",
+          "type": "boolean",
+          "description": "Inject the Font Awesome kit. Leave unset to inject it only when an `fa-` icon is used."
+        },
+        "enableMaterialDesignIcons": {
+          "title": "Enable Material Design Icons",
+          "type": "boolean",
+          "description": "Inject the Material Design Icons stylesheet. Leave unset to inject it only when an `mdi-` icon is used."
+        },
+        "fontAwesomeKey": {
+          "title": "Font Awesome Kit ID",
+          "type": "string",
+          "description": "Your Font Awesome kit ID. Only needed when icons use Font Awesome glyphs."
+        },
+        "cssThemes": {
+          "title": "CSS Themes",
+          "type": "array",
+          "description": "Additional CSS files to offer as themes, relative to the web root.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "customColors": {
+          "title": "Custom Colors",
+          "type": "object",
+          "description": "Override individual theme colour variables, for example `primary` or `background`."
+        },
+        "externalStyleSheet": {
+          "title": "External Stylesheet",
+          "type": "string",
+          "description": "A stylesheet URL to load in addition to the theme."
+        },
+        "hideComponents": {
+          "title": "Hide Components",
+          "type": "object",
+          "description": "Hide individual shell components. Each key is a component name and each value a boolean."
+        },
+        "applications": {
+          "title": "Applications",
+          "type": "object",
+          "description": "The address of each application the shell embeds. A pane with no address is shown as unavailable.",
+          "additionalProperties": false,
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "The FileBrowser Quantum address."
+                }
+              }
+            },
+            "chat": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "The Zulip address."
+                }
+              }
+            },
+            "mail": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "The SOGo address, normally https://mail.example.com/SOGo."
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sections": {
+      "title": "Sections (not used)",
+      "type": "array",
+      "description": "Not used by Workcenter. Accepted so an existing configuration validates; the shell reads appConfig.applications instead.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  }
+}

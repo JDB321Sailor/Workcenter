@@ -1,0 +1,40 @@
+{
+  "splash-screen": {
+    "loading": "Laddar"
+  },
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Användarnamn",
+    "password-label": "Lösenord",
+    "login-button": "Logga in",
+    "remember-me-label": "Kom ihåg mig",
+    "remember-me-never": "Aldrig",
+    "remember-me-hour": "4 Timmar",
+    "remember-me-day": "1 Dag",
+    "remember-me-week": "1 Vecka",
+    "remember-me-long-time": "Länge",
+    "error-missing-username": "Användarnamn saknas",
+    "error-missing-password": "Lösenord saknas",
+    "error-incorrect-username": "Användaren hittas inte",
+    "error-incorrect-password": "Fel lösenord",
+    "success-message": "Loggar in...",
+    "logout-message": "Utloggad",
+    "already-logged-in-title": "Redan inloggad",
+    "already-logged-in-text": "Du är inloggad som",
+    "proceed-to-dashboard": "Fortsätt till Dashboard",
+    "log-out-button": "Logga ut",
+    "proceed-guest-button": "Fortsätt som Gäst"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Logga ut",
+    "sign-in-tooltip": "Logga in",
+    "sign-in-welcome": "Hej {username}!"
+  },
+  "language-switcher": {
+    "title": "Ändra appspråk",
+    "dropdown-label": "Välj språk",
+    "save-button": "Spara",
+    "success-msg": "Språket har ändrats till"
+  }
+}

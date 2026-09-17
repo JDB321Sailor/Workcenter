@@ -1,0 +1,37 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Brugernavn",
+    "password-label": "Adgangskode",
+    "login-button": "Login",
+    "remember-me-label": "Husk mig for",
+    "remember-me-never": "aldrig",
+    "remember-me-hour": "4 timer",
+    "remember-me-day": "1 dag",
+    "remember-me-week": "1 uge",
+    "remember-me-long-time": "lang tid",
+    "error-missing-username": "Mangler brugernavn",
+    "error-missing-password": "Manglende adgangskode",
+    "error-incorrect-username": "Bruger ikke fundet",
+    "error-incorrect-password": "Forkert kodeord",
+    "success-message": "Logger ind...",
+    "logout-message": "Logget ud",
+    "already-logged-in-title": "Allerede logget ind",
+    "already-logged-in-text": "Du er logget ind som",
+    "proceed-to-dashboard": "Fortsæt til dashboard",
+    "log-out-button": "Log ud",
+    "proceed-guest-button": "Fortsæt som gæst"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Log ud",
+    "sign-in-tooltip": "Log ind",
+    "sign-in-welcome": "Hej {username}!"
+  },
+  "language-switcher": {
+    "title": "Skift applikationssprog",
+    "dropdown-label": "Vælg sprog",
+    "save-button": "Gem",
+    "success-msg": "Sprog opdateret til"
+  }
+}

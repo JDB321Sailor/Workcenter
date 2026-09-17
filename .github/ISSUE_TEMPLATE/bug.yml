@@ -1,0 +1,107 @@
+name: Bug report
+description: Report something that is not working as documented
+title: '[BUG] <title>'
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Before you continue, please redact
+        hostnames, email addresses, tokens, cookies and anything else sensitive.
+        If you believe a secret may have leaked, report it privately per
+        SECURITY.md instead of opening an issue.
+
+  - type: dropdown
+    id: pane
+    attributes:
+      label: Which part of Workcenter is affected?
+      options:
+        - The shell (switcher, sidebars, panes, theming)
+        - Files - FileBrowser Quantum
+        - Files - document editing (ONLYOFFICE)
+        - Chat - Zulip
+        - Mail - Mailcow / SOGo
+        - File movement (save or attach between applications)
+        - Authentication / sign-in
+        - Deployment (setup.sh, compose, Traefik, reverse proxy)
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Workcenter version
+      description: The release tag or commit you are running.
+      placeholder: e.g. v1.0.0, or the output of `git rev-parse --short HEAD`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is it deployed?
+      options:
+        - ./setup.sh
+        - Manual docker compose
+        - Existing Traefik already running on the host
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact steps, what you expected, and what actually happened.
+      placeholder: |
+        1. Sign in as ...
+        2. Open the Mail pane
+        3. Click ...
+        Expected: ...
+        Actual: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: health
+    attributes:
+      label: Service health
+      description: Paste the output of `docker compose ps`.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs and console output
+      description: >-
+        Browser console output helps for shell and pane issues. Service logs help for
+        deployment and integration issues. Redact secrets and personal data.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or recordings
+      description: Required for anything visual. Drag the files into this box.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have explained the problem clearly and included the information above
+          required: true
+        - label: I have redacted every secret, hostname and personal datum
+          required: true
+        - label: I have searched the existing issues for a duplicate
+          required: true
+        - label: I have read the troubleshooting guidance in production.md and docs/troubleshooting.md
+          required: true

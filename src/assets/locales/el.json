@@ -1,0 +1,48 @@
+{
+  "splash-screen": {
+    "loading": "Φόρτωση"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Πρόσβαση Επισκέπτη",
+    "username-label": "Όνομα χρήστη",
+    "password-label": "Κωδικός πρόσβασης",
+    "login-button": "Σύνδεση",
+    "remember-me-label": "Να με θυμάσαι για",
+    "remember-me-never": "Ποτέ",
+    "remember-me-hour": "4 Ωρες",
+    "remember-me-day": "1 Ημέρα",
+    "remember-me-week": "1 Εβδομάδα",
+    "remember-me-long-time": "Πολύ καιρό",
+    "error-missing-username": "Λείπει το όνομα χρήστη",
+    "error-missing-password": "Λείπει ο κωδικός πρόσβασης",
+    "error-incorrect-username": "Ο χρήστης δεν βρέθηκε",
+    "error-incorrect-password": "Λάθος κωδικός πρόσβασης",
+    "success-message": "Γίνεται σύνδεση...",
+    "logout-message": "Εγινε αποσύνδεση",
+    "already-logged-in-title": "Εχετε ήδη συνδεθεί",
+    "already-logged-in-text": "Εχετε συνδεθεί ως",
+    "proceed-to-dashboard": "Μεταβείτε στον Πίνακα Ελέγχου",
+    "log-out-button": "Αποσύνδεση",
+    "proceed-guest-button": "Συνεχίστε ως επισκέπτης",
+    "guest-intro-1": "Η πρόσβαση για επισκέπτες είναι ενεργοποιημένη.",
+    "guest-intro-2": "Οι επισκέπτες έχουν πρόσβαση μόνο για προβολή στα dashboards και δεν μπορούν να γράφουν αλλαγές στον δίσκο.",
+    "error": "Σφάλμα",
+    "error-no-user-configured": "Ο έλεγχος ταυτότητας δεν είναι ενεργοποιημένος ή δεν έχουν δημιουργηθεί χρήστες",
+    "error-go-home-button": "Μετάβαση στην αρχική σελίδα",
+    "logged-in-guest": "Συνδεθήκατε ως επισκέπτης. Γίνεται ανακατεύθυνση...",
+    "error-guest-access": "Δεν Επιτρέπεται η Πρόσβαση Επισκέπτη"
+  },
+  "settings": {
+    "theme-label": "Θέμα",
+    "sign-out-tooltip": "Αποσύνδεση",
+    "sign-in-tooltip": "Σύνδεση",
+    "sign-in-welcome": "Γεια σου {username}!"
+  },
+  "language-switcher": {
+    "title": "Αλλαγή Γλώσσας Εφαρμογής",
+    "dropdown-label": "Επιλέξτε μια Γλώσσα",
+    "save-button": "Αποθήκευση",
+    "success-msg": "Η γλώσσα άλλαξε σε"
+  }
+}

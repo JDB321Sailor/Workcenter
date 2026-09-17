@@ -1,0 +1,165 @@
+# Regular tests — runs on every pull request.
+#
+# Shape mirrors FileBrowser Quantum's `regular-tests` workflow:
+# each check is a separate job so a failure names the check that failed.
+#
+# All pull requests target Dev. Beta and Stable receive promotion merges only.
+name: regular tests
+
+on:
+  pull_request:
+    branches:
+      - Dev
+      - Beta
+      - Stable
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A promotion PR is the only pull request that may target Beta or Stable.
+# Mark it by starting the title with "chore(release): promote".
+env:
+  PROMOTION_TITLE_PREFIX: 'chore(release): promote'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  base-branch:
+    name: Pull-request base branch
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Dev as the base branch
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Every pull request targets Dev. Beta and Stable advance only by
+          # promotion, which is marked in the pull-request title.
+          if [ "$BASE" = "Dev" ]; then
+            echo "OK: '$HEAD' targets Dev."
+            exit 0
+          fi
+          case "$TITLE" in
+            "$PROMOTION_TITLE_PREFIX"*)
+              echo "OK: promotion pull request into '$BASE'."
+              exit 0
+              ;;
+          esac
+          echo "::error::Pull requests must target Dev, not '$BASE'."
+          echo "Retarget this pull request to Dev. Beta and Stable advance only by promotion,"
+          echo "which is a pull request titled '$PROMOTION_TITLE_PREFIX ...'."
+          exit 1
+
+  install:
+    name: Install dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - name: Install
+        run: yarn install --frozen-lockfile
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+
+  lint:
+    name: Lint
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+      - run: yarn lint
+
+  typecheck:
+    name: Typecheck
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+      - run: yarn typecheck
+
+  test:
+    name: Test
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+      - run: yarn test
+
+  locales:
+    name: Locale check
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+      - run: yarn validate-locales
+
+  config:
+    name: Config validation
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+      - run: yarn validate-config
+
+  build:
+    name: Build
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
+      - run: yarn build
+      - name: Verify build output
+        run: test -f dist/index.html

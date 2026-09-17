@@ -1,0 +1,88 @@
+{
+  "general": {
+    "close-modal": "Dialog schließen",
+    "confirm": "Bestätigen",
+    "cancel": "Abbrechen"
+  },
+  "splash-screen": {
+    "loading": "Lädt"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Gastzugriff",
+    "username-label": "Benutzername",
+    "password-label": "Passwort",
+    "login-button": "Anmelden",
+    "remember-me-label": "Angemeldet bleiben für",
+    "remember-me-never": "Niemals",
+    "remember-me-hour": "4 Stunden",
+    "remember-me-day": "1 Tag",
+    "remember-me-week": "1 Woche",
+    "remember-me-long-time": "Eine lange Zeit",
+    "error-missing-username": "Benutzername fehlt",
+    "error-missing-password": "Passwort fehlt",
+    "error-incorrect-username": "Benutzer nicht gefunden",
+    "error-incorrect-password": "Falsches Passwort",
+    "success-message": "Anmeldung läuft...",
+    "logout-message": "Abgemeldet",
+    "already-logged-in-title": "Bereits angemeldet",
+    "already-logged-in-text": "Angemeldet als",
+    "proceed-to-dashboard": "Zum Dashboard fortfahren",
+    "log-out-button": "Abmelden",
+    "proceed-guest-button": "Als Gast fortfahren",
+    "guest-intro-1": "Diese Instanz hat Gastzugriffe aktiviert",
+    "guest-intro-2": "Gäste haben lesenden Zugriff auf Dashboards, können also keine Veränderungen auf die Festplatte schreiben.",
+    "error": "Fehler",
+    "error-no-user-configured": "Authentifizierung ist nicht aktiviert, oder es sind keine Benutzer konfiguriert",
+    "error-go-home-button": "Zur Startseite",
+    "logged-in-guest": "Als Gast eingeloggt, Umleitung...",
+    "authenticated-redirecting": "Authentifiziert, leite weiter...",
+    "error-guest-access": "Gastzugriff nicht erlaubt"
+  },
+  "remote-config": {
+    "title": "Remote-Konfiguration laden?",
+    "apply-button": "Vorschau anwenden",
+    "intro": "Sie laden eine Konfiguration von einer externen URL. Möchten Sie fortfahren?",
+    "warning": "Stellen Sie sicher, dass Sie den zu ladenden Inhalt gelesen haben, bevor Sie fortfahren. Nach dem Laden kann Ihr Browser jeden clientseitigen Code ausführen, der in dieser Konfiguration angegeben ist.",
+    "field-title": "Titel",
+    "field-source": "Quelle",
+    "field-sections": "Sektionen",
+    "field-items": "Elemente",
+    "preview-note": "Nur Vorschau. Es werden keine Änderungen auf der Festplatte vorgenommen und Ihre Workcenter-Instanz wird nicht beeinflusst.",
+    "applied-toast": "Remote-Konfiguration angewendet (nur Vorschau)",
+    "previewing-banner": "Remote-Konfiguration wird angezeigt",
+    "revert-button": "Rückgängig",
+    "error-invalid-url": "Remote-Konfigurations-URL ist ungültig (muss http oder https sein)",
+    "error-fetch": "Remote-Konfiguration konnte nicht abgerufen werden. Überprüfen Sie, ob die URL erreichbar ist und CORS erlaubt ist.",
+    "error-parse": "Remote-Konfiguration ist kein gültiges YAML",
+    "error-not-config": "Remote-Datei sieht nicht wie eine Workcenter-Konfiguration aus",
+    "error-apply": "Remote-Konfiguration konnte nicht angewendet werden"
+  },
+  "settings": {
+    "theme-label": "Design",
+    "language-label": "Sprache",
+    "toggle-nav-aria": "Navigationsmenü ein- und ausblenden",
+    "sign-out-tooltip": "Abmelden",
+    "sign-in-tooltip": "Anmelden",
+    "sign-in-welcome": "Hallo {username}!",
+    "please-login": "Melden Sie sich an, um vollen Zugriff zu erhalten"
+  },
+  "updates": {
+    "sw-update-available": "Es ist eine neue Version von Workcenter verfügbar.",
+    "sw-update-action": "Aktualisieren"
+  },
+  "language-switcher": {
+    "title": "Applikationssprache ändern",
+    "dropdown-label": "Sprache auswählen",
+    "save-button": "Speichern",
+    "success-msg": "Sprache geändert auf"
+  },
+  "critical-error": {
+    "title": "Konfigurationsfehler",
+    "subtitle": "Workcenter konnte nicht korrekt geladen werden, aufgrund eines Fehlers in der Konfiguration.",
+    "sub-ensure-that": "Stellen Sie sicher, dass",
+    "sub-error-details": "Details zum Fehler",
+    "sub-next-steps": "Nächste Schritte",
+    "ignore-button": "Kritische Fehler ignorieren"
+  }
+}

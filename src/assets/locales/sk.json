@@ -1,0 +1,37 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "Používateľské meno",
+    "password-label": "Heslo",
+    "login-button": "Prihlásiť sa",
+    "remember-me-label": "Zapamätaj si ma",
+    "remember-me-never": "Nikdy",
+    "remember-me-hour": "4 hodiny",
+    "remember-me-day": "1 deň",
+    "remember-me-week": "1 týždeň",
+    "remember-me-long-time": "Dlhý čas",
+    "error-missing-username": "Chýba používateľské meno",
+    "error-missing-password": "Chýba heslo",
+    "error-incorrect-username": "Užívateľ Nenájdený",
+    "error-incorrect-password": "Nesprávne heslo",
+    "success-message": "Prihlasovanie...",
+    "logout-message": "Odhlasený",
+    "already-logged-in-title": "Už prihlásený",
+    "already-logged-in-text": "Ste prihlásený ako",
+    "proceed-to-dashboard": "Pokračujte na Dashboard",
+    "log-out-button": "Odhlásiť sa",
+    "proceed-guest-button": "Pokračovať ako hosť"
+  },
+  "settings": {
+    "theme-label": "Téma",
+    "sign-out-tooltip": "Odhlásiť sa",
+    "sign-in-tooltip": "Prihlásiť sa",
+    "sign-in-welcome": "Dobrý deň, {username}!"
+  },
+  "language-switcher": {
+    "title": "Zmeniť jazyk aplikácie",
+    "dropdown-label": "Vyberte jazyk",
+    "save-button": "Uložiť",
+    "success-msg": "Jazyk bol aktualizovaný na"
+  }
+}

@@ -14,9 +14,18 @@ feature branch ──PR──▶ Dev ──promote──▶ Beta ──promote�
 
 | Branch | Role | Default? |
 | --- | --- | --- |
-| `Dev` | The default target for every pull request. Integration branch. | Default **PR base** |
-| `Beta` | Promoted from `Dev` once the end-to-end suite is green. Release candidates. | — |
-| `Stable` | Promoted from `Beta`. **The GitHub default branch** and the source of production releases. | GitHub default |
+| `Dev` | The base for every pull request, and where the application lives. | Default **PR base** |
+| `Beta` | The promotion target for `Dev`. Receives the whole of `Dev` when production testing is ready. | — |
+| `Stable` | The promotion target for `Beta`. **The GitHub default branch** and the source of production releases. | GitHub default |
+
+Direction of travel, one way only:
+
+```
+feature branch ──PR──▶ Dev ──promote──▶ Beta ──promote──▶ Stable
+```
+
+The `Pull-request base branch` job in `ci.yml` enforces this: a pull request whose base
+is not `Dev` fails, unless its title starts with `chore(release): promote`.
 
 Both settings below are required by roadmap step 0.1.
 
