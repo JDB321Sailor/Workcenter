@@ -17,11 +17,44 @@ on:
 permissions:
   contents: read
 
+# A promotion PR is the only pull request that may target Beta or Stable.
+# Mark it by starting the title with "chore(release): promote".
+env:
+  PROMOTION_TITLE_PREFIX: 'chore(release): promote'
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  base-branch:
+    name: Pull-request base branch
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Dev as the base branch
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Every pull request targets Dev. Beta and Stable advance only by
+          # promotion, which is marked in the pull-request title.
+          if [ "$BASE" = "Dev" ]; then
+            echo "OK: '$HEAD' targets Dev."
+            exit 0
+          fi
+          case "$TITLE" in
+            "$PROMOTION_TITLE_PREFIX"*)
+              echo "OK: promotion pull request into '$BASE'."
+              exit 0
+              ;;
+          esac
+          echo "::error::Pull requests must target Dev, not '$BASE'."
+          echo "Retarget this pull request to Dev. Beta and Stable advance only by promotion,"
+          echo "which is a pull request titled '$PROMOTION_TITLE_PREFIX ...'."
+          exit 1
+
   install:
     name: Install dependencies
     runs-on: ubuntu-latest

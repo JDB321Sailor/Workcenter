@@ -60,6 +60,11 @@ as described in [`contributions.md`](./contributions.md).
    element, locales, Docker labels and image metadata, and every user-visible string.
 
 ### Improvements
+ - Branch model made explicit and enforced. Every pull request targets `Dev`; `Dev` is
+   promoted into `Beta` when production testing is ready, and `Beta` is promoted into
+   `Stable` when beta testing completes. A `Pull-request base branch` job in `ci.yml`
+   fails any pull request whose base is not `Dev`, unless its title starts with
+   `chore(release): promote`.
  - `PageStrcture/` is renamed to `PageStructure/`, correcting an inherited typo.
  - Prefixing is settled: Workcenter's own CSS classes, element ids and toast containers use
    the `workcenter-` prefix.

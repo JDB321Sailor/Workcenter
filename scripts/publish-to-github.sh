@@ -93,14 +93,20 @@ fi
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "Run this from inside the repository."
 
-for branch in Stable Dev; do
+for branch in Stable Beta Dev; do
   git show-ref --verify --quiet "refs/heads/$branch" \
-    || die "Branch '$branch' is missing. This script expects Stable and Dev to exist."
+    || die "Branch '$branch' is missing. This script expects Stable, Beta and Dev to exist."
 done
 
 if [ -n "$(git status --porcelain)" ]; then
   die "The working tree has uncommitted changes. Commit or stash them first."
 fi
+
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+case "$current_branch" in
+  Dev|Beta|Stable|feat/*|fix/*|docs/*|chore/*|refactor/*|test/*) ;;
+  *) die "Branch '$current_branch' is not a recognised branch name." ;;
+esac
 
 # ---------------------------------------------------------------------------
 # GitHub API helpers
@@ -211,9 +217,21 @@ if ! git push "$push_url" Stable:Stable 2>/tmp/wc-push.err; then
 fi
 ok "Stable pushed"
 
-info "Pushing Dev (the application)"
+info "Pushing Beta"
+git push "$push_url" Beta:Beta
+ok "Beta pushed"
+
+info "Pushing Dev"
 git push "$push_url" Dev:Dev
 ok "Dev pushed"
+
+# Push the current branch so a pull request can be opened from it.
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$current_branch" != "Dev" ] && [ "$current_branch" != "Stable" ] && [ "$current_branch" != "Beta" ]; then
+  info "Pushing the current branch '$current_branch'"
+  git push "$push_url" "$current_branch:$current_branch"
+  ok "$current_branch pushed"
+fi
 
 # ---------------------------------------------------------------------------
 # 4. Make Stable the default branch, explicitly
@@ -227,9 +245,14 @@ ok "Default branch is Stable"
 # 5. Open the first pull request: Dev into Stable
 # ---------------------------------------------------------------------------
 
-info "Opening the pull request (Dev -> Stable)"
+# Every pull request targets Dev. Beta and Stable advance only by promotion.
+head_branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$head_branch" = "Dev" ] || [ "$head_branch" = "Beta" ] || [ "$head_branch" = "Stable" ]; then
+  head_branch="Dev"
+fi
+info "Opening the pull request ($head_branch -> Dev)"
 
-existing="$(api GET "/repos/$OWNER/$REPO/pulls?state=open&base=Stable&head=$OWNER:Dev")"
+existing="$(api GET "/repos/$OWNER/$REPO/pulls?state=open&base=Dev&head=$OWNER:$head_branch")"
 if printf '%s' "$existing" | grep -q '"number"'; then
   pr_number="$(printf '%s' "$existing" | sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' | head -1)"
   ok "A pull request is already open: #$pr_number"
@@ -240,7 +263,7 @@ else
     body="Adds the CI skeleton, the branch-promotion workflow, the issue and pull-request templates, and the branch-protection runbook.\n\nAll pull requests target Dev; Beta and Stable receive promotion merges only. See docs/branch-protection.md."
   fi
   payload=$(cat <<JSON
-{"title":"$PR_TITLE","head":"Dev","base":"Stable","body":"$body"}
+{"title":"$PR_TITLE","head":"$head_branch","base":"Dev","body":"$body"}
 JSON
 )
   pr="$(api POST "/repos/$OWNER/$REPO/pulls" "$payload")"
@@ -266,9 +289,14 @@ cat <<SUMMARY
 
 Next steps, in order:
 
-  1. Review the pull request from Dev into Stable.
-  2. Configure the rulesets and the required status checks described in
-     docs/branch-protection.md, with Dev as the required base for pull requests.
-  3. Continue with Phase 2 of roadmap.md — the Workcenter shell.
+  1. Review and merge the pull request into Dev.
+  2. When Dev is ready for production testing, promote it:
+       git checkout Beta && git merge --no-ff Dev
+     and open it as a pull request titled
+       "chore(release): promote Dev to Beta vX.Y.Z"
+  3. When beta testing completes, promote Beta into Stable the same way, which
+     creates the release.
+  4. Configure the rulesets and the required status checks described in
+     docs/branch-protection.md.
 
 SUMMARY
