@@ -1,0 +1,37 @@
+{
+  "login": {
+    "title": "Workcenter",
+    "username-label": "사용자 이름",
+    "password-label": "비밀번호",
+    "login-button": "로그인",
+    "remember-me-label": "로그인 상태 유지하기",
+    "remember-me-never": "안함",
+    "remember-me-hour": "4 시간",
+    "remember-me-day": "하루",
+    "remember-me-week": "일주일",
+    "remember-me-long-time": "영원히",
+    "error-missing-username": "사용자 이름 누락",
+    "error-missing-password": "비밀번호 누락",
+    "error-incorrect-username": "계정을 찾을 수 없습니다",
+    "error-incorrect-password": "비밀번호가 틀렸습니다",
+    "success-message": "로그인 중...",
+    "logout-message": "로그아웃",
+    "already-logged-in-title": "로그인 됨",
+    "already-logged-in-text": "이미 로그인되어 있습니다",
+    "proceed-to-dashboard": "대시보드로 이동",
+    "log-out-button": "로그아웃",
+    "proceed-guest-button": "게스트로 계속"
+  },
+  "settings": {
+    "theme-label": "테마",
+    "sign-out-tooltip": "로그아웃",
+    "sign-in-tooltip": "로그인",
+    "sign-in-welcome": "{username}님 환영합니다!"
+  },
+  "language-switcher": {
+    "title": "애플리케이션 언어 변경",
+    "dropdown-label": "언어 선택",
+    "save-button": "저장",
+    "success-msg": "언어가 업데이트 되었습니다."
+  }
+}

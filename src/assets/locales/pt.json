@@ -1,0 +1,48 @@
+{
+  "splash-screen": {
+    "loading": "Carregando"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Entrar como convidado",
+    "username-label": "Nome do usuário",
+    "password-label": "Senha",
+    "login-button": "Conectar",
+    "remember-me-label": "Lembrar-me por",
+    "remember-me-never": "Nunca",
+    "remember-me-hour": "4 horas",
+    "remember-me-day": "1 dia",
+    "remember-me-week": "1 semana",
+    "remember-me-long-time": "Muito tempo",
+    "error-missing-username": "Nome de usuário ausente",
+    "error-missing-password": "Senha ausente",
+    "error-incorrect-username": "Usuário não encontrado",
+    "error-incorrect-password": "Senha incorreta",
+    "success-message": "Conectando...",
+    "logout-message": "Desconectado",
+    "already-logged-in-title": "Já logado",
+    "already-logged-in-text": "Você está logado como",
+    "proceed-to-dashboard": "Ir para o Painel",
+    "log-out-button": "Sair",
+    "proceed-guest-button": "Seguir como Convidado",
+    "guest-intro-1": "Essa instância possui o acesso como convidado ativado",
+    "guest-intro-2": "Convidados podem apenas visualizar os painéis, logo não podem escrever quaisquer mudanças no disco.",
+    "error": "Erro",
+    "error-no-user-configured": "Autenticação não está habilitada, ou nenhum usuário foi configurado.",
+    "error-go-home-button": "Ir para a página inicial",
+    "logged-in-guest": "Logado como convidado. Redirecionando...",
+    "error-guest-access": "O acesso como convidado não foi permitido"
+  },
+  "settings": {
+    "theme-label": "Tema",
+    "sign-out-tooltip": "Sair",
+    "sign-in-tooltip": "Conecte-se",
+    "sign-in-welcome": "Olá {username}!"
+  },
+  "language-switcher": {
+    "title": "Alterar idioma do aplicativo",
+    "dropdown-label": "Selecionar idioma",
+    "save-button": "Salvar",
+    "success-msg": "Idioma atualizado para"
+  }
+}

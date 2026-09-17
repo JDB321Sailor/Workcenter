@@ -1,0 +1,56 @@
+{
+  "splash-screen": {
+    "loading": "Жүктөлүүдө"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Конок катары кирүү",
+    "username-label": "Колдонуучу аты",
+    "password-label": "Сырсөз",
+    "login-button": "Кирүү",
+    "remember-me-label": "Мени эстеп калуу мөөнөтү",
+    "remember-me-never": "Эч качан",
+    "remember-me-hour": "4 саат",
+    "remember-me-day": "1 күн",
+    "remember-me-week": "1 жума",
+    "remember-me-long-time": "Узак мөөнөткө",
+    "error-missing-username": "Колдонуучу аты киргизилген жок",
+    "error-missing-password": "Сырсөз киргизилген жок",
+    "error-incorrect-username": "Колдонуучу табылган жок",
+    "error-incorrect-password": "Сырсөз туура эмес",
+    "success-message": "Кирүүдө...",
+    "logout-message": "Чыктыңыз",
+    "already-logged-in-title": "Сиз буга чейин кирдиңиз",
+    "already-logged-in-text": "Сиз төмөнкү колдонуучу катары кирдиңиз:",
+    "proceed-to-dashboard": "Башкы панелге өтүү",
+    "log-out-button": "Чыгуу",
+    "proceed-guest-button": "Конок катары улантуу",
+    "guest-intro-1": "Бул инстанста конок кирүү режими иштетилген.",
+    "guest-intro-2": "Коноктор панелди көрүү режиминде гана иштей алат, дискке өзгөртүүлөрдү жаза албайт.",
+    "error": "Ката",
+    "error-no-user-configured": "Аутентификация иштетилген эмес же колдонуучулар конфигурацияланган эмес",
+    "error-go-home-button": "Башкы бетке кайтуу",
+    "logged-in-guest": "Конок катары кирдиңиз, багыттоодо...",
+    "error-guest-access": "Конок кирүүгө уруксат берилген эмес"
+  },
+  "settings": {
+    "theme-label": "Тема",
+    "sign-out-tooltip": "Чыгуу",
+    "sign-in-tooltip": "Кирүү",
+    "sign-in-welcome": "Салам, {username}!"
+  },
+  "language-switcher": {
+    "title": "Тиркеме тилин өзгөртүү",
+    "dropdown-label": "Тилди тандоо",
+    "save-button": "Сактоо",
+    "success-msg": "Тил {language} болуп өзгөртүлдү"
+  },
+  "critical-error": {
+    "title": "Конфигурация жүктөө катасы",
+    "subtitle": "Workcenter конфигурация катасына байланыштуу туура жүктөлгөн жок.",
+    "sub-ensure-that": "Текшериңиз",
+    "sub-error-details": "Ката чоо-жайы",
+    "sub-next-steps": "Кийинки кадамдар",
+    "ignore-button": "Критикалык каталарды этибарга албоо"
+  }
+}

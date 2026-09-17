@@ -1,0 +1,56 @@
+{
+  "splash-screen": {
+    "loading": "جاري التحميل"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "دخول الضيوف",
+    "username-label": "إسم المستخدم",
+    "password-label": "كلمه السر",
+    "login-button": "تسجيل الدخول",
+    "remember-me-label": "تذكرني ل",
+    "remember-me-never": "أبدا",
+    "remember-me-hour": "4 ساعات",
+    "remember-me-day": "يوم 1",
+    "remember-me-week": "أسبوع 1",
+    "remember-me-long-time": "وقت طويل",
+    "error-missing-username": "إسم المستخدم مفقود",
+    "error-missing-password": "كلمة المرور مفقودة",
+    "error-incorrect-username": "لم يتم العثور على المستخدم",
+    "error-incorrect-password": "كلمة سر خاطئة",
+    "success-message": "تسجيل الدخول...",
+    "logout-message": "تسجيل الخروج",
+    "already-logged-in-title": "تم تسجيل الدخول بالفعل",
+    "already-logged-in-text": "لقد قمت بتسجيل الدخول بإعتبارك",
+    "proceed-to-dashboard": "إنتقل إلى لوحة القيادة",
+    "log-out-button": "تسجيل خروج",
+    "proceed-guest-button": "المضي قدما كضيف",
+    "guest-intro-1": "تم تفعيل دخول الضيوف لهذا النظام.",
+    "guest-intro-2": "لدى الضيوف صلاحية العرض فقط للوحات التحكم، لذا لا يمكنهم حفظ أي تغييرات.",
+    "error": "خطأ",
+    "error-no-user-configured": "لم يتم تفعيل المصادقة، أو لم يتم إعداد مستخدمين",
+    "error-go-home-button": "العودة للرئيسية",
+    "logged-in-guest": "تم تسجيل الدخول كضيف، جاري إعادة التوجيه...",
+    "error-guest-access": "غير مسموح بدخول الضيوف"
+  },
+  "settings": {
+    "theme-label": "سمة",
+    "sign-out-tooltip": "خروج",
+    "sign-in-tooltip": "تسجيل دخول",
+    "sign-in-welcome": "مرحبًا {username}!"
+  },
+  "language-switcher": {
+    "title": "تغيير لغة التطبيق",
+    "dropdown-label": "اختر لغة",
+    "save-button": "يحفظ",
+    "success-msg": "تم تحديث اللغة إلى"
+  },
+  "critical-error": {
+    "title": "خطأ في تحميل الإعدادات",
+    "subtitle": "فشل Workcenter في التحميل بشكل صحيح بسبب خطأ في الإعدادات.",
+    "sub-ensure-that": "تأكد من أن",
+    "sub-error-details": "تفاصيل الخطأ",
+    "sub-next-steps": "الخطوات التالية",
+    "ignore-button": "تجاهل الأخطاء الحرجة"
+  }
+}

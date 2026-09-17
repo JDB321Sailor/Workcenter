@@ -1,0 +1,18 @@
+{
+  "login": {
+    "remember-me-label": "Remember me fer",
+    "error-missing-username": "Missin' Username",
+    "error-missing-password": "Missin' Password",
+    "success-message": "Loggin' in...",
+    "already-logged-in-text": "ye're logged in as",
+    "proceed-to-dashboard": "Proceed t' Dashboard",
+    "log-out-button": "Logout Ye All",
+    "proceed-guest-button": "Proceed as Ye Guest"
+  },
+  "settings": {
+    "sign-in-welcome": "Ahoy {username}!"
+  },
+  "language-switcher": {
+    "success-msg": "Language Updated t'"
+  }
+}

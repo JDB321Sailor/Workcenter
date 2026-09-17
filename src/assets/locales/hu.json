@@ -1,0 +1,56 @@
+{
+  "splash-screen": {
+    "loading": "Betöltés"
+  },
+  "login": {
+    "title": "Workcenter",
+    "guest-label": "Vendég hozzáférés",
+    "username-label": "Felhasználónév",
+    "password-label": "Jelszó",
+    "login-button": "Bejelentkezés",
+    "remember-me-label": "Emlékezz rám",
+    "remember-me-never": "Soha",
+    "remember-me-hour": "4 óráig",
+    "remember-me-day": "1 napig",
+    "remember-me-week": "1 hétig",
+    "remember-me-long-time": "Hosszabb ideig",
+    "error-missing-username": "Hiányzó felhasználónév",
+    "error-missing-password": "Hiányzó jelszó",
+    "error-incorrect-username": "A felhasználó nem található",
+    "error-incorrect-password": "Hibás jelszó",
+    "success-message": "Bejelentkezés folyamatban...",
+    "logout-message": "Kijelentkezve",
+    "already-logged-in-title": "Már be vagy jelentkezve",
+    "already-logged-in-text": "Be vagy jelentkezve mint",
+    "proceed-to-dashboard": "Tovább az irányítópultra",
+    "log-out-button": "Kijelentkezés",
+    "proceed-guest-button": "Belépés vendégként",
+    "guest-intro-1": "Ez a rendszer engedélyezi a vendég hozzáférést.",
+    "guest-intro-2": "A vendég felhasználók csak megtekinthetik az irányítópultokat, módosításokat nem tudnak menteni.",
+    "error": "Hiba",
+    "error-no-user-configured": "A hitelesítés nincs engedélyezve, vagy nincs beállított felhasználó",
+    "error-go-home-button": "Vissza a főoldalra",
+    "logged-in-guest": "Vendégként bejelentkezve, átirányítás...",
+    "error-guest-access": "A vendég hozzáférés nem engedélyezett"
+  },
+  "settings": {
+    "theme-label": "Téma",
+    "sign-out-tooltip": "Kijelentkezés",
+    "sign-in-tooltip": "Bejelentkezés",
+    "sign-in-welcome": "Szia, {username}!"
+  },
+  "language-switcher": {
+    "title": "Alkalmazás nyelvének módosítása",
+    "dropdown-label": "Válassz nyelvet",
+    "save-button": "Mentés",
+    "success-msg": "A nyelv frissítve erre:"
+  },
+  "critical-error": {
+    "title": "Konfigurációs betöltési hiba",
+    "subtitle": "A Workcenter nem tudott megfelelően betöltődni a konfigurációs hiba miatt.",
+    "sub-ensure-that": "Győződj meg róla, hogy",
+    "sub-error-details": "Hiba részletei",
+    "sub-next-steps": "Következő lépések",
+    "ignore-button": "Kritikus hibák figyelmen kívül hagyása"
+  }
+}

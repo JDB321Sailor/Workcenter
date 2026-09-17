@@ -1,0 +1,36 @@
+{
+  "login": {
+    "title": "दशी",
+    "username-label": "उपयोगकर्ता नाम",
+    "password-label": "पासवर्ड",
+    "login-button": "लॉग इन करें",
+    "remember-me-label": "मुझे याद रखें",
+    "remember-me-never": "कभी नहीँ",
+    "remember-me-hour": "चार घंटे",
+    "remember-me-day": "1 दिन",
+    "remember-me-week": "1 सप्ताह",
+    "error-missing-username": "गुम उपयोगकर्ता नाम",
+    "error-missing-password": "पासवर्ड गुम है",
+    "error-incorrect-username": "उपयोगकर्ता नहीं मिला",
+    "error-incorrect-password": "गलत पासवर्ड",
+    "success-message": "प्रवेश किया...",
+    "logout-message": "बाहर आ गये",
+    "already-logged-in-title": "पहले से ही लॉगिन है",
+    "already-logged-in-text": "आप इस रूप में लॉग इन हैं",
+    "proceed-to-dashboard": "डैशबोर्ड पर आगे बढ़ें",
+    "log-out-button": "लॉग आउट",
+    "proceed-guest-button": "अतिथि के रूप में आगे बढ़ें"
+  },
+  "settings": {
+    "theme-label": "विषय",
+    "sign-out-tooltip": "साइन आउट",
+    "sign-in-tooltip": "लॉग इन करें",
+    "sign-in-welcome": "नमस्ते {उपयोगकर्ता नाम}!"
+  },
+  "language-switcher": {
+    "title": "एप्लिकेशन भाषा बदलें",
+    "dropdown-label": "भाषा चुनें",
+    "save-button": "सहेजें",
+    "success-msg": "भाषा अपडेट की गई"
+  }
+}
