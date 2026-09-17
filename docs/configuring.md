@@ -122,9 +122,9 @@ For more info, see the[Multi-Page docs](/docs/pages-and-sections.md#multi-page-s
 **`enableFontAwesome`** | `boolean` | _Optional_ | If set to `true` font-awesome will be loaded, if set to `false` they will not be. if left blank font-awesome will be enabled only if required by 1 or more icons
 **`enableMaterialDesignIcons`** | `boolean` | _Optional_ | If set to `true` mdi icons will be loaded, if set to `false` they will not be. Where `true` is enabled, if left blank material design icons will be enabled only if required by 1 or more icons
 **`fontAwesomeKey`** | `string` | _Optional_ | If you have a font-awesome key, then you can use it here and make use of premium icons. It is a 10-digit alpha-numeric string from you're FA kit URL  (e.g. `13014ae648`)
-**`faviconApi`** | `enum` | _Optional_ | Only applicable if you are using favicons for item icons. Specifies which service to use to resolve favicons. Set to `local` to do this locally, without using an API. Services running locally will use this option always. Available options are: `local`, `allesedv`, `iconhorse`, `faviconkit`, `duckduckgo`, `yandex`, `google`, `besticon`, `webmasterapi` and `mcapi`. Defaults to `allesedv`. See [Icons](/docs/icons.md#favicons) for more info
+**`faviconApi`** | `enum` | _Optional_ | Only applicable if you are using favicons for item icons. Specifies which service to use to resolve favicons. Set to `local` to do this locally, without using an API. Services running locally will use this option always. Available options are: `local`, `allesedv`, `iconhorse`, `faviconkit`, `duckduckgo`, `yandex`, `google`, `besticon`, `webmasterapi` and `mcapi`. Defaults to `allesedv`.
 **`auth`** | `object` | _Optional_ | All settings relating to user authentication. See [`auth`](#appconfigauth-optional)
-**`defaultIcon`** | `string` | _Optional_ | An icon to be applied to any items, which don't already have an icon set. See [Icon Docs](/docs/icons.md#default-icon) for more info
+**`defaultIcon`** | `string` | _Optional_ | An icon to be applied to any items, which don't already have an icon set.
 **`layout`** | `enum` | _Optional_ | Layout for homepage, one of `auto`, `horizontal`, `vertical` or `masonry`. Defaults to `auto`. Specifies the layout and direction of how sections are positioned on the home screen. `auto` uses a responsive CSS grid where each section's footprint is controlled by `displayData.cols` and `displayData.rows`. `masonry` uses a responsive grid where heights follow content, so shorter sections flow into the gaps left by taller neighbours (`rows` is ignored, `cols` still controls width). This can also be modified and overridden from the UI.
 **`iconSize`** | `enum` | _Optional_ | The size of link items / icons. Can be either `small`, `medium,` or `large`. Defaults to `medium`. This can also be set directly from the UI.
 **`colCount`** | `number` | _Optional_ | The number of columns of sections displayed on the homepage, using the default view. Should be in integer between `1` and `8`. Note that by default this is applied responsively, based on current screen size, and specifying a value here will override this behavior, which may not be desirable.
@@ -351,7 +351,7 @@ For more info, see the **[Authentication Docs](/docs/authentication.md)**
 
 **Field** | **Type** | **Required**| **Description**
 --- | --- | --- | ---
-**`icon`** | `string` | _Optional_ | The icon for a given item or section. <br>See [Icon Docs](/docs/icons.md) for all available supported icon types, including: auto-fetched favicons, generative icons, emoji icons, home-lab service logos, font-awesome, simple-icons, material icons, selfh.st icons, and icons specified by URL
+**`icon`** | `string` | _Optional_ | The icon for a given item or section. Supported icon types include: auto-fetched favicons, generative icons, emoji icons, home-lab service logos, font-awesome, simple-icons, material icons, selfh.st icons, and icons specified by URL
 
 **[⬆️ Back to Top](#configuring)**
 

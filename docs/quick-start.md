@@ -60,7 +60,7 @@ Example Files in `user-data`:
 - `index.html` - The main index page which initializes the client-side app, copy it from [`/public/index.html`](https://github.com/Lissy93/dashy/blob/master/public/index.html)
 - `**.html` - Write your own HTML pages, and access them at `http://my-dashy-instance.local/my-page.html`
 - `fonts/` - Custom fonts (be sure to include the ones already in [`public/fonts`](https://github.com/Lissy93/dashy/tree/master/public/fonts)
-- `item-icons/` - To use your own icons for items on your dashboard, see [Icons --> Local Icons](/docs/icons.md#local-icons)
+- `item-icons/` - Local icon assets, served from the web root
 - `web-icons/` - Override Workcenter logo
 - `widget-resources/` - Fonts, icons and assets for custom widgets
 
@@ -124,8 +124,6 @@ You might also want to check out the docs for specific features you'd like to us
 - [Authentication](/docs/authentication.md) - Setting up authentication to protect your dashboard
 - [Alternate Views](/docs/alternate-views.md) - Using the startpage and workspace view
 - [Security](./security.md) - Threat model and hardening
-- [Icons](/docs/icons.md) - Outline of all available icon types for sections and items
-- [Localisation](/docs/multi-language-support.md) - How to change language, or add your own
 - [Status Indicators](/docs/status-indicators.md) - Using Workcenter to monitor uptime and status of your apps/services and hosts
 - [Search & Shortcuts](/docs/searching.md) - Using instant filter, web search and custom hotkeys
 - [Theming](/docs/theming.md) - Complete guide to applying, writing and modifying themes and styles

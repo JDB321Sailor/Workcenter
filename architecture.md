@@ -108,6 +108,7 @@ Workcenter/                          # repository root == the Workcenter applica
 │   ├── fixtures/
 │   ├── support/
 │   └── playwright.config.ts
+├── icons/                           # NEW: application marks (SVG), one per integrated app
 ├── user-data/                       # runtime config + user assets            [kept from Dashy]
 │   ├── conf.yml                     # the Workcenter configuration file
 │   └── broker/                      # NEW: broker token store (gitignored)
@@ -151,6 +152,7 @@ Workcenter/                          # repository root == the Workcenter applica
 | AR-5 | Dashy top-level names are preserved where the purpose is unchanged. Renaming a kept entry requires an entry in [`CHANGELOG.md`](./CHANGELOG.md). |
 | AR-6 | No generated artifact (`.env`, `node_modules/`, `dist/`, `*.sqlite`, `acme.json`) is committed. |
 | AR-7 | Documentation Markdown lives at the repository root (the specification set) or in `docs/` (the long-form guides). Nothing else may be added to the root. |
+| AR-46 | `icons/` holds exactly one SVG per integrated application, named for the application, and is the **single source of truth** for every application mark in the shell. Components reach it through the `@icons` build alias, never by a relative path and never from a remote URL. See [`design.md` D-2I](./design.md#d-2i--switcher-icons). |
 
 ---
 

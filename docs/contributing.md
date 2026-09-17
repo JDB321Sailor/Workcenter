@@ -56,11 +56,11 @@ All reporting is **disabled** by default, and no data will ever be sent to any e
 
 ## Add Translations
 
-If you speak another language, then adding translations will help make Workcenter available to non-native English speakers. This is a very quick and easy task, as all application text is located in [`locales/en.json`](https://github.com/Lissy93/dashy/blob/master/src/assets/locales/en.json), so adding a new language is as simple as copying this file and translating the values. You don't have to translate it all, as any missing attributes will just fallback to English. For a full tutorial, see the [Multi-Language Support Docs](https://github.com/Lissy93/dashy/blob/master/docs/multi-language-support.md).
+If you speak another language, then adding translations will help make Workcenter available to non-native English speakers. This is a very quick and easy task, as all application text is located in `src/assets/locales/en.json`, so adding a new language is as simple as copying this file and translating the values. You don't have to translate it all, as any missing attributes will just fallback to English. The i18n requirements are listed in the [Design Specification](../design.md#8-i18n).
 
 ## Submit a PR
 
-Contributing to the code or docs is super helpful. You can fix a bug, add a new feature or improve an existing one. If you've built your own custom widget, theme or view, consider sharing it in a PR. I've written [several guides](/docs/development-guides.md) to help you get started, and the steps for setting up the development environment are outlined in the [Development Docs](/docs/developing.md). Feel free to ask if you have any questions.
+Contributing to the code or docs is super helpful. You can fix a bug, add a new feature or improve an existing one. The steps for setting up the development environment are outlined in the [Development Docs](/docs/developing.md). Feel free to ask if you have any questions.
 
 ## Improve the Docs
 
