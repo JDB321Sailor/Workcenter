@@ -153,104 +153,9 @@ describe('Replace config and keys', () => {
   });
 });
 
-describe('Sections CRUD', () => {
-  it('adds a section', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections')
-      .send({ name: 'Section Three' });
-    expect(res.status).toBe(201);
-    expect(res.body.index).toBe(2);
-    expect(readDisk('conf.yml').sections).toHaveLength(3);
-  });
-
-  it('rejects a section without a name', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections').send({});
-    expect(res.status).toBe(400);
-  });
-
-  it('gets a section by index', async () => {
-    const res = await request(app).get('/api/config/conf.yml/sections/0');
-    expect(res.body.name).toBe('Section One');
-  });
-
-  it('gets a section by name', async () => {
-    const res = await request(app).get('/api/config/conf.yml/sections/Section%20Two');
-    expect(res.body.name).toBe('Section Two');
-  });
-
-  it('patches a section, leaving other fields untouched', async () => {
-    const res = await request(app).patch('/api/config/conf.yml/sections/0')
-      .send({ icon: 'fas fa-rocket' });
-    expect(res.status).toBe(200);
-    const section = readDisk('conf.yml').sections[0];
-    expect(section.icon).toBe('fas fa-rocket');
-    expect(section.items).toHaveLength(2);
-  });
-
-  it('deletes a section', async () => {
-    const res = await request(app).delete('/api/config/conf.yml/sections/1');
-    expect(res.status).toBe(200);
-    expect(readDisk('conf.yml').sections).toHaveLength(1);
-  });
-
-  it('404s for an unknown section', async () => {
-    expect((await request(app).get('/api/config/conf.yml/sections/99')).status).toBe(404);
-    expect((await request(app).get('/api/config/conf.yml/sections/Nope')).status).toBe(404);
-  });
-
-  it('400s when sections is not a list', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'scalar.yml'), 'sections: just-a-string\n');
-    const res = await request(app).get('/api/config/scalar.yml/sections/0');
-    expect(res.status).toBe(400);
-  });
-});
-
-describe('Items CRUD', () => {
-  it('lists items, defaulting to empty for a section without any', async () => {
-    expect((await request(app).get('/api/config/conf.yml/sections/0/items')).body).toHaveLength(2);
-    expect((await request(app).get('/api/config/conf.yml/sections/1/items')).body).toEqual([]);
-  });
-
-  it('adds an item, creating the items array if missing', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections/1/items')
-      .send({ title: 'New Item' });
-    expect(res.status).toBe(201);
-    expect(readDisk('conf.yml').sections[1].items[0].title).toBe('New Item');
-  });
-
-  it('rejects an item without a title', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections/0/items').send({});
-    expect(res.status).toBe(400);
-  });
-
-  it('gets an item by index and by title', async () => {
-    expect((await request(app).get('/api/config/conf.yml/sections/0/items/1')).body.title).toBe('Item B');
-    expect((await request(app).get('/api/config/conf.yml/sections/0/items/Item%20A')).body.title).toBe('Item A');
-  });
-
-  it('patches an item', async () => {
-    const res = await request(app).patch('/api/config/conf.yml/sections/0/items/0')
-      .send({ url: 'https://example.com/new' });
-    expect(res.status).toBe(200);
-    const item = readDisk('conf.yml').sections[0].items[0];
-    expect(item.url).toBe('https://example.com/new');
-    expect(item.title).toBe('Item A');
-  });
-
-  it('deletes an item', async () => {
-    const res = await request(app).delete('/api/config/conf.yml/sections/0/items/0');
-    expect(res.status).toBe(200);
-    expect(readDisk('conf.yml').sections[0].items).toHaveLength(1);
-  });
-
-  it('404s for an unknown item', async () => {
-    const res = await request(app).get('/api/config/conf.yml/sections/0/items/99');
-    expect(res.status).toBe(404);
-  });
-});
-
 describe('Robustness', () => {
   it('returns JSON for malformed request bodies', async () => {
-    const res = await request(app).post('/api/config/conf.yml/sections')
+    const res = await request(app).put('/api/config/conf.yml')
       .set('Content-Type', 'application/json').send('{not json');
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
@@ -265,16 +170,25 @@ describe('Robustness', () => {
   });
 
 
-  it('does not write when the existing file is unparseable', async () => {
+  it('reports a file it cannot parse, rather than returning it', async () => {
     fs.writeFileSync(path.join(tmpDir, 'broken.yml'), 'foo: [unclosed');
-    const res = await request(app).patch('/api/config/broken.yml/sections/0').send({ name: 'x' });
+    const res = await request(app).get('/api/config/broken.yml');
     expect(res.status).toBe(500);
-    expect(fs.readFileSync(path.join(tmpDir, 'broken.yml'), 'utf8')).toBe('foo: [unclosed');
+    expect(res.body.success).toBe(false);
+  });
+
+  it('rejects a conf.yml that does not satisfy the schema', async () => {
+    // conf.yml is validated on write, so a typo cannot be saved through the API.
+    const res = await request(app).put('/api/config/conf.yml')
+      .send({ appConfig: { notARealKey: true } });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(readDisk('conf.yml').appConfig?.notARealKey).toBeUndefined();
   });
 
   it('handles concurrent writes without corrupting the file', async () => {
-    const patch = (icon) => request(app)
-      .patch('/api/config/conf.yml/sections/0').send({ icon });
+    const patch = (title) => request(app)
+      .put('/api/config/conf.yml').send({ pageInfo: { title } });
     const results = await Promise.all(['a', 'b', 'c', 'd', 'e'].map(patch));
     results.forEach((res) => expect(res.status).toBe(200));
     expect(() => readDisk('conf.yml')).not.toThrow();
