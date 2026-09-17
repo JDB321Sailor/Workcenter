@@ -18,14 +18,14 @@ appConfig:
     enableOidc: true                    # Turn OIDC on
     enableGuestAccess: false            # Optional: view the dashboard read-only without signing in
     oidc:
-      clientId: dashy                    # Client ID from your provider
-      endpoint: https://auth.example.com/application/o/dashy/ # The issuer URL, not the .well-known one
+      clientId: workcenter                    # Client ID from your provider
+      endpoint: https://auth.example.com/application/o/workcenter/ # The issuer URL, not the .well-known one
       scope: openid profile email groups # Scopes to request (groups for adminGroup, roles for adminRole)
-      adminGroup: dashy-admins           # Members of this group are admins
-      adminRole: dashy-admin             # Or grant admin by role instead
+      adminGroup: workcenter-admins           # Members of this group are admins
+      adminRole: workcenter-admin             # Or grant admin by role instead
       enableSilentRenew: true            # Refresh the session in the background before it expires
       # showLoginPage: false             # If true, login redirects to Workcenter's own login page
-      # postLogoutRedirectUri: 'https://dashy.example.com' # Where to send users after logout (must be registered with the provider)
+      # postLogoutRedirectUri: 'https://workcenter.example.com' # Where to send users after logout (must be registered with the provider)
       # allowedIssuers: []               # Only for multi-tenant providers to override discovery document
       # disableServerSideCheck: false    # Leave as false / unset. Setting to true makes auth just client-side
 ```
@@ -52,7 +52,7 @@ With a multi-tenant provider (e.g. Microsoft Entra's `organizations` / `common` 
 
 ```yaml
     oidc:
-      clientId: dashy
+      clientId: workcenter
       endpoint: 'https://login.microsoftonline.com/organizations/v2.0/'
       allowedIssuers:
         - 'https://login.microsoftonline.com/<your-tenant-id>/v2.0'
@@ -70,12 +70,12 @@ By default, anyone who isn't signed in is sent straight to your provider's login
 
 ```yaml
     oidc:
-      clientId: dashy
+      clientId: workcenter
       endpoint: 'https://your-oidc-provider.example.com'
       showLoginPage: true
 ```
 
-The page has a button to sign in with your provider, plus a *Proceed as Guest* button if guest access is enabled, so the user picks which they want. This is useful when Workcenter is the landing page after another redirect (e.g. a captive portal), where an immediate second redirect off to the IdP is disorienting. It's shown on each page load until you sign in; the choice isn't remembered. See [#2302](https://github.com/lissy93/dashy/issues/2302) for info.
+The page has a button to sign in with your provider, plus a *Proceed as Guest* button if guest access is enabled, so the user picks which they want. This is useful when Workcenter is the landing page after another redirect (e.g. a captive portal), where an immediate second redirect off to the IdP is disorienting. It's shown on each page load until you sign in; the choice isn't remembered. See [#2302](https://github.com/JDB321Sailor/Workcenter/issues/2302) for info.
 
 ## Using with a PWA
 
@@ -104,7 +104,7 @@ By default, when your access token expires Workcenter sends you back through the
 
 ```yaml
     oidc:
-      clientId: dashy
+      clientId: workcenter
       endpoint: 'https://your-oidc-provider.example.com'
       scope: 'openid profile email groups'
       adminGroup: admin
@@ -126,9 +126,9 @@ When you log out, Workcenter sends you to your provider's logout page, and by de
 
 ```yaml
     oidc:
-      clientId: dashy
+      clientId: workcenter
       endpoint: 'https://your-oidc-provider.example.com'
-      postLogoutRedirectUri: 'https://dashy.example.com'
+      postLogoutRedirectUri: 'https://workcenter.example.com'
 ```
 
-The URL is sent to the provider as `post_logout_redirect_uri`, so it needs to be registered as a valid post-logout redirect URI in your client's settings - most providers have a field for this right next to the sign-in redirect URIs. If it's not registered, many providers will show an error instead of completing the logout, so give the logout button a quick test after setting it. Left unset, nothing changes and logout ends at the provider as before. See [#2261](https://github.com/lissy93/dashy/issues/2261) for info.
+The URL is sent to the provider as `post_logout_redirect_uri`, so it needs to be registered as a valid post-logout redirect URI in your client's settings - most providers have a field for this right next to the sign-in redirect URIs. If it's not registered, many providers will show an error instead of completing the logout, so give the logout button a quick test after setting it. Left unset, nothing changes and logout ends at the provider as before. See [#2261](https://github.com/JDB321Sailor/Workcenter/issues/2261) for info.

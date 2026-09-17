@@ -11,7 +11,7 @@ const MAX_CONFIG_BYTES = 256 * 1024;
 
 /* Schema modeline to get added to conf.yml */
 const SCHEMA_MODELINE = '# yaml-language-server: $schema='
-  + 'https://raw.githubusercontent.com/Lissy93/dashy/master/src/utils/config/ConfigSchema.json';
+  + 'https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/src/utils/config/ConfigSchema.json';
 
 /* Adds the $schema part in, if not already present */
 const withModeline = (newConfig, oldConfig, isRootConfig) => {

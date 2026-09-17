@@ -32,15 +32,15 @@ Authentication is **[Authentik](https://goauthentik.io/)** for every application
 group model. Ingress is **[Traefik](https://traefik.io/)** — one TLS certificate story, one place to
 route. Deployment is **one script**: `./setup.sh`.
 
-> **Build status:** Phase 1 complete. The Dashy derivation is finished: Workcenter renders a
+> **Build status:** Phase 1 complete. The Workcenter derivation is finished: Workcenter renders a
 > single view — the sidebar plus the embedded content surface — with deep-linkable pane routes.
 > The application switcher, the status indicators, the OIDC sign-in flow and the
 > cross-application file broker are in the roadmap's later phases. The table below marks what
 > is shipped and what is planned.
 >
-> **Workcenter is a derivative of [Dashy](https://github.com/lissy93/dashy).** Dashy's *Workspace*
+> **Workcenter is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter).** Workcenter's *Workspace*
 > view — a persistent left sidebar with applications launched inside the page — is the seed from which
-> Workcenter grew. Dashy's *Default* and *Minimal* views are intentionally not part of Workcenter.
+> Workcenter grew. Workcenter's *Default* and *Minimal* views are intentionally not part of Workcenter.
 > See [`roadmap.md`](./roadmap.md) for exactly what was kept and what was discarded.
 
 ---
@@ -99,7 +99,7 @@ Workcenter's answer is to treat those three applications as **one workspace**:
 | **Sidebar navigation** | Sections and items come from `user-data/conf.yml`; sections that set `hideFromWorkspace` are omitted. |
 | **Theming** | The full theme set inherited from Dashy, plus custom colours and an external stylesheet. |
 | **Multi-language** | 33 locales; English is the master. `yarn validate-locales` enforces key parity. |
-| **OIDC client** | The Dashy-derived Authentik-compatible OIDC client, with silent renewal and group-based admin. |
+| **OIDC client** | The Workcenter-derived Authentik-compatible OIDC client, with silent renewal and group-based admin. |
 | **Healthcheck** | `/healthz` reports status, uptime and version for the container healthcheck. |
 
 **Planned**
@@ -303,7 +303,7 @@ Every setting, with types and defaults, is documented in
 ### Environment variables
 
 Deployment settings live in `.env` at the repository root, with every key documented in
-[`.env.example`](./.env.example). Per-application settings live in that application's own
+the deployment guide in [`production.md`](./production.md). Per-application settings live in that application's own
 `.env`/`.env.example`. **Nothing is hard-coded**, and no secret is ever committed.
 
 ---
@@ -452,7 +452,7 @@ Full runbook: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and
   restricted to `workspaceadmin`.
 
 To report a vulnerability, please do **not** open a public issue — see
-[`SECURITY.md`](../.github/SECURITY.md).
+[`SECURITY.md`](./.github/SECURITY.md).
 
 ---
 
@@ -480,14 +480,14 @@ If you are an AI coding agent, read [`Agents.md`](./Agents.md) first — it cont
 
 ## Licence and credits
 
-Workcenter is released under the **MIT Licence**, matching [Dashy](https://github.com/lissy93/dashy),
+Workcenter is released under the **MIT Licence**, matching [Workcenter](https://github.com/JDB321Sailor/Workcenter),
 from which it is derived.
 
 Workcenter is possible because of these projects:
 
 | Project | Licence | Role |
 | --- | --- | --- |
-| [**Dashy**](https://github.com/lissy93/dashy) by Alicia Sykes | MIT | The Workspace view, theming, authentication and documentation conventions this project is built on |
+| [**Workcenter**](https://github.com/JDB321Sailor/Workcenter) by Alicia Sykes | MIT | The Workspace view, theming, authentication and documentation conventions this project is built on |
 | [**FileBrowser Quantum**](https://github.com/gtsteffaniak/filebrowser) | Apache-2.0 | The file manager, and the standard for version control and contribution process |
 | [**Zulip**](https://github.com/zulip/zulip) | Apache-2.0 | Team chat |
 | [**Mailcow Dockerized**](https://github.com/mailcow/mailcow-dockerized) | GPL-3.0 | Mail server stack |
@@ -501,4 +501,4 @@ their own code, and upstream documentation remains the authority for upstream be
 
 ---
 
-<p align="center"><sub>Workcenter — files, chat and mail, in one page · built on <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>
+<p align="center"><sub>Workcenter — files, chat and mail, in one page · built on <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>

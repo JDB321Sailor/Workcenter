@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Dashy's Internationalization lint and test script
+ * Workcenter's Internationalization lint and test script
  *
  * Scans code (in src) for translation calls ($t, $tc, i18n.t, i18n.global.t)
  * and then compares against the translation content (in src/assets/locales)

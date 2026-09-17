@@ -26,25 +26,22 @@ const sourceFiles = () => [
   ...walk('src'),
   ...(exists('services') ? walk('services') : []),
   ...(exists('public') ? walk('public') : []),
-].filter((f) => /\.(js|vue|json|scss|html)$/.test(f));
+]
+  .filter((f) => /\.(js|vue|json|scss|html)$/.test(f))
+  // This file contains the old name in its own negative assertions.
+  .filter((f) => !f.endsWith('workcenter-derivation.test.js'));
 
 /**
  * The MIT licence requires the upstream copyright notice to be retained, so a
  * line crediting Alicia Sykes is allowed. Any other mention of the old product
  * name is not.
  */
-const ATTRIBUTION = /(Licensed under MIT|Licensed under the MIT|Portions derived from Dashy|\(C\) Alicia Sykes|Copyright \(c\)[^\n]*Alicia Sykes)/i;
+const ATTRIBUTION = /(derived from Dashy|Licensed under (the )?MIT|\(C\) Alicia Sykes)/i;
 
 /** Strip attribution lines, then look for the old product name. */
 const staleBrandLines = (text) => text
   .split('\n')
   .filter((line) => /Dashy/.test(line) && !ATTRIBUTION.test(line));
-
-const ATTRIBUTION_ALLOWLIST = new Set([
-  'src/directives/ClickOutside.js',
-  'src/directives/LongPress.js',
-  'src/utils/Search.js',
-]);
 
 describe('the removed views stay removed', () => {
   it('has no Default, Minimal or config-download view', () => {
@@ -174,6 +171,7 @@ describe('the product is branded Workcenter', () => {
   it('names the product Workcenter in the master locale', () => {
     const en = JSON.parse(fs.readFileSync(path.join(root, 'src/assets/locales/en.json'), 'utf8'));
     expect(JSON.stringify(en)).not.toMatch(/Dashy/);
+    expect(JSON.stringify(en)).toMatch(/Workcenter/);
   });
 
   it('serves a Workcenter initialization page while the bundle loads', () => {
@@ -194,7 +192,8 @@ describe('the product is branded Workcenter', () => {
 
   it('allows the upstream copyright notice, which the MIT licence requires', () => {
     // A regression guard on the guard: attribution must not be flagged.
-    expect(staleBrandLines(' * Dashy: Licensed under MIT - (C) Alicia Sykes 2024')).toEqual([]);
+    expect(ATTRIBUTION.test(' * Portions of this file are derived from Dashy, (C) Alicia Sykes, MIT licensed.')).toBe(true);
+    expect(staleBrandLines(' * Portions of this file are derived from Dashy, (C) Alicia Sykes, MIT licensed.')).toEqual([]);
     expect(staleBrandLines('      name: "Dashy",')).toHaveLength(1);
   });
 

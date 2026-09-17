@@ -2,7 +2,7 @@ const request = require('./request');
 
 const currentVersion = require('../../package.json').version;
 
-const packageUrl = 'https://raw.githubusercontent.com/Lissy93/dashy/master/package.json';
+const packageUrl = 'https://raw.githubusercontent.com/JDB321Sailor/Workcenter/Dev/package.json';
 
 const logToConsole = (msg) => {
   console.log(msg); // eslint-disable-line no-console

@@ -44,7 +44,7 @@ The following section outlines all data that is stored in the browsers, as cooki
 > [Cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies) will expire after their pre-defined lifetime.
 > Workcenter uses cookies for authentication, when enabled.
 
-- `dashyAuthToken` - A unique token, generated from a hash of users credentials, to verify they are authenticated. Only used when auth is enabled.
+- `workcenterAuthToken` - A unique token, generated from a hash of users credentials, to verify they are authenticated. Only used when auth is enabled.
 
 ### Session Storage
 
@@ -52,10 +52,10 @@ The following section outlines all data that is stored in the browsers, as cooki
 > Workcenter uses session storage for the error log, and a few short-lived flags that prevent redirect loops.
 
 - `errorLog` - List of recent errors
-- `dashy.oidc.signin-attempt` - Timestamp of the last SSO login attempt, prevents redirect loops
-- `dashy.oidc.silent-attempt` - Timestamp of the last silent token renewal, prevents renewal loops
-- `dashy.sub-config-reload-attempt` - Timestamp of the last config reload after re-authenticating
-- `dashy-auth-proxy-reloaded` - Flag so service worker changes only trigger one page refresh
+- `workcenter.oidc.signin-attempt` - Timestamp of the last SSO login attempt, prevents redirect loops
+- `workcenter.oidc.silent-attempt` - Timestamp of the last silent token renewal, prevents renewal loops
+- `workcenter.sub-config-reload-attempt` - Timestamp of the last config reload after re-authenticating
+- `workcenter-auth-proxy-reloaded` - Flag so service worker changes only trigger one page refresh
 
 ### Local Storage
 
@@ -165,15 +165,15 @@ When the application loads, it checks for updates. The results of which are disp
 
 ### Cloud Backup
 
-Workcenter has an optional End-to-End encrypted [cloud backup feature](https://github.com/Lissy93/dashy/blob/master/docs/backup-restore.md). No data is ever transmitted unless you actively enable this feature through the UI.
+Workcenter has an optional End-to-End encrypted `docs/backup-restore.md`. No data is ever transmitted unless you actively enable this feature through the UI.
 
-All data is encrypted before being sent to the backend. This is done in [`CloudBackup.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/CloudBackup.js), using [crypto.js](https://github.com/brix/crypto-js)'s AES method, using the users chosen password as the key. The data is then sent to a [Cloudflare worker](https://developers.cloudflare.com/workers/learning/how-workers-works) (a platform for running serverless functions), and stored in a [KV](https://developers.cloudflare.com/workers/learning/how-kv-works) data store.
+All data is encrypted before being sent to the backend. This is done in `src/utils/CloudBackup.js`, using [crypto.js](https://github.com/brix/crypto-js)'s AES method, using the users chosen password as the key. The data is then sent to a [Cloudflare worker](https://developers.cloudflare.com/workers/learning/how-workers-works) (a platform for running serverless functions), and stored in a [KV](https://developers.cloudflare.com/workers/learning/how-kv-works) data store.
 
 Your selected password never leaves your device, and is hashed before being compared. It is only possible to restore a configuration if you have both the backup ID and decryption password. Because the data is encrypted on the client-side (before being sent to the cloud), it is not possible for a man-in-the-middle, government entity, website owner, or even Cloudflare to be able read any of your data.
 
 ### Web Search
 
-Workcenter has a primitive [web search feature](https://github.com/Lissy93/dashy/blob/master/docs/searching.md#web-search). No external requests are made, instead you are redirected to your chosen search engine (defaults to DuckDuckGo), using your chosen opening method.
+Workcenter has a primitive `docs/searching.md`. No external requests are made, instead you are redirected to your chosen search engine (defaults to DuckDuckGo), using your chosen opening method.
 
 This feature can be disabled under appConfig, with `webSearch: { disableWebSearch: true }`
 

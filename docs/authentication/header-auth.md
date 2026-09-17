@@ -6,7 +6,7 @@ Use this when you already run something like [Authelia](https://www.authelia.com
 
 ### Contents
 
-- [Configure Workcenter](#configure-dashy)
+- [Configure Workcenter](#configure-workcenter)
 - [Configure your proxy](#configure-your-proxy)
 - [Logging out](#logging-out)
 - [Example: oauth2-proxy and nginx](#example-oauth2-proxy-and-nginx)
@@ -58,7 +58,7 @@ Workcenter's logout button only clears Workcenter's own session. Your session at
 ```yaml
 appConfig:
   auth:
-    logoutRedirectUrl: https://dashy.example.com/oauth2/sign_out
+    logoutRedirectUrl: https://workcenter.example.com/oauth2/sign_out
 ```
 
 Logging out then sends the browser to that URL, where the proxy can destroy its session.
@@ -70,16 +70,16 @@ The specific endpoint depends on your proxy, but for oauth2-proxy it's usually `
 
 ## Example: oauth2-proxy and nginx
 
-The following example was from [@vmario89](https://github.com/vmario89) (in [#2233](https://github.com/lissy93/dashy/issues/2233#issuecomment-4924556178)).
+The following example was from [@vmario89](https://github.com/vmario89) (in [#2233](https://github.com/JDB321Sailor/Workcenter/issues/2233#issuecomment-4924556178)).
 
 [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) handles login against any OIDC or OAuth2 provider (Synology SSO here). nginx checks each request against its `/oauth2/auth` endpoint, then forwards the username to Workcenter as `X-Remote-User`.
 
-Workcenter config, on top of [the setup above](#configure-dashy). The whitelist is loopback because nginx proxies to Workcenter on `127.0.0.1:4000`:
+Workcenter config, on top of [the setup above](#configure-workcenter). The whitelist is loopback because nginx proxies to Workcenter on `127.0.0.1:4000`:
 
 ```yaml
 appConfig:
   auth:
-    logoutRedirectUrl: https://dashy.example.com/oauth2/sign_out?rd=https://sso.example.com/logout
+    logoutRedirectUrl: https://workcenter.example.com/oauth2/sign_out?rd=https://sso.example.com/logout
     headerAuth:
       userHeader: X-Remote-User
       proxyWhitelist:
@@ -100,14 +100,14 @@ oidc_email_claim      = "sub"
 client_id             = "<client-id>"
 client_secret         = "<client-secret>"
 cookie_secret         = "<secret>"   # openssl rand -base64 32
-cookie_name           = "cookie_dashy"
+cookie_name           = "cookie_workcenter"
 cookie_domains        = ".example.com"
 cookie_secure         = true
 email_domains         = [ "*" ]
 http_address          = "127.0.0.1:4180"
 upstreams             = [ "static://200" ]
 set_xauthrequest      = true
-whitelist_domains     = [ "dashy.example.com", "login.synology.nas" ]
+whitelist_domains     = [ "workcenter.example.com", "login.synology.nas" ]
 ```
 
 And a systemd unit to run it:
@@ -120,7 +120,7 @@ After=network.target
 [Service]
 User=oauth2proxy
 Group=oauth2proxy
-ExecStart=/opt/oauth2-proxy/oauth2-proxy --config=/etc/oauth2-proxy/dashy.cfg --trusted-proxy-ip=127.0.0.1/32
+ExecStart=/opt/oauth2-proxy/oauth2-proxy --config=/etc/oauth2-proxy/workcenter.cfg --trusted-proxy-ip=127.0.0.1/32
 Restart=always
 RestartSec=10
 
@@ -148,7 +148,7 @@ map $auth_user $auth_user_local {
 }
 
 server {
-    server_name dashy.example.com;
+    server_name workcenter.example.com;
     # TLS config here
 
     location / {

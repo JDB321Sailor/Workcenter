@@ -6,7 +6,7 @@ import os from 'os';
 import path from 'path';
 
 // Auth strategy is chosen when the app module loads, so env must be set first
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-api-auth-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-api-auth-'));
 process.env.USER_DATA_DIR = tmpDir;
 process.env.ENABLE_API = 'true';
 process.env.BASIC_AUTH_USERNAME = 'admin';

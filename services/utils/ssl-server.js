@@ -8,8 +8,8 @@ const stat = promise(fs.stat);
 const host = process.env.HOST || '0.0.0.0';
 
 const httpsCerts = {
-  private: process.env.SSL_PRIV_KEY_PATH || '/etc/ssl/certs/dashy-priv.key',
-  public: process.env.SSL_PUB_KEY_PATH || '/etc/ssl/certs/dashy-pub.pem',
+  private: process.env.SSL_PRIV_KEY_PATH || '/etc/ssl/certs/workcenter-priv.key',
+  public: process.env.SSL_PUB_KEY_PATH || '/etc/ssl/certs/workcenter-pub.pem',
 };
 
 const isDocker = !!process.env.IS_DOCKER;

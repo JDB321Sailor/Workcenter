@@ -2,7 +2,7 @@
 
 Thank you for considering a contribution. Workcenter is a self-hosted workspace application that
 brings **FileBrowser Quantum**, **Zulip** and **SOGo on Mailcow** into one page with one sign-in and
-one set of cross-application file actions. It is a derivative of [Dashy](https://github.com/lissy93/dashy).
+one set of cross-application file actions. It is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter).
 
 This guide is the **process** document: how to set up, how to branch, how to raise a pull request, how
 it is reviewed, and how a release reaches `Stable`.
@@ -63,9 +63,9 @@ it is reviewed, and how a release reaches `Stable`.
 | New integrated application pane | PR into `Dev`, **after a roadmap change is agreed** | Large |
 | Translations | PR into `Dev` adding a locale JSON | Small |
 | Theme | PR into `Dev` adding a theme partial | Small |
-| Security report | **Private** — see [`SECURITY.md`](../.github/SECURITY.md) | — |
+| Security report | **Private** — see [`SECURITY.md`](./.github/SECURITY.md) | — |
 
-> **Not accepted:** PRs that reintroduce a removed Dashy subsystem (Default view, Minimal view,
+> **Not accepted:** PRs that reintroduce a removed Workcenter subsystem (Default view, Minimal view,
 > widgets, status/ping monitoring), PRs that fork and patch a bundled application, and PRs that weaken
 > authentication, TLS or authorisation.
 
@@ -621,7 +621,7 @@ Use the **Feature request** template and state:
    new goal.
 4. Whether it is already in the roadmap's build plan.
 
-Feature requests that require a new integrated application, or that reintroduce a removed Dashy
+Feature requests that require a new integrated application, or that reintroduce a removed Workcenter
 subsystem, must be agreed **before** a PR is opened.
 
 ---
@@ -651,7 +651,7 @@ maintainers.
 
 ## 18. Licence and attribution
 
-Workcenter is a derivative work of [Dashy](https://github.com/lissy93/dashy), which is MIT licensed.
+Workcenter is a derivative work of [Workcenter](https://github.com/JDB321Sailor/Workcenter), which is MIT licensed.
 By contributing, you agree that your contribution is licensed under the same terms as this repository.
 
 Workcenter integrates, but does not vendor, the following projects. Their licences apply to their own
@@ -659,7 +659,7 @@ code:
 
 | Project | Licence |
 | --- | --- |
-| [Dashy](https://github.com/lissy93/dashy) | MIT |
+| [Workcenter](https://github.com/JDB321Sailor/Workcenter) | MIT |
 | [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) | Apache-2.0 |
 | [Zulip](https://github.com/zulip/zulip) | Apache-2.0 |
 | [Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized) | GPL-3.0 |

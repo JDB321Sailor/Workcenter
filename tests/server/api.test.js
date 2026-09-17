@@ -7,7 +7,7 @@ import path from 'path';
 import * as yaml from 'js-yaml';
 
 // Isolate writes to a temp dir so the real user-data/conf.yml is never touched
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-api-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-api-'));
 process.env.USER_DATA_DIR = tmpDir;
 process.env.ENABLE_API = 'true';
 afterAll(() => {

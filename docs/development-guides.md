@@ -20,11 +20,11 @@ Adding a new theme is really easy. There're two things you need to do: Pass the 
 
 ### 1. Add Theme Name
 
-Choose a snappy name for your theme, and add it to the `builtInThemes` array inside [`defaults.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/config/defaults.js#L27).
+Choose a snappy name for your theme, and add it to the `builtInThemes` array inside [`defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js#L27).
 
 ### 2. Write some Styles
 
-Put your theme styles inside [`color-themes.scss`](https://github.com/Lissy93/dashy/blob/master/src/styles/color-themes.scss).
+Put your theme styles inside [`color-themes.scss`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/styles/color-themes.scss).
 Create a new block, and make sure that `data-theme` matches the theme name you chose above. For example:
 
 ```css
@@ -34,11 +34,11 @@ html[data-theme='tiger'] {
 }
 ```
 
-Then you can go ahead and write your own custom CSS. Although all CSS is supported here, the best way to define your theme is by setting the CSS variables. You can find a [list of all CSS variables, here](https://github.com/Lissy93/dashy/blob/master/docs/theming.md#css-variables).
+Then you can go ahead and write your own custom CSS. Although all CSS is supported here, the best way to define your theme is by setting the CSS variables. You can find a [list of all CSS variables, here](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/theming.md#css-variables).
 
 For a full guide on styling, see [Theming Docs](./theming.md).
 
-Note that if your theme is just for yourself, and you're not submitting a PR, then you can instead just pass it under `appConfig.cssThemes` inside your config file. And then put your theme in your own stylesheet, and pass it into the Docker container - [see how](https://github.com/Lissy93/dashy/blob/master/docs/theming.md#adding-your-own-theme).
+Note that if your theme is just for yourself, and you're not submitting a PR, then you can instead just pass it under `appConfig.cssThemes` inside your config file. And then put your theme in your own stylesheet, and pass it into the Docker container - [see how](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/theming.md#adding-your-own-theme).
 
 ## Writing Translations
 
@@ -54,7 +54,7 @@ Create a new JSON file in `./src/assets/locales` name is a 2-digit [ISO-639 code
 
 ### 2. Translate
 
-Using [`en.json`](https://github.com/Lissy93/dashy/tree/master/src/assets/locales/en.json) as an example, translate the JSON values to your language, while leaving the keys as they are. It's fine to leave out certain items, as if they're missing they will fall-back to English. If you see any attribute which include curly braces (`{xxx}`), then leave the inner value of these braces as is, as this is for variables.
+Using [`en.json`](https://github.com/JDB321Sailor/Workcenter/tree/Dev/src/assets/locales/en.json) as an example, translate the JSON values to your language, while leaving the keys as they are. It's fine to leave out certain items, as if they're missing they will fall-back to English. If you see any attribute which include curly braces (`{xxx}`), then leave the inner value of these braces as is, as this is for variables.
 
 ```json
 {
@@ -72,7 +72,7 @@ Using [`en.json`](https://github.com/Lissy93/dashy/tree/master/src/assets/locale
 
 ### 3. Add your file to the app
 
-In [`./src/utils/languages.js`](https://github.com/Lissy93/dashy/tree/master/src/utils/languages.js), you need to do 2 small things:
+In [`./src/utils/languages.js`](https://github.com/JDB321Sailor/Workcenter/tree/Dev/src/utils/languages.js), you need to do 2 small things:
 
 First import your new translation file, do this at the top of the page.
 E.g. `import de from '@/assets/locales/de.json';`
@@ -96,7 +96,7 @@ export const languages = [
 ];
 ```
 
-You can also add your new language to the readme file, under the [Language Switching](https://github.com/Lissy93/dashy#language-switching-) section, and optionally include your name/ username if you'd like to be credited for your work. Done!
+You can also add your new language to the readme file, under the [Language Switching](https://github.com/JDB321Sailor/Workcenter#language-switching-) section, and optionally include your name/ username if you'd like to be credited for your work. Done!
 
 If you are not comfortable with making pull requests, or do not want to modify the code, then feel free to instead send the translated file to me, and I can add it into the application. I will be sure to credit you appropriately.
 
@@ -127,9 +127,9 @@ computed: {
 
 Then, where you want to get the users value within your component, use something like: `this.appConfig.myProperty`. If the user hasn't specified the value, Don't forget to have a fallback or default for it.
 
-If you have a default fallback value, then this would typically be specified in the [`defaults.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/config/defaults.js) file.
+If you have a default fallback value, then this would typically be specified in the [`defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js) file.
 
-You will now need to add the definition of your new attribute into the [ConfigSchema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json). This will make it available in the UI config editor, and also ensure that the config validation check doesn't fail.
+You will now need to add the definition of your new attribute into the [ConfigSchema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json). This will make it available in the UI config editor, and also ensure that the config validation check doesn't fail.
 For example:
 
 ```json
@@ -156,8 +156,8 @@ Finally, add your new property to the [`configuring.md`](./configuring.md) API d
 Checklist:
 
 - [ ] Ensure the new attribute is actually necessary, and nothing similar already exists
-- [ ] Update the [Schema](https://github.com/Lissy93/dashy/blob/master/src/utils/config/ConfigSchema.json) with the parameters for your new option
-- [ ] If required, set a default or fallback value (usually in [`defaults.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/config/defaults.js))
+- [ ] Update the [Schema](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/ConfigSchema.json) with the parameters for your new option
+- [ ] If required, set a default or fallback value (usually in [`defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js))
 - [ ] Document the new value in [`configuring.md`](./configuring.md), and if required under the relevant section in the docs
 - [ ] Ensure your changes are backwards compatible, and that nothing breaks if the attribute isn't specified
 
@@ -181,7 +181,7 @@ Then, from within the root of Workcenter's directory, start the server, by runni
 
 ### 2. Create a lambda function
 
-This should be saved in the [`./services/serverless-functions`](https://github.com/Lissy93/dashy/tree/master/services/serverless-functions) directory
+This should be saved in the [`./services/serverless-functions`](https://github.com/JDB321Sailor/Workcenter/tree/Dev/services/serverless-functions) directory
 
 ```javascript
 exports.handler = async () => ({
@@ -192,7 +192,7 @@ exports.handler = async () => ({
 
 ### 3. Redirect the Node endpoint to the function
 
-In the [`netlify.toml`](https://github.com/Lissy93/dashy/blob/FEATURE/serverless-functions/netlify.toml) file, add a 301 redirect, with the path to the original Node.js endpoint, and the name of your cloud function
+In the [`netlify.toml`](https://github.com/JDB321Sailor/Workcenter/Dev/blob/FEATURE/serverless-functions/netlify.toml) file, add a 301 redirect, with the path to the original Node.js endpoint, and the name of your cloud function
 
 ```toml
 [[redirects]]
@@ -210,7 +210,7 @@ For some pages (such as the login page, the minimal start page, etc) the basic p
 
 ### 1. Add the route name to the should hide array
 
-In [`./src/utils/config/defaults.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/config/defaults.js), there's an array called `hideFurnitureOn`. Append the name of the route (the same as it appears in [`router.js`](https://github.com/Lissy93/dashy/blob/master/src/router.js)) here.
+In [`./src/utils/config/defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js), there's an array called `hideFurnitureOn`. Append the name of the route (the same as it appears in [`router.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/router.js)) here.
 
 ### 2. Add the conditional to the structural component to hide
 
@@ -248,11 +248,11 @@ Finally, in the markup of your component, just add a `v-if` statement, referenci
 
 All environmental variables are optional. Currently there are not many environmental variables used, as most of the user preferences are stored under `appConfig` in the `conf.yml` file.
 
-You can set variables either in your environment, or using the [`.env`](https://github.com/Lissy93/dashy/blob/master/.env) file.
+You can set variables either in your environment, or using the `.env` file.
 
 Any environmental variables used by the frontend are preceded with `VITE_APP_`. Vite will merge the contents of your `.env` file into the app in a similar way to the ['dotenv'](https://github.com/motdotla/dotenv) package, where any variables that you set on your system will always take preference over the contents of any `.env` file.
 
-If add any new variables, ensure that there is always a fallback (define it in [`defaults.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/config/defaults.js)), so as to not cause breaking changes. Don't commit the contents of your `.env` file to git, but instead take a few moments to document what you've added under the appropriate section. Try and follow the concepts outlined in the [12 factor app](https://12factor.net/config).
+If add any new variables, ensure that there is always a fallback (define it in [`defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js)), so as to not cause breaking changes. Don't commit the contents of your `.env` file to git, but instead take a few moments to document what you've added under the appropriate section. Try and follow the concepts outlined in the [12 factor app](https://12factor.net/config).
 
 ---
 
@@ -260,15 +260,15 @@ If add any new variables, ensure that there is always a fallback (define it in [
 
 ### Step 0 - Prerequisites
 
-If this is your first time working on Workcenter, then the [Developing Docs](https://github.com/Lissy93/dashy/blob/master/docs/developing.md) instructions for project setup and running. In short, you just need to clone the project, cd into it, install dependencies (`yarn`) and then start the development server (`yarn dev`).
+If this is your first time working on Workcenter, then the [Developing Docs](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docs/developing.md) instructions for project setup and running. In short, you just need to clone the project, cd into it, install dependencies (`yarn`) and then start the development server (`yarn dev`).
 
 To build a widget, you'll also need some basic knowledge of Vue.js. The [official Vue docs](https://vuejs.org/guide/) provides a good starting point, as does [this guide](https://www.taniarascia.com/getting-started-with-vue/) by Tania Rascia
 
-If you just want to jump straight in, then [here](https://github.com/Lissy93/dashy/commit/3da76ce2999f57f76a97454c0276301e39957b8e) is a complete implementation of a new example widget, or take a look at the [`XkcdComic.vue`](https://github.com/Lissy93/dashy/blob/master/src/components/Widgets/XkcdComic.vue) widget, which is pretty simple.
+If you just want to jump straight in, then [here](https://github.com/JDB321Sailor/Workcenter/commit/3da76ce2999f57f76a97454c0276301e39957b8e) is a complete implementation of a new example widget, or take a look at the `src/components/Widgets/XkcdComic.vue` widget, which is pretty simple.
 
 ### Step 1 - Create Widget
 
-Firstly, create a new `.vue` file under [`./src/components/Widgets`](https://github.com/Lissy93/dashy/tree/master/src/components/Widgets).
+Firstly, create a new `.vue` file under `src/components/Widgets`.
 
 ```vue
 <template>
@@ -309,7 +309,7 @@ export default {
 </style>
 ```
 
-All widgets extend from the [Widget](https://github.com/Lissy93/dashy/blob/master/src/mixins/WidgetMixin.js) mixin. This provides some basic functionality that is shared by all widgets. The mixin includes the following `options`, `startLoading()`, `finishLoading()`, `error()` and `update()`.
+All widgets extend from the `src/mixins/WidgetMixin.js` mixin. This provides some basic functionality that is shared by all widgets. The mixin includes the following `options`, `startLoading()`, `finishLoading()`, `error()` and `update()`.
 
 - **Getting user options: `options`**
   - Any user-specific config can be accessed with `this.options.something` (where something is the data key you're accessing)
@@ -340,7 +340,7 @@ computed: {
 
 #### **Adding an API Endpoint**
 
-If your widget makes a data request, then add the URL for the API endpoint to the `widgetApiEndpoints` array in [`defaults.js`](https://github.com/Lissy93/dashy/blob/master/src/utils/config/defaults.js#L207)
+If your widget makes a data request, then add the URL for the API endpoint to the `widgetApiEndpoints` array in [`defaults.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/src/utils/config/defaults.js#L207)
 
 ```javascript
 widgetApiEndpoints: {
@@ -421,11 +421,11 @@ p.results {
 </style>
 ```
 
-For examples of finished widget components, see the [Widgets](https://github.com/Lissy93/dashy/tree/master/src/components/Widgets) directory. Specifically, the [`XkcdComic.vue`](https://github.com/Lissy93/dashy/blob/master/src/components/Widgets/XkcdComic.vue) widget is quite minimal, so would make a good example, as will [this example implementation](https://github.com/Lissy93/dashy/commit/3da76ce2999f57f76a97454c0276301e39957b8e).
+For examples of finished widget components, see the `src/components/Widgets` directory. Specifically, the `src/components/Widgets/XkcdComic.vue` widget is quite minimal, so would make a good example, as will [this example implementation](https://github.com/JDB321Sailor/Workcenter/commit/3da76ce2999f57f76a97454c0276301e39957b8e).
 
 ### Step 3 - Register
 
-Next, register your new widget in [`WidgetBase.vue`](https://github.com/Lissy93/dashy/blob/master/src/components/Widgets/WidgetBase.vue). In this file, you'll need to add the following:
+Next, register your new widget in `src/components/Widgets/WidgetBase.vue`. In this file, you'll need to add the following:
 
 ```javascript
 const COMPAT = {
@@ -438,9 +438,9 @@ Here, the `example-widget` property name will be used to identify the widget whe
 
 ### Step 4 - Docs
 
-Finally, add some documentation for your widget in the [Widget Docs](https://github.com/Lissy93/dashy/blob/master/docs/widgets.md), so that others know how to use it. Include the following information: Title, short description, screenshot, config options and some example YAML.
+Finally, add some documentation for your widget in the `docs/widgets.md`, so that others know how to use it. Include the following information: Title, short description, screenshot, config options and some example YAML.
 
-**Summary**: For a complete example of everything discussed here, see: [`3da76ce`](https://github.com/Lissy93/dashy/commit/3da76ce2999f57f76a97454c0276301e39957b8e)
+**Summary**: For a complete example of everything discussed here, see: [`3da76ce`](https://github.com/JDB321Sailor/Workcenter/commit/3da76ce2999f57f76a97454c0276301e39957b8e)
 
 ---
 

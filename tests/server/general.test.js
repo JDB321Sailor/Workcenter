@@ -7,7 +7,7 @@ import request from 'supertest';
 
 // Isolate from the repo's conf.yml so test behaviour doesn't depend on which
 // auth method (if any) the developer has configured locally.
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-general-test-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-general-test-'));
 fs.writeFileSync(path.join(tmpDir, 'conf.yml'), 'pageInfo:\n  title: Test\nsections: []\n');
 process.env.USER_DATA_DIR = tmpDir;
 

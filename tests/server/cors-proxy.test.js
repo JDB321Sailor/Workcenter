@@ -10,7 +10,7 @@ import request from 'supertest';
 
 // Isolate from the repo's conf.yml so test behaviour doesn't depend on which
 // auth method (if any) the developer has configured locally.
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-cors-test-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-cors-test-'));
 process.env.USER_DATA_DIR = tmpDir;
 
 const app = require('../../services/app');
@@ -99,13 +99,13 @@ describe('CORS proxy', () => {
   });
 
   it('resolves env-var placeholder in Target-URL before validating', async () => {
-    process.env.DASHY_TEST_BLOCKED_HOST = '169.254.169.254';
+    process.env.WORKCENTER_TEST_BLOCKED_HOST = '169.254.169.254';
     try {
-      const res = await request(app).get('/cors-proxy').set('Target-URL', 'http://DASHY_TEST_BLOCKED_HOST/');
+      const res = await request(app).get('/cors-proxy').set('Target-URL', 'http://WORKCENTER_TEST_BLOCKED_HOST/');
       expect(res.status).toBe(403);
       expect(res.body.error).toContain('169.254.169.254');
     } finally {
-      delete process.env.DASHY_TEST_BLOCKED_HOST;
+      delete process.env.WORKCENTER_TEST_BLOCKED_HOST;
     }
   });
 });
@@ -223,9 +223,9 @@ describe('CORS proxy env-var substitution', () => {
   beforeAll(() => { warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {}); });
   afterAll(() => { warnSpy.mockRestore(); });
 
-  it('replaces a DASHY_ token with its env value', () => {
-    setEnv('DASHY_FOO', 'secret');
-    expect(substituteEnv('Bearer DASHY_FOO')).toBe('Bearer secret');
+  it('replaces a WORKCENTER_ token with its env value', () => {
+    setEnv('WORKCENTER_FOO', 'secret');
+    expect(substituteEnv('Bearer WORKCENTER_FOO')).toBe('Bearer secret');
   });
 
   it('replaces VITE_APP_ and VUE_APP_ tokens (back-compat)', () => {
@@ -236,7 +236,7 @@ describe('CORS proxy env-var substitution', () => {
   });
 
   it('leaves unset placeholders verbatim', () => {
-    expect(substituteEnv('Bearer DASHY_NOT_SET')).toBe('Bearer DASHY_NOT_SET');
+    expect(substituteEnv('Bearer WORKCENTER_NOT_SET')).toBe('Bearer WORKCENTER_NOT_SET');
   });
 
   it('does not substitute non-prefixed env vars', () => {
@@ -245,15 +245,15 @@ describe('CORS proxy env-var substitution', () => {
   });
 
   it('replaces multiple placeholders in one string', () => {
-    setEnv('DASHY_HOST', 'pi.local');
-    setEnv('DASHY_KEY', 'k1');
-    expect(substituteEnv('http://DASHY_HOST/api?key=DASHY_KEY')).toBe('http://pi.local/api?key=k1');
+    setEnv('WORKCENTER_HOST', 'pi.local');
+    setEnv('WORKCENTER_KEY', 'k1');
+    expect(substituteEnv('http://WORKCENTER_HOST/api?key=WORKCENTER_KEY')).toBe('http://pi.local/api?key=k1');
   });
 
   it('walks into objects and arrays', () => {
-    setEnv('DASHY_PASS', 'p4ss');
-    setEnv('DASHY_USER', 'admin');
-    const input = { auth: { user: 'DASHY_USER', pass: 'DASHY_PASS' }, tags: ['DASHY_PASS'] };
+    setEnv('WORKCENTER_PASS', 'p4ss');
+    setEnv('WORKCENTER_USER', 'admin');
+    const input = { auth: { user: 'WORKCENTER_USER', pass: 'WORKCENTER_PASS' }, tags: ['WORKCENTER_PASS'] };
     expect(substituteEnv(input)).toEqual({
       auth: { user: 'admin', pass: 'p4ss' },
       tags: ['p4ss'],
@@ -275,11 +275,11 @@ describe('CORS proxy env-var substitution', () => {
   it('warns once per unique unset placeholder, then stays quiet', () => {
     warnSpy.mockClear();
     // Use names unlikely to collide with any earlier warnings in this run
-    substituteEnv('DASHY_WARN_TEST_ONE');
-    substituteEnv('DASHY_WARN_TEST_ONE'); // repeat - should not re-log
-    substituteEnv('DASHY_WARN_TEST_TWO');
+    substituteEnv('WORKCENTER_WARN_TEST_ONE');
+    substituteEnv('WORKCENTER_WARN_TEST_ONE'); // repeat - should not re-log
+    substituteEnv('WORKCENTER_WARN_TEST_TWO');
     expect(warnSpy).toHaveBeenCalledTimes(2);
-    expect(warnSpy.mock.calls[0][0]).toContain('DASHY_WARN_TEST_ONE');
-    expect(warnSpy.mock.calls[1][0]).toContain('DASHY_WARN_TEST_TWO');
+    expect(warnSpy.mock.calls[0][0]).toContain('WORKCENTER_WARN_TEST_ONE');
+    expect(warnSpy.mock.calls[1][0]).toContain('WORKCENTER_WARN_TEST_TWO');
   });
 });

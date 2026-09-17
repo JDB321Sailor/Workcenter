@@ -12,7 +12,7 @@
 
 > **Write code that looks like the code already next to it.**
 
-Workcenter is a derivative of [Dashy](https://github.com/lissy93/dashy) and follows
+Workcenter is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter) and follows
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser)'s contribution discipline. Where
 this document is silent, match the surrounding file. Where a linter and this document disagree, the
 linter wins and this document is corrected in the same PR.
@@ -38,7 +38,7 @@ linter wins and this document is corrected in the same PR.
 | Docker Engine | 24+ | `production.md` |
 | Docker Compose | v2.20+ (supports `include:`) | `compose.yaml` |
 
-> **Note:** Dashy configures **no Prettier, no Stylelint and no markdownlint**. Formatting is governed by
+> **Note:** Workcenter configures **no Prettier, no Stylelint and no markdownlint**. Formatting is governed by
 > `.editorconfig` plus the written style guide, and Markdown is reviewed by humans. Workcenter inherits
 > that position deliberately: adding a formatter is a separate, changelog-recorded decision, not a
 > drive-by change. The linters that *do* run are listed in [§13](#13-tooling-configuration).
@@ -53,7 +53,7 @@ version is missing.
 | # | Principle |
 | --- | --- |
 | S1 | **Explicit over clever.** A reader should not need to run the code to know what it does. |
-| S2 | **Delete, don't disable.** Removed Dashy subsystems are deleted, not feature-flagged. |
+| S2 | **Delete, don't disable.** Removed Workcenter subsystems are deleted, not feature-flagged. |
 | S3 | **No secrets in the repository.** Ever — not in code, tests, fixtures, screenshots or logs. |
 | S4 | **Errors are handled, never swallowed.** Every `catch` either recovers, retries, or reports with context. |
 | S5 | **Small, single-purpose modules.** If a file needs a table of contents to navigate, split it. |
@@ -84,7 +84,7 @@ version is missing.
 
 | Ref | Rule |
 | --- | --- |
-| S-VUE-1 | **Options API**, matching Dashy's existing components and the rest of the codebase. Workcenter does **not** introduce `<script setup>` or the Composition API anywhere; new components follow the same Options API shape as the ones they sit beside. (Dashy's only non-Options code is an inline `createApp({ render })` inside the multi-tasking host and one `defineAsyncComponent`; neither is a pattern to extend.) |
+| S-VUE-1 | **Options API**, matching Workcenter's existing components and the rest of the codebase. Workcenter does **not** introduce `<script setup>` or the Composition API anywhere; new components follow the same Options API shape as the ones they sit beside. (Workcenter's only non-Options code is an inline `createApp({ render })` inside the multi-tasking host and one `defineAsyncComponent`; neither is a pattern to extend.) |
 | S-VUE-2 | One component per file. File name and `name` option match (`AppSwitcher.vue` → `name: 'AppSwitcher'`). |
 | S-VUE-3 | Props are declared with types **and** defaults. Emitted events are declared in `emits`. |
 | S-VUE-4 | Template order: `<template>`, `<script>`, `<style>`. |
@@ -150,7 +150,7 @@ version is missing.
 | S-CSS-7 | Never use `!important` outside of a documented override of an embedded application's CSS. |
 | S-CSS-8 | `@media` queries use the shared breakpoints in `media-queries.scss`, not raw pixel values. |
 | S-CSS-9 | Animations must be disabled under `prefers-reduced-motion: reduce`. |
-| S-CSS-10 | Dashy token names (`--side-bar-*`, `--curve-factor`, `--workspace-web-content-background`) are preserved for compatibility and not renamed. |
+| S-CSS-10 | Workcenter token names (`--side-bar-*`, `--curve-factor`, `--workspace-web-content-background`) are preserved for compatibility and not renamed. |
 
 ---
 
@@ -200,7 +200,7 @@ Full strategy in [`Testing.md`](./Testing.md). The standards that bind every PR:
 | --- | --- |
 | S-T-1 | **No PR merges without tests** for changed behaviour. |
 | S-T-2 | Coverage floor: **80%** lines for `src/broker/**` and `services/utils/**`; **70%** for `src/utils/**` and `src/components/**`; configuration files are exempt. Coverage is collected with Vitest's `v8` provider (`yarn test:coverage`), configured in `vitest.config.mjs` to exclude `node_modules`, `tests`, `*.config.js`, `dist`, `.github` and `docs`. |
-| S-T-3 | Unit tests live beside the code they test or under `tests/unit/`, named `*.test.js`. Dashy's existing layout is kept: `tests/unit/` for utilities and config, `tests/components/` for component tests, `tests/server/` for server tests. |
+| S-T-3 | Unit tests live beside the code they test or under `tests/unit/`, named `*.test.js`. Workcenter's existing layout is kept: `tests/unit/` for utilities and config, `tests/components/` for component tests, `tests/server/` for server tests. |
 | S-T-4 | Playwright specs live in `e2e/specs/`, named `<area>.spec.ts`. |
 | S-T-5 | Tests never depend on the public internet; external edges are stubbed or seeded. |
 | S-T-6 | Tests are deterministic: fixed clocks, fixed fixtures, no reliance on wall-clock ordering. |
@@ -210,7 +210,7 @@ Full strategy in [`Testing.md`](./Testing.md). The standards that bind every PR:
 
 ### Inherited test conventions
 
-These are Dashy's, and Workcenter keeps them:
+These are Workcenter's, and Workcenter keeps them:
 
 | Convention | Detail |
 | --- | --- |
@@ -229,7 +229,7 @@ These are Dashy's, and Workcenter keeps them:
 
 ### 8.1 Commits
 
-Conventional Commits, as used by FileBrowser Quantum and Dashy:
+Conventional Commits, as used by FileBrowser Quantum and Workcenter:
 
 ```
 type(scope): description
@@ -255,7 +255,7 @@ type(scope): description
 | S-G-3 | The body explains **why**, wrapping at 100 characters; the diff already shows what. |
 | S-G-4 | Breaking changes are marked with `!` after the type/scope and a `BREAKING CHANGE:` footer. |
 | S-G-5 | One coherent change per commit; no "wip" or "fixes" commits in the final history. |
-| S-G-6 | The upstream Dashy import is one commit with the exact upstream commit hash in the body. |
+| S-G-6 | The upstream Workcenter import is one commit with the exact upstream commit hash in the body. |
 | S-G-7 | Never commit generated artifacts, editor configuration or OS files. |
 
 Examples:
@@ -282,7 +282,7 @@ Full workflow in [`contributions.md`](./contributions.md).
 
 ## 9. Documentation standards
 
-Workcenter's documentation is part of the product. It inherits Dashy's house style.
+Workcenter's documentation is part of the product. It inherits Workcenter's house style.
 
 ### 9.1 Structure
 
@@ -380,7 +380,7 @@ renumbered; every Playwright spec header cites the IDs it asserts.
 
 | Tool | Config file | Scope |
 | --- | --- | --- |
-| ESLint (flat config) | `eslint.config.mjs` | **`src/**/*.{js,vue,ts}`** — and, new in Workcenter, `services/**/*.js`, `tests/**/*.js`, `e2e/**/*.ts`. Dashy lints only `src/`, leaving `services/` and `server.js` unlinted; Workcenter closes that gap. |
+| ESLint (flat config) | `eslint.config.mjs` | **`src/**/*.{js,vue,ts}`** — and, new in Workcenter, `services/**/*.js`, `tests/**/*.js`, `e2e/**/*.ts`. Workcenter lints only `src/`, leaving `services/` and `server.js` unlinted; Workcenter closes that gap. |
 | TypeScript | `tsconfig.json` | `vue-tsc --noEmit` |
 | Vitest | `vitest.config.mjs` | unit and integration tests (`happy-dom`, `globals: true`, setup file, `@` alias → `./src`) |
 | Playwright | `e2e/playwright.config.ts` | end-to-end suite |
@@ -392,7 +392,7 @@ renumbered; every Playwright spec header cites the IDs it asserts.
 
 ### Inherited ESLint posture
 
-Workcenter keeps Dashy's flat ESLint config, including these inherited settings, and states them
+Workcenter keeps Workcenter's flat ESLint config, including these inherited settings, and states them
 explicitly so nobody "fixes" them by accident:
 
 | Setting | Value | Why |
@@ -475,4 +475,4 @@ Every one of these is a required CI check on the `Dev` branch.
 
 ---
 
-<p align="center"><sub>Workcenter standards · commit and branch discipline after <a href="https://github.com/gtsteffaniak/filebrowser">FileBrowser Quantum</a> · documentation style after <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>
+<p align="center"><sub>Workcenter standards · commit and branch discipline after <a href="https://github.com/gtsteffaniak/filebrowser">FileBrowser Quantum</a> · documentation style after <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>

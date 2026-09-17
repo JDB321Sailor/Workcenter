@@ -31,7 +31,7 @@ as described in [`contributions.md`](./contributions.md).
    | `Bugfixes` | Defect fixes with a reproducible before/after |
    | `Documentation` | Documentation-only changes to `*.md` files |
    | `Deployment` | `compose.yaml`, `setup.sh`, Traefik labels, image pins, volume layout |
-   | `Dependencies` | Upstream version bumps (Dashy, FileBrowser Quantum, Zulip, Mailcow, OnlyOffice, Authentik) |
+   | `Dependencies` | Upstream version bumps (Workcenter, FileBrowser Quantum, Zulip, Mailcow, OnlyOffice, Authentik) |
 
 3. Write one bullet per change, in the imperative or descriptive past tense, and
    reference the issue or PR number at the end of the line: `(#123)`.
@@ -47,7 +47,7 @@ as described in [`contributions.md`](./contributions.md).
 ## [Unreleased]
 
 ### New Features
- - Dashy stripped down to the Workspace view. Workcenter now renders a single view: the
+ - Workcenter stripped down to the Workspace view. Workcenter now renders a single view: the
    sidebar plus the embedded content surface. The Default view, the Minimal view and the
    config-download view are deleted, along with the widget engine, the status and ping
    monitoring subsystem, the tile grid and the in-app configuration editor.
@@ -74,6 +74,12 @@ as described in [`contributions.md`](./contributions.md).
  - `user-data/conf.yml` is rewritten as the Workcenter example: one section per integrated
    application, plus the admin surfaces, with an Authentik OIDC block.
 
+### Notes
+ - Workcenter has not published a release, a Docker image or a GHCR package. Documentation
+   that referred to one, or to the upstream project's image, now says so explicitly.
+ - The client environment prefix is `WORKCENTER_`. The inherited `DASHY_` prefix was removed:
+   nothing consumed it, and keeping it would document a prefix this project does not read.
+
 ### Removals
  - Views: `Home.vue`, `Minimal.vue`, `DownloadConfig.vue`.
  - Component trees: `MinimalView/`, `Widgets/` (96 components), `InteractiveEditor/`,
@@ -86,7 +92,7 @@ as described in [`contributions.md`](./contributions.md).
    `ChartingMixin`, `GlancesMixin`, `NextcloudMixin`).
  - `utils/CloudBackup.js` and the hosted sync endpoint it called, `utils/CheckPageVisibility.js`,
    `utils/CheckItemVisibility.js`, and the dead stylesheets (`schema-editor.scss`,
-   `weather-icons.scss`, `styles/widgets/`, the `dashy-docs` theme).
+   `weather-icons.scss`, `styles/widgets/`, the `workcenter-docs` theme).
  - Server: the `/status-check`, `/ping-check` and `/status-ping` endpoints, and the
    update checker that compared against another product's release feed.
  - Configuration schema: `startingView`, `enableMultiTasking`, `widgetsAlwaysUseProxy`,
@@ -119,7 +125,7 @@ as described in [`contributions.md`](./contributions.md).
    lissy93/fix/status-check-ping-mem-limits", 2026-09-12). Workcenter is derived from this commit.
  - Initial documentation baseline for the Workcenter application: roadmap, architecture,
    design, agent, standards, contribution, OIDC, testing and production specifications.
- - Defined the single-pane Workcenter shell derived from the Dashy Workspace view
+ - Defined the single-pane Workcenter shell derived from the Workcenter Workspace view
    (application switcher above a per-application sidebar).
 
 ### Deployment
@@ -133,6 +139,25 @@ as described in [`contributions.md`](./contributions.md).
    changelog and test-evidence obligations.
 
 ### Documentation
+ - Rebrand completed. Every file, path, identifier, asset and user-visible string that named
+   the upstream project now names Workcenter. The only surviving reference is the
+   acknowledgement that Workcenter was built from Dashy, which the MIT licence requires and
+   which now appears in one consistent form.
+ - `docs/credits.md` rewritten: it credits Dashy as the origin, lists the dependencies
+   Workcenter actually uses, and drops the sponsor, stargazer and contributor widgets that
+   pulled data from another project.
+ - `docs/contributing.md` rewritten: the survey, donation, BountySource, share-button and
+   sponsor sections are replaced with how to raise an issue, open a discussion and add a
+   translation.
+ - `docs/release-workflow.md` rewritten around the workflows this repository actually has —
+   the CI jobs, the `Dev` → `Beta` → `Stable` promotion, and Dependabot against `Dev`. It no
+   longer describes Docker, mirror, tag or docs-site pipelines that do not exist.
+ - `docs/deployment/bare-metal.md` rewritten: building from source and the systemd unit are
+   kept, and the pre-built release, checksum and attestation sections are removed because no
+   release has been published.
+ - `docs/deployment/docker.md` and `docs/deployment.md` rewritten. Neither presents the upstream
+   project's image as Workcenter's. Both state that no image is published and show how to build
+   `workcenter:dev` locally.
  - `docs/branch-protection.md` — the GitHub-side branch, ruleset and required-check
    configuration that roadmap step 0.1 requires, and `docs/readme.md` reindexed for Workcenter.
  - `roadmap.md` — goals, integration requirements, UI requirements and the phased build plan.
@@ -154,7 +179,7 @@ as described in [`contributions.md`](./contributions.md).
    separate status strip and no `StatusStrip.vue` / `StatusPill.vue` component.
 
 ### Notes
- - Workcenter is a **derivative of Dashy**: the Default and Minimal views are intentionally
+ - Workcenter is a **derivative of Workcenter**: the Default and Minimal views are intentionally
    discarded; only the Workspace view is carried forward.
 
 ---

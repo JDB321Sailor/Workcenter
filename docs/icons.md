@@ -17,7 +17,7 @@ Both sections and items can have an icon, which is specified using the `icon` at
 
 
 <p align="center">
-  <img width="500" src="https://i.ibb.co/GTVmZnc/dashy-example-icons.png" />
+  <img width="500" src="https://i.ibb.co/GTVmZnc/workcenter-example-icons.png" />
 </p>
 
 ---

@@ -2,6 +2,16 @@
 
 _The following article is a primer on managing self-hosted apps. It covers everything from keeping the Workcenter (or any other app) up-to-date, secure, backed up, to other topics like auto-starting, monitoring, log management, web server configuration and using custom domains._
 
+> **Note:** Workcenter has not cut a release, so no image is published to Docker Hub or GHCR.
+> Everywhere this page shows an image name, build it locally instead:
+>
+> ```bash
+> docker build -t workcenter:dev .
+> ```
+>
+> Replace `workcenter:dev` with the published name once the first release is cut from
+> `Stable`.
+
 ## Contents
 
 - [Providing Assets](#providing-assets)
@@ -62,7 +72,7 @@ There are two ways to sort it. Pick whichever is less hassle:
    docker run -d -p 8080:8080 \
      --user $(id -u):$(id -g) \
      -v /path/to/user-data:/app/user-data \
-     lissy93/dashy:latest
+     workcenter:dev:latest
    ```
 
    In compose, uncomment the `user:` line under the service and set it:
@@ -85,7 +95,7 @@ Note that if you run the container as root (e.g. `--user 0:0`), Workcenter will 
 
 If you're running an app in Docker, then commands will need to be passed to the container to be executed. This can be done by preceding each command with `docker exec -it [container-id]`, where container ID can be found by running `docker ps`. For example `docker exec -it 26c156c467b4 yarn build`. You can also enter the container, with `docker exec -it [container-id] /bin/ash`, and navigate around it with normal Linux commands.
 
-Workcenter has several commands that can be used for various tasks, you can find a list of these either in the [Developing Docs](/docs/developing.md#project-commands), or by looking at the [`package.json`](https://github.com/Lissy93/dashy/blob/master/package.json#L5). These can be used by running `yarn [command-name]`.
+Workcenter has several commands that can be used for various tasks, you can find a list of these either in the [Developing Docs](/docs/developing.md#project-commands), or by looking at the [`package.json`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/package.json#L5). These can be used by running `yarn [command-name]`.
 
 **[⬆️ Back to Top](#management)**
 
@@ -122,13 +132,13 @@ livenessProbe:
 
 ```yaml
 # Traefik (label on the Workcenter service)
-- "traefik.http.services.dashy.loadbalancer.healthcheck.path=/healthz"
-- "traefik.http.services.dashy.loadbalancer.healthcheck.interval=30s"
+- "traefik.http.services.workcenter.loadbalancer.healthcheck.path=/healthz"
+- "traefik.http.services.workcenter.loadbalancer.healthcheck.interval=30s"
 ```
 
 ```caddyfile
 # Caddy (reverse_proxy block)
-reverse_proxy dashy:8080 {
+reverse_proxy workcenter:8080 {
     health_uri  /healthz
     health_interval 30s
 }
@@ -180,12 +190,12 @@ Workcenter is under active development, so to take advantage of the latest featu
 
 ### Updating Docker Container
 
-1. Pull latest image: `docker pull lissy93/dashy:latest`
+1. Pull latest image: `docker pull workcenter:dev:latest`
 2. Kill off existing container
 	- Find container ID: `docker ps`
 	- Stop container: `docker stop [container_id]`
 	- Remove container: `docker rm [container_id]`
-3. Spin up new container: `docker run [params] lissy93/dashy`
+3. Spin up new container: `docker run [params] workcenter:dev`
 
 ### Automatic Docker Updates
 
@@ -209,18 +219,18 @@ Stop your current instance of Workcenter, then navigate into the source director
 
 ### Verifying a Release Download
 
-Each [GitHub release](https://github.com/lissy93/dashy/releases) bundles a SHA256 checksum and a SLSA build-provenance attestation alongside the source tarball (`dashy-<version>.tar.gz`). You don't need either to run Workcenter, but they let you confirm a download arrived intact and was genuinely built from our source, rather than tampered with in transit or on a mirror.
+Each [GitHub release](https://github.com/JDB321Sailor/Workcenter/releases) bundles a SHA256 checksum and a SLSA build-provenance attestation alongside the source tarball (`workcenter-<version>.tar.gz`). You don't need either to run Workcenter, but they let you confirm a download arrived intact and was genuinely built from our source, rather than tampered with in transit or on a mirror.
 
 Check the tarball is intact using the `.sha256` file published next to it:
 
 ```bash
-sha256sum -c dashy-<version>.tar.gz.sha256
+sha256sum -c workcenter-<version>.tar.gz.sha256
 ```
 
 An `OK` means the file is untampered. To go further and prove it was built by our CI from our repo, verify the attestation with the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-gh attestation verify dashy-<version>.tar.gz --repo lissy93/dashy
+gh attestation verify workcenter-<version>.tar.gz --repo workcenter:dev
 ```
 
 The release notes for each version also list the checksum and a link to view the attestation directly.
@@ -237,7 +247,7 @@ You can make a backup of any running container really easily, using [`docker com
 
 - First find the container ID, you can do this with `docker container ls`
 - Now to create the snapshot, just run `docker commit -p [container-id] my-backup`
-- Finally, to save the backup locally, run `docker save -o ~/dashy-backup.tar my-backup`
+- Finally, to save the backup locally, run `docker save -o ~/workcenter-backup.tar my-backup`
 - If you want to push this to a container registry, run  `docker push my-backup:latest`
 
 Note that this will not include any data in docker volumes, and the process here is a bit different. Since these files exist on your host system, if you have an existing backup solution implemented, you can incorporate and volume files within that system.
@@ -323,14 +333,14 @@ If you're not so comfortable on the command line, then you can use a tool like [
 
 ### Passing a Self-Signed Certificate to Workcenter
 
-Once you've generated your SSL cert, you'll need to pass it to Workcenter. This can be done by specifying the paths to your public and private keys using the `SSL_PRIV_KEY_PATH` and `SSL_PUB_KEY_PATH` environmental variables. Or if you're using Docker, then just pass public + private SSL keys in under `/etc/ssl/certs/dashy-pub.pem` and `/etc/ssl/certs/dashy-priv.key` respectively, e.g:
+Once you've generated your SSL cert, you'll need to pass it to Workcenter. This can be done by specifying the paths to your public and private keys using the `SSL_PRIV_KEY_PATH` and `SSL_PUB_KEY_PATH` environmental variables. Or if you're using Docker, then just pass public + private SSL keys in under `/etc/ssl/certs/workcenter-pub.pem` and `/etc/ssl/certs/workcenter-priv.key` respectively, e.g:
 
 ```bash
 docker run -d \
   -p 8080:8080 \
-  -v ~/my-private-key.key:/etc/ssl/certs/dashy-priv.key:ro \
-  -v ~/my-public-key.pem:/etc/ssl/certs/dashy-pub.pem:ro \
-  lissy93/dashy:latest
+  -v ~/my-private-key.key:/etc/ssl/certs/workcenter-priv.key:ro \
+  -v ~/my-public-key.pem:/etc/ssl/certs/workcenter-pub.pem:ro \
+  workcenter:dev:latest
 ```
 
 By default the SSL port is `443` within a Docker container, or `4001` if running on bare metal, but you can override this with the `SSL_PORT` environmental variable.
@@ -369,15 +379,15 @@ If you don't use widgets or status checks, you can disable the endpoints which m
 
 When you have a lot of containers, it quickly becomes hard to manage with `docker run` commands. The solution to this is [docker compose](https://docs.docker.com/compose/), a handy tool for defining all a containers run settings in a single YAML file, and then spinning up that container with a single short command - `docker compose up`. A good example of which can be seen in [@abhilesh's docker compose collection](https://github.com/abhilesh/self-hosted_docker_setups).
 
-You can use Workcenter's default [`docker-compose.yml`](https://github.com/Lissy93/dashy/blob/master/docker-compose.yml) file as a template, and modify it according to your needs.
+You can use Workcenter's default [`docker-compose.yml`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/docker-compose.yml) file as a template, and modify it according to your needs.
 
 An example Docker compose, using the default base image from DockerHub, might look something like this:
 
 ```yaml
 services:
-  dashy:
+  workcenter:
     container_name: Workcenter
-    image: lissy93/dashy:latest
+    image: workcenter:dev:latest
     volumes:
       - ./user-data:/app/user-data
     ports:
@@ -399,13 +409,13 @@ services:
 
 ## Passing in Environmental Variables
 
-With Docker, you can define environmental variables under the `environment` section of your Docker compose file. Environmental variables are used to configure high-level settings, usually before the config file has been read. For a list of all supported env vars in Workcenter, see [the developing docs](/docs/developing.md#environmental-variables), or the default [`.env`](https://github.com/Lissy93/dashy/blob/master/.env) file.
+With Docker, you can define environmental variables under the `environment` section of your Docker compose file. Environmental variables are used to configure high-level settings, usually before the config file has been read. For a list of all supported env vars in Workcenter, see [the developing docs](/docs/developing.md#environmental-variables), or the default `.env` file.
 
-A common use case, is to run Workcenter under a sub-page, instead of at the root of a URL (e.g. `https://my-homelab.local/dashy` instead of `https://dashy.my-homelab.local`). In this use-case, you'd specify the `BASE_URL` variable in your compose file.
+A common use case, is to run Workcenter under a sub-page, instead of at the root of a URL (e.g. `https://my-homelab.local/workcenter` instead of `https://workcenter.my-homelab.local`). In this use-case, you'd specify the `BASE_URL` variable in your compose file.
 
 ```yaml
 environment:
-  - BASE_URL=/dashy
+  - BASE_URL=/workcenter
 ```
 
 You can also do the same thing with the docker run command, using the [`--env`](https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file) flag.
@@ -618,7 +628,7 @@ Some Ngrok features require you to be authenticated, you can [create a free acco
 
 It's recommended to use authentication for any publicly accessible service. Workcenter has an [Auth](/docs/authentication.md) feature built in, but an even easier method it to use the [`-auth`](https://ngrok.com/docs#http-auth) switch. E.g. `ngrok http -auth="username:password123" 8080`
 
-By default, your web app is assigned a randomly generated ngrok domain, but you can also use your own custom domain. Under the [Domains Tab](https://dashboard.ngrok.com/endpoints/domains) of your Ngrok dashboard, add your domain, and follow the CNAME instructions. You can now use your domain, with the [`-hostname`](https://ngrok.com/docs#http-custom-domains) switch, e.g. `ngrok http -region=us -hostname=dashy.example.com 8080`. If you don't have your own domain name, you can instead use a custom sub-domain (e.g. `alicia-dashy.ngrok.io`), using the [`-subdomain`](https://ngrok.com/docs#custom-subdomain-names) switch.
+By default, your web app is assigned a randomly generated ngrok domain, but you can also use your own custom domain. Under the [Domains Tab](https://dashboard.ngrok.com/endpoints/domains) of your Ngrok dashboard, add your domain, and follow the CNAME instructions. You can now use your domain, with the [`-hostname`](https://ngrok.com/docs#http-custom-domains) switch, e.g. `ngrok http -region=us -hostname=workcenter.example.com 8080`. If you don't have your own domain name, you can instead use a custom sub-domain (e.g. `alicia-workcenter.ngrok.io`), using the [`-subdomain`](https://ngrok.com/docs#custom-subdomain-names) switch.
 
 To integrate this into your docker-compose, take a look at the [gtriggiano/ngrok-tunnel](https://github.com/gtriggiano/ngrok-tunnel) container.
 
@@ -637,9 +647,9 @@ It's worth noting that Ngrok isn't the only option here, other options include: 
 
 ### Using DNS
 
-For locally running services, a domain can be set up directly in the DNS records. This method is really quick and easy, and doesn't require you to purchase an actual domain. Just update your networks DNS resolver, to point your desired URL to the local IP where Workcenter (or any other app) is running. For example, a line in your hosts file might look something like: `192.168.0.2 dashy.homelab.local`.
+For locally running services, a domain can be set up directly in the DNS records. This method is really quick and easy, and doesn't require you to purchase an actual domain. Just update your networks DNS resolver, to point your desired URL to the local IP where Workcenter (or any other app) is running. For example, a line in your hosts file might look something like: `192.168.0.2 workcenter.homelab.local`.
 
-If you're using Pi-Hole, a similar thing can be done in the `/etc/dnsmasq.d/03-custom-dns.conf` file, add a line like: `address=/dashy.example.com/192.168.2.0` for each of your services.
+If you're using Pi-Hole, a similar thing can be done in the `/etc/dnsmasq.d/03-custom-dns.conf` file, add a line like: `address=/workcenter.example.com/192.168.2.0` for each of your services.
 
 If you're running OPNSense/ PfSense, then this can be done through the UI with Unbound, it's explained nicely in [this article](https://homenetworkguy.com/how-to/use-custom-domain-name-in-internal-network/), by Dustin Casto.
 
@@ -648,13 +658,13 @@ If you're running OPNSense/ PfSense, then this can be done through the UI with U
 If you're using NGINX, then you can use your own domain name, with a config similar to the below example.
 
 ```text
-upstream dashy {
+upstream workcenter_app {
   server 127.0.0.1:32400;
 }
 
 server {
   listen         8080;
-  server_name    dashy.mydomain.com;
+  server_name    workcenter.mydomain.com;
 
   # Setup SSL
   ssl_certificate             /var/www/mydomain/sslcert.pem;
@@ -665,7 +675,7 @@ server {
   ssl_prefer_server_ciphers   on;
 
   location / {
-    proxy_pass                http://dashy;
+    proxy_pass                http://workcenter;
     proxy_redirect            off;
     proxy_buffering           off;
     proxy_set_header          host              $host;
@@ -679,7 +689,7 @@ server {
 Similarly, a basic `Caddyfile` might look like:
 
 ```text
-dashy.example.com {
+workcenter.example.com {
     reverse_proxy / nginx:8080
 }
 ```
@@ -697,14 +707,14 @@ Everything Workcenter publishes can be verified, so you can check that what you'
 **Docker images**: Every image pushed to GHCR has a signed SBOM (software bill of materials) and build provenance attestation attached. Verify with the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-gh attestation verify oci://ghcr.io/lissy93/dashy:latest --owner lissy93
+gh attestation verify oci://workcenter:dev:latest --owner lissy93
 ```
 
-**GitHub releases (non-Docker)**: Each [release](https://github.com/Lissy93/dashy/releases) includes a pre-built tarball, along with a SHA256 checksum and its own provenance attestation. To check your download:
+**GitHub releases (non-Docker)**: Each [release](https://github.com/JDB321Sailor/Workcenter/releases) includes a pre-built tarball, along with a SHA256 checksum and its own provenance attestation. To check your download:
 
 ```bash
-sha256sum -c dashy-<version>.tar.gz.sha256
-gh attestation verify dashy-<version>.tar.gz --owner lissy93
+sha256sum -c workcenter-<version>.tar.gz.sha256
+gh attestation verify workcenter-<version>.tar.gz --owner lissy93
 ```
 
 If verification passes, the artifact was built by our GitHub Actions workflow, from the Workcenter repo, and hasn't been tampered with since.
@@ -740,7 +750,7 @@ To prevent known container escape vulnerabilities, which typically end in escala
 Docker enables you to limit resource consumption (CPU, memory, disk) on a per-container basis. This not only enhances system performance, but also prevents a compromised container from consuming a large amount of resources, in order to disrupt service or perform malicious activities. To learn more, see the [Resource Constraints Docs](https://docs.docker.com/config/containers/resource_constraints/)
 
 For example, to run Workcenter with max of 1GB ram, and max of 50% of 1 CP core:
-`docker run -d -p 8080:8080 --cpus=".5" --memory="1024m" lissy93/dashy:latest`
+`docker run -d -p 8080:8080 --cpus=".5" --memory="1024m" workcenter:dev:latest`
 
 ### Don't Run as Root
 
@@ -754,14 +764,14 @@ For containers in general, running as an unprivileged user is one of the best wa
 
 **Note for Workcenter:** If you use features that write to disk (saving config through the UI), the process needs write access to `/app/user-data/`. Since the default image creates these directories as root, running with `--user` will cause those features to fail with permission errors unless you also fix ownership of the mounted volumes. If you only use Workcenter in read-only mode, running as a non-root user works fine:
 
-`docker run --user 1000:1000 -p 8080:8080 lissy93/dashy`
+`docker run --user 1000:1000 -p 8080:8080 workcenter:dev`
 
 Or with Docker Compose, using an environmental variable:
 
 ```yaml
 services:
-  dashy:
-    image: lissy93/dashy
+  workcenter:
+    image: workcenter:dev
     user: ${CURRENT_UID}
     ports: [ 4000:8080 ]
 ```
@@ -780,8 +790,8 @@ Here's an example using docker-compose, removing privileges that are not require
 
 ```yaml
 services:
-  dashy:
-    image: lissy93/dashy
+  workcenter:
+    image: workcenter:dev
     ports: [ 4000:8080 ]
     cap_drop:
     - ALL
@@ -798,7 +808,7 @@ services:
 To prevent processes inside the container from getting additional privileges, pass in the `--security-opt=no-new-privileges:true` option to the Docker run command (see [docs](https://docs.docker.com/engine/reference/run/#security-configuration)).
 
 Run Command:
-`docker run --security-opt=no-new-privileges:true -p 8080:8080 lissy93/dashy`
+`docker run --security-opt=no-new-privileges:true -p 8080:8080 workcenter:dev`
 
 Docker Compose
 
@@ -825,8 +835,8 @@ You can specify that a volume should be read-only by appending `:ro` to the `-v`
 ```bash
 docker run -d \
   -p 8080:8080 \
-  -v ~/dashy-data:/app/user-data:ro \
-  lissy93/dashy:latest
+  -v ~/workcenter-data:/app/user-data:ro \
+  workcenter:dev:latest
 ```
 
 If you do want config changes from the UI to persist back to disk, leave the mount writable. You can also use `--read-only` to make the whole container filesystem read-only, but in that case UI-driven config edits will not be saved.
@@ -841,12 +851,12 @@ Only use trusted images, from verified/ official sources. If an app is open sour
 
 Unless otherwise configured, containers can communicate among each other, so running one bad image may lead to other areas of your setup being compromised. Docker images typically contain both original code, as well as up-stream packages, and even if that image has come from a trusted source, the up-stream packages it includes may not have.
 
-Every Workcenter image published to [GHCR](https://github.com/lissy93/dashy/pkgs/container/dashy) ships with a build-provenance attestation and an SBOM (software bill of materials), both signed keylessly via [Sigstore](https://www.sigstore.dev/). Provenance cryptographically ties the image back to the exact GitHub Actions run and commit that built it, so you can confirm it really came from our pipeline and was not swapped out along the way. The SBOM lists every package baked into the image, which is handy when a new CVE lands and you want to know in seconds whether you're affected.
+Every Workcenter image published to [GHCR](https://github.com/JDB321Sailor/Workcenter/pkgs/container/workcenter) ships with a build-provenance attestation and an SBOM (software bill of materials), both signed keylessly via [Sigstore](https://www.sigstore.dev/). Provenance cryptographically ties the image back to the exact GitHub Actions run and commit that built it, so you can confirm it really came from our pipeline and was not swapped out along the way. The SBOM lists every package baked into the image, which is handy when a new CVE lands and you want to know in seconds whether you're affected.
 
 To verify the image you're about to run, use the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-gh attestation verify oci://ghcr.io/lissy93/dashy:latest --repo lissy93/dashy
+gh attestation verify oci://workcenter:dev:latest --repo workcenter:dev
 ```
 
 A green check means it was genuinely built by us, from our repo. Worth doing on a fresh Proxmox or homelab box, especially before exposing Workcenter beyond your LAN.
@@ -854,7 +864,7 @@ A green check means it was genuinely built by us, from our repo. Worth doing on 
 To pull the SBOM and inspect what's inside, use [cosign](https://github.com/sigstore/cosign):
 
 ```bash
-cosign download sbom ghcr.io/lissy93/dashy:latest
+cosign download sbom workcenter:dev:latest
 ```
 
 ### Specify the Tag
@@ -863,9 +873,9 @@ Using fixed tags (as opposed to `:latest` ) will ensure immutability, meaning th
 
 ### Container Security Scanning
 
-It's helpful to be aware of any potential security issues in any of the Docker images you are using. You can run a quick scan using Snyk on any image to output known vulnerabilities using [Docker scan](https://docs.docker.com/engine/scan/), e.g: `docker scan lissy93/dashy:latest`.
+It's helpful to be aware of any potential security issues in any of the Docker images you are using. You can run a quick scan using Snyk on any image to output known vulnerabilities using [Docker scan](https://docs.docker.com/engine/scan/), e.g: `docker scan workcenter:dev:latest`.
 
-A similar product is [Trivy](https://github.com/aquasecurity/trivy), which is free an open source. First install it (with your package manager), then to scan an image, just run: `trivy image lissy93/dashy:latest`
+A similar product is [Trivy](https://github.com/aquasecurity/trivy), which is free an open source. First install it (with your package manager), then to scan an image, just run: `trivy image workcenter:dev:latest`
 
 For larger systems, RedHat [Clair](https://www.redhat.com/en/topics/containers/what-is-clair) is an app for parsing image contents and reporting on any found vulnerabilities. You run it locally in a container, and configure it with YAML. It can be integrated with Red Hat Quay, to show results on a dashboard. Most of these use static analysis to find potential issues, and scan included packages for any known security vulnerabilities.
 
@@ -889,9 +899,9 @@ Docker supports several modules that let you write your own security profiles.
 
 > _The following section only applies if you are not using Docker, and would like to use your own web server_
 
-Workcenter ships with a pre-configured Node.js server, in [`server.js`](https://github.com/Lissy93/dashy/blob/master/server.js) which serves up the contents of the `./dist` directory on a given port. You can start the server by running `node server`. Note that the app must have been build (run `yarn build`), and you need [Node.js](https://nodejs.org) installed.
+Workcenter ships with a pre-configured Node.js server, in [`server.js`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/server.js) which serves up the contents of the `./dist` directory on a given port. You can start the server by running `node server`. Note that the app must have been build (run `yarn build`), and you need [Node.js](https://nodejs.org) installed.
 
-If you wish to run Workcenter from a sub page (e.g. `example.com/dashy`), then just set the `BASE_URL` environmental variable to that page name (in this example, `/dashy`), before building the app, and the path to all assets will then resolve to the new path, instead of `./`.
+If you wish to run Workcenter from a sub page (e.g. `example.com/workcenter`), then just set the `BASE_URL` environmental variable to that page name (in this example, `/workcenter`), before building the app, and the path to all assets will then resolve to the new path, instead of `./`.
 
 However, since Workcenter is just a static web application, it can be served with whatever server you like. The following section outlines how you can configure a web server.
 
@@ -911,14 +921,14 @@ Example Configs
 
 ### NGINX
 
-Create a new file in `/etc/nginx/sites-enabled/dashy`
+Create a new file in `/etc/nginx/sites-enabled/workcenter`
 
 ```text
 server {
 	listen 8080;
 	listen [::]:8080;
 
-	root /var/www/dashy/html;
+	root /var/www/workcenter/html;
 	index index.html;
 
 	server_name your-domain.com www.your-domain.com;
@@ -932,11 +942,11 @@ server {
 To use HTML5 history mode (the default - controlled via the `VITE_APP_ROUTING_MODE` build-time env var), replace the inside of the location block with: `try_files $uri $uri/ /index.html;`.
 
 Then upload the build contents of Workcenter's dist directory to that location.
-For example: `scp -r ./dist/* [username]@[server_ip]:/var/www/dashy/html`
+For example: `scp -r ./dist/* [username]@[server_ip]:/var/www/workcenter/html`
 
 ### Apache
 
-Copy Workcenter's dist folder to your apache server, `sudo cp -r ./dashy/dist /var/www/html/dashy`.
+Copy Workcenter's dist folder to your apache server, `sudo cp -r ./workcenter/dist /var/www/html/workcenter`.
 
 In your Apache config, `/etc/apche2/apache2.conf` add:
 
@@ -957,7 +967,7 @@ In your Apache config, `/etc/apche2/apache2.conf` add:
 </IfModule>
 ```
 
-Add a `.htaccess` file within `/var/www/html/dashy/.htaccess`, and add:
+Add a `.htaccess` file within `/var/www/html/workcenter/.htaccess`, and add:
 
 ```text
 Options -MultiViews
@@ -1033,13 +1043,13 @@ The first step is to fork the project on GitHub, and clone it to your local syst
 
 Similar to above, you'll first need to fork and clone Workcenter to your local system, and then install dependencies.
 
-Then, either use Workcenter's default [`Dockerfile`](https://github.com/Lissy93/dashy/blob/master/Dockerfile) as is, or modify it according to your needs.
+Then, either use Workcenter's default [`Dockerfile`](https://github.com/JDB321Sailor/Workcenter/blob/Dev/Dockerfile) as is, or modify it according to your needs.
 
-To build and deploy locally, first build the app with: `docker build -t dashy .`, and then start the app with `docker run -p 8080:8080 --name my-dashboard dashy`.  Or modify the `docker-compose.yml` file, replacing `image: lissy93/dashy` with `build: .` and run `docker compose up`.
+To build and deploy locally, first build the app with: `docker build -t workcenter .`, and then start the app with `docker run -p 8080:8080 --name my-dashboard workcenter`.  Or modify the `docker-compose.yml` file, replacing `image: workcenter:dev` with `build: .` and run `docker compose up`.
 
 Your container should now be running, and will appear in the list when you run `docker container ls –a`. If you'd like to enter the container, run `docker exec -it [container-id] /bin/ash`.
 
-You may wish to upload your image to a container registry for easier access. Note that if you choose to do this on a public registry, please name your container something other than just 'dashy', to avoid confusion with the official image.
+You may wish to upload your image to a container registry for easier access. Note that if you choose to do this on a public registry, please name your container something other than just 'workcenter', to avoid confusion with the official image.
 You can push your build image, by running: `docker push ghcr.io/OWNER/IMAGE_NAME:latest`. You will first need to authenticate, this can be done by running `echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin`, where `CR_PAT` is an environmental variable containing a token generated from your GitHub account. For more info, see the [Container Registry Docs](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
 **[⬆️ Back to Top](#management)**

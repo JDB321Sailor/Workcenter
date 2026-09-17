@@ -11,7 +11,7 @@ const CONF = `appConfig:
     enableOidc: true
     oidc:
       endpoint: https://example.test/
-      clientId: dashy-test
+      clientId: workcenter-test
       disableServerSideCheck: true
 pageInfo:
   title: My Dashboard
@@ -26,7 +26,7 @@ let app;
 let tmpDir;
 
 beforeAll(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-no-check-test-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-no-check-test-'));
   fs.writeFileSync(path.join(tmpDir, 'conf.yml'), CONF);
   fs.writeFileSync(path.join(tmpDir, 'sub.yml'), 'pageInfo:\n  title: Sub\n');
   process.env.USER_DATA_DIR = tmpDir;

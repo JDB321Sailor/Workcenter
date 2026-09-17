@@ -14,7 +14,7 @@ const FULL_CONF = `appConfig:
     enableOidc: true
     oidc:
       endpoint: https://example.test/
-      clientId: dashy-test
+      clientId: workcenter-test
       adminGroup: admins
 pageInfo:
   title: My Dashboard
@@ -29,7 +29,7 @@ let app;
 let tmpDir;
 
 beforeAll(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dashy-strip-test-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workcenter-strip-test-'));
   fs.writeFileSync(path.join(tmpDir, 'conf.yml'), FULL_CONF);
   fs.writeFileSync(path.join(tmpDir, 'sub.yml'), 'pageInfo:\n  title: Sub\n');
   fs.writeFileSync(path.join(tmpDir, 'sub.yaml'), 'pageInfo:\n  title: Sub\n');
@@ -47,7 +47,7 @@ describe('OIDC strip behaviour for /conf.yml', () => {
     expect(body._bootstrap.authenticated).toBe(false);
     expect(body._bootstrap.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     expect(body.appConfig.auth.enableOidc).toBe(true);
-    expect(body.appConfig.auth.oidc.clientId).toBe('dashy-test');
+    expect(body.appConfig.auth.oidc.clientId).toBe('workcenter-test');
     expect(body.appConfig.enableServiceWorker).toBe(true);
     expect(body.pageInfo.title).toBe('Login | My Dashboard');
     expect(body.sections).toBeUndefined();
