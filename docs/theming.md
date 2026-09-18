@@ -302,4 +302,5 @@ Intent colours. They are rarely themed, and the status indicators are the main c
 
 - [`configuring.md`](./configuring.md) — every option in `user-data/conf.yml`
 - [`security.md`](./security.md) — what a custom stylesheet can reach
-- [`development-guides.md`](./development-guides.md) — adding a built-in theme to the source
+- [`design.md` §4](../design.md#4-theming) — the token architecture, the theme bridge and how the
+  embedded applications are branded to match

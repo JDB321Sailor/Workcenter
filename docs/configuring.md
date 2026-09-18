@@ -120,14 +120,13 @@ default link target. Setting one has no visible effect:
 | `faviconApi` | Resolved a favicon for a link through a third-party service. |
 
 `sections`, at the top level, is in the same position — see below. Each of these may be implemented
-later; until then, treat them as reserved names rather than as settings. See [`icons.md`](./icons.md)
-for what the icon keys were meant to do.
+later; until then, treat them as reserved names rather than as settings.
 
 ### `appConfig.language`
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
-| `language` | `string` | auto-detected | An ISO 639-1 code, for example `en` or `en-GB`. Must be one of the 33 bundled locales; see [`multi-language-support.md`](./multi-language-support.md). |
+| `language` | `string` | auto-detected | An ISO 639-1 code, for example `en` or `en-GB`. Must be one of the bundled locales. It sets the shell's starting language; a user changes it afterwards from the user menu's language control, see [`design.md` §8](../design.md#8-i18n). |
 
 ### `appConfig.auth` — signing in
 

@@ -162,6 +162,38 @@ element.
 > **Rule D-2.1:** the switcher must never trigger a full page reload.
 > **Rule D-2.2:** activating the already-active application is a no-op except that it re-focuses the pane.
 
+#### D-2I — Switcher icons
+
+Each switcher button carries the **real brand mark** of the application behind it, so the button names
+the product the user is about to see. The marks are committed to the repository; the shell never
+fetches an icon from a third-party CDN at runtime.
+
+| Button | Asset | Represents |
+| --- | --- | --- |
+| Files | `icons/filebrowser-quantum.svg` | FileBrowser Quantum |
+| Chat | `icons/zulip.svg` | Zulip |
+| Mail | `icons/mailcow.svg` | Mailcow (the deployment that serves SOGo webmail) |
+
+The same set covers the rest of the shell's application references:
+
+| Asset | Used by |
+| --- | --- |
+| `icons/sogo.svg` | The Mail pane's loading and `auth-error` states, where the surface being reached is SOGo itself |
+| `icons/onlyoffice.svg` | The Files pane's editor hand-off state |
+| `icons/traefik.svg` | User menu → **Integrations** (admin only, D-6.3) |
+| `icons/authentik.svg` | User menu → **Identity** (admin only, D-6.3) |
+
+| Ref | Requirement |
+| --- | --- |
+| D-2I.1 | Icons live in `icons/` at the repository root — one SVG per application, named for the application, and are the single source of truth for every application mark in the shell. |
+| D-2I.2 | Every mark is sourced from [Dashboard Icons](https://dashboardicons.com) in its **base (SVG)** variant, keeping the upstream filename so a refresh is a straight re-download. Attribution is recorded in [`docs/credits.md`](./docs/credits.md). |
+| D-2I.3 | Components reference them through the `@icons` path alias (`@icons/zulip.svg`), so the bundler emits them as hashed assets and a missing file is a **build** failure rather than a broken image at runtime. |
+| D-2I.4 | A brand mark is rendered as an `<img>` at its own colours and is **never recoloured, tinted or masked** — active state is carried by the underline, the label colour and `aria-current` (D-2), not by the mark. |
+| D-2I.5 | Marks are rendered at 24px in the switcher, 20px in sidebar rows and user-menu rows, and 48px in pane loading and error states. The SVG scales; no second raster asset is committed. |
+| D-2I.6 | A brand mark is decorative whenever it sits next to its own text label (`aria-hidden="true"`); where it appears without a label — the collapsed rail — the button carries the application name as its accessible name. |
+| D-2I.7 | Marks are identical in light and dark mode. Where a mark would fail the 3:1 non-text contrast check against the rail in one mode, the **button**, not the mark, gains a neutral `--wc-icon-plate` backing. |
+| D-2I.8 | No SVG in `icons/` may contain a `<script>`, an event-handler attribute or a reference to a remote resource. This is checked in CI alongside lint. |
+
 ---
 
 ### D-2S — Status indicators (inside the application switcher)
@@ -271,15 +303,100 @@ Selecting a source or folder navigates the **Files pane** to that path and marks
 
 ### D-6 — User menu
 
+The rail's footer. A trigger row that is always visible, and a popover that holds identity, the two
+preference controls Workcenter owns — **appearance** and **language** — the admin links, and Logout.
+
+```
+┌────────────────────────────────────┐
+│  Jane Doe                          │
+│  jane@example.com                  │
+│  Workspace user · Admin            │
+├────────────────────────────────────┤
+│  Appearance      [ ☾ Dark ][ ☀ ]   │   D-6.1  dark is the default
+│  Language        English   [ 🏴 ▾ ]│   D-6.2  language in use + flag button
+├────────────────────────────────────┤
+│  Integrations                    ↗ │   D-6.3  admin only
+│  Mail admin                      ↗ │
+│  Identity                        ↗ │
+├────────────────────────────────────┤
+│  Sign out                          │
+└────────────────────────────────────┘
+          ▲ anchored to the trigger row
+┌────────────────────────────────────┐
+│  ⬤  Jane Doe              Admin    │   the trigger row, in the rail footer
+└────────────────────────────────────┘
+```
+
 | Property | Value |
 | --- | --- |
 | Collapsed content | Avatar (or initials) + admin badge when applicable |
-| Expanded content | Display name, email, group summary, theme switcher, language switcher, admin link (admin only), Logout |
+| Expanded content | Display name, email, group summary, **appearance control (D-6.1)**, **language control (D-6.2)**, admin links (admin only, D-6.3), Logout |
 | Admin badge | Small pill reading `Admin`; shown when the token carries `workspaceadmin` |
-| Admin link | "Integrations" → Traefik dashboard (new tab), "Mail admin" → Mailcow UI (new tab), "Identity" → Authentik (new tab). **Admin only.** |
 | Logout | Ends the Workcenter session and performs RP-initiated logout at Authentik so all panes end with it |
 | Position | Anchored bottom of the rail; a popover, not a route |
 | Keyboard | `Tab` reaches the trigger; `Enter` opens; arrow keys traverse; `Esc` closes and restores focus |
+| Order | Identity → appearance → language → admin links → Logout. Logout is always last and always separated by a divider, so it is never hit by accident |
+| Collapsed rail | The trigger becomes the avatar alone; the popover is unchanged and opens to the right of the rail |
+
+> **Rule D-6.1:** the user menu is the **only** place in the shell that changes appearance or
+> language. There is no settings route, no configuration modal and no second entry point.
+> **Rule D-6.2:** both controls apply immediately. Neither has an Apply button and neither reloads the
+> Workcenter page. A pane is refreshed only in the narrow case D-T6 allows, and never while work is
+> unsaved (D-T7).
+
+#### D-6.1 — Appearance: the light/dark mode switcher
+
+| Property | Specification |
+| --- | --- |
+| Element | `ThemeSwitcher.vue`, rendered in the user-menu popover |
+| Shape | A two-option segmented control, both options always visible, so the current mode is readable without opening a menu |
+| Options | **Dark** (moon glyph) and **Light** (sun glyph) |
+| Default | **Dark.** A user who has never chosen lands in `workcenter-dark` |
+| Expressing the default | The dark option is labelled `Dark (default)` until the user makes a choice, and the row's helper text reads `Dark is the Workcenter default — switch any time.` After an explicit choice the suffix is dropped and the helper text names where the mode is applied: `Applied to Workcenter, Files, Chat and Mail.` |
+| State | The active option carries the accent background, the accent text colour, `aria-checked="true"` and a check glyph — never colour alone |
+| Semantics | `role="radiogroup"` labelled `Appearance`, with two `role="radio"` options; `←`/`→` move between them, `Space` selects |
+| Scope | Changes the shell **and** every embedded application, through the theme bridge in [§4.4](#44-the-theme-bridge-forwarding-the-mode-switch) |
+| Persistence | Written to the user's Workcenter profile (server-side, so the mode follows the user to another browser) and mirrored into `localStorage` so the first paint after a reload is already correct and never flashes |
+| Feedback | The switch is instant for the shell. Each pane reports back through the bridge; a pane that does not confirm within 3 s is listed in a quiet inline note: `Chat is still switching…`, replaced by `Chat could not switch — open Zulip to change it there` on failure |
+| Reduced motion | The colour transition is suppressed under `prefers-reduced-motion: reduce`; the change is still instant |
+
+> **Rule D-6.3:** light/dark is the **only** look-and-feel control Workcenter offers a user. There is
+> no theme gallery, no accent picker and no per-application appearance override in the shell. Every
+> other visual decision is made once, at deployment, by [§4.6](#46-branding-the-embedded-applications).
+> **Rule D-6.4:** the mode switch never discards a draft, an upload or an open editor inside a pane.
+> Where applying the mode needs a pane refresh, that refresh waits (D-T7).
+
+#### D-6.2 — Language: language in use, and the flag button
+
+| Property | Specification |
+| --- | --- |
+| Element | `LanguageSwitcher.vue`, rendered directly beneath the appearance control |
+| Row contents | The label `Language`, the **language in use** written in its own endonym (`English`, `Deutsch`, `Français`), and a **flag button** to its right |
+| Flag button | A button whose face is the flag of the active language, with a small chevron; activating it opens the language menu |
+| Why a flag | The rail is narrow and the row is scanned, not read. The flag makes the current language recognisable at a glance to a user who cannot read the shell's current language well enough to find the setting |
+| Flag source | The active language's flag emoji, taken from the locale registry in `src/utils/languages.js`. It is a font glyph, not an image asset, so it costs nothing and needs no icon set |
+| Fallback | A language with no single unambiguous flag uses a globe glyph (`🌐`). The registry, not the component, decides |
+| Accessibility | The flag is decorative (`aria-hidden="true"`). The button's accessible name is `Change language — currently English`, so the flag never carries meaning on its own (D-A5) |
+| Menu | A listbox anchored to the button: one row per available language, each showing flag + endonym + English name, the active row marked with a check and `aria-selected="true"` |
+| Menu keyboard | `↑`/`↓` move, `Home`/`End` jump, typing filters by endonym or English name, `Enter` selects, `Esc` closes and returns focus to the flag button |
+| Filter field | Shown only when more than twelve languages are available |
+| On selection | The shell swaps its strings immediately, sets `document.documentElement.lang` (D-A9), re-formats dates, sizes and numbers through `Intl`, and forwards the choice to the panes through the language bridge in [§8.2](#82-the-language-bridge) |
+| Persistence | Identical to the mode: user profile first, `localStorage` mirror second |
+| First run | With no stored preference the shell uses the browser's preferred language when a translation exists, and English otherwise |
+| Not translated | Application names (`Files`, `Chat`, `Mail` are labels and *are* translated; `FileBrowser Quantum`, `Zulip`, `Mailcow`, `SOGo` are proper nouns and are not — D-I3) |
+
+> **Rule D-6.5:** the language in use is always written in its own language. A user who has landed in
+> the wrong language must be able to recognise the way back.
+> **Rule D-6.6:** changing language never changes the mode, and changing the mode never changes the
+> language. The two controls are independent.
+
+#### D-6.3 — Admin links
+
+| Property | Value |
+| --- | --- |
+| Links | "Integrations" → Traefik dashboard, "Mail admin" → Mailcow UI, "Identity" → Authentik. Each opens in a new tab with an external-link glyph and `rel="noopener"` |
+| Icons | `icons/traefik.svg`, `icons/mailcow.svg`, `icons/authentik.svg` at 20px (D-2I.5) |
+| Visibility | **Admin only** — rendered only when the token carries `workspaceadmin`. Hidden, not disabled |
 
 ---
 
@@ -383,11 +500,13 @@ Components reference **semantic tokens only**. No component contains a colour li
 | --- | --- |
 | `--wc-surface` | Shell background behind panes |
 | `--wc-surface-raised` | Cards, popovers, modals |
+| `--wc-surface-sunken` | Inset surfaces: search field, pane letterbox, icon wells |
 | `--wc-border` | Hairlines and dividers |
 | `--wc-text` / `--wc-text-muted` | Primary and secondary text |
 | `--wc-accent-files` | Files accent (blue) |
 | `--wc-accent-chat` | Chat accent (violet) |
 | `--wc-accent-mail` | Mail accent (teal) |
+| `--wc-icon-plate` | Neutral backing behind a brand mark that would otherwise fail contrast against the rail (D-2I.7) |
 | `--wc-focus-ring` | Focus ring colour, ≥3:1 against both surface and accent |
 | `--wc-scrim` | Modal backdrop |
 | `--wc-status-healthy` / `--wc-status-degraded` / `--wc-status-unhealthy` / `--wc-status-unknown` | Application switcher status indicators |
@@ -408,24 +527,139 @@ Retained Workcenter tokens (unchanged names, so Workcenter themes keep working):
 | `workcenter-contrast` | High-contrast variant meeting WCAG AAA for shell chrome |
 | Inherited Workcenter themes | Kept where they only affect tokens; themes referencing removed components are deleted |
 
-### 4.4 Theme bridge
+A user chooses between **dark** and **light** only, from the user menu (D-6.1). `workcenter-contrast`
+is selected by the operator in `user-data/conf.yml` or by the user's own
+`prefers-contrast: more`; it is not a third button in the shell.
 
-The shell's theme is pushed into each application so panes do not clash with the frame:
+#### 4.3.1 Where the palette comes from
 
-| Application | Mechanism | Fallback |
-| --- | --- | --- |
-| FileBrowser Quantum | `userDefaults.ui.darkMode` in `config.yaml`, plus a per-user preference | User's own FileBrowser setting wins if they change it |
-| Zulip | Deep-link the colour-scheme preference; Zulip remembers per user | User's own Zulip setting |
-| SOGo | SOGo's own theme preference; Workcenter ships a matching CSS override where supported | SOGo default |
+**FileBrowser Quantum is the appearance standard.** It occupies the Files pane, it is the surface a
+user sees most, and it is the only one of the three applications whose light and dark palettes are
+configurable. Workcenter therefore adopts FileBrowser Quantum's own values as the reference and
+derives everything else — its own tokens, and the branding it pushes into the other applications —
+from them.
+
+The reference values, read from the pinned FileBrowser Quantum 2.0.6-beta image (its palette is
+emitted into `:root` and `.dark-mode` in the served `index.html`):
+
+| FileBrowser variable | Light | Dark | Workcenter token |
+| --- | --- | --- | --- |
+| `--background` | `#f5f5f5` | `#141D24` | `--wc-surface` |
+| `--surfacePrimary` | `#ebebeb` | `#20292F` | `--wc-surface-raised` |
+| `--surfaceSecondary` | `lightgray` | `#3A4147` | `--wc-surface-sunken` |
+| `--textPrimary` | `#546e7a` | `rgba(255,255,255,0.87)` | `--wc-text` |
+| `--textSecondary` | `gray` | `rgba(255,255,255,0.6)` | `--wc-text-muted` |
+| `--divider` | `lightgray` | `rgba(255,255,255,0.12)` | `--wc-border` |
+| `--primaryColor` | `#2196f3` (`var(--blue)`) | `#2196f3` | `--wc-accent-files` |
+
+| Ref | Requirement |
+| --- | --- |
+| D-T3 | The shell's `--wc-surface`, `--wc-surface-raised`, `--wc-text`, `--wc-text-muted` and `--wc-border` values in each mode are the FileBrowser Quantum values above. A change to one is a change to both, in the same PR. |
+| D-T4 | `--wc-accent-files` is FileBrowser Quantum's `--primaryColor`, so the Files accent and the Files pane agree exactly. `--wc-accent-chat` and `--wc-accent-mail` are chosen to sit at the same lightness and chroma as that blue in each mode, so no application looks louder than another. |
+
+### 4.4 The theme bridge: forwarding the mode switch
+
+The user switches mode once, in the user menu (D-6.1). The shell's job is to make that one switch
+visible **everywhere** — its own chrome and all three embedded applications — because a dark rail
+wrapped around a white mail client is worse than either choice made consistently.
+
+The three applications expose three different capabilities, and the bridge is built around what each
+one actually supports rather than around a single mechanism that would have to be faked:
+
+| Application | What it supports | How Workcenter drives it | Live? |
+| --- | --- | --- | --- |
+| **FileBrowser Quantum** | A per-user `darkMode` boolean. The SPA applies it from its own store; there is no inbound message channel and no theme query parameter | The broker calls `PATCH /api/users?username=<login>` with `{"which":["darkMode"],"data":{"darkMode":<bool>}}` (→ `204`), then the shell re-loads that pane at its current path | After a pane refresh |
+| **Zulip** | A per-user `color_scheme` setting, pushed to every open client over its event queue | The broker calls `PATCH /api/v1/settings` with `color_scheme=2` (dark) or `3` (light). Zulip's client swaps the `dark-theme` class on `:root` from the resulting `user_settings` event | **Yes — no reload** |
+| **SOGo** | Nothing. SOGo 5.12 has no dark mode, no theme preference and no appearance setting | Workcenter's own stylesheet, injected by the SOGo JavaScript hook provisioned at setup ([§4.6](#46-branding-the-embedded-applications)), which flips a `data-wc-mode` attribute | **Yes — no reload** |
+
+#### 4.4.1 The switch, step by step
+
+1. The shell sets `data-wc-mode="dark"` or `"light"` on `<html>`. Chrome repaints from tokens; nothing
+   is fetched and nothing is remounted.
+2. The shell stores the choice: the user's Workcenter profile, a `localStorage` mirror, and the
+   **mode cookie** (4.4.2).
+3. The shell posts `{ type: 'workcenter:mode', mode }` to every mounted pane's `contentWindow` with
+   that pane's **exact origin** as `targetOrigin` — never `'*'`. Only SOGo listens; the other two
+   ignore it harmlessly.
+4. The shell calls `POST /api/broker/preferences` with the new mode. The broker fans out to
+   FileBrowser Quantum and Zulip as in the table above, in parallel, and returns a per-application
+   result.
+5. Zulip and SOGo are already correct. The Files pane is refreshed once the broker reports `204`,
+   reloading the **same path** the pane was last known to be on, so the user lands where they were.
+6. Any application that failed is reported in the user menu's inline note (D-6.1), never as a modal
+   and never as a silent failure.
+
+#### 4.4.2 The mode cookie
+
+First paint matters: an embedded application that loads light and then flips to dark is a flash of
+the wrong colour on every pane load.
+
+| Property | Value |
+| --- | --- |
+| Name | `wc_mode` |
+| Values | `dark` \| `light` |
+| Attributes | `Domain=.<base domain>`, `Path=/`, `SameSite=Lax`, `Secure`, `Max-Age` one year, **not** `HttpOnly` — the SOGo hook reads it from JavaScript |
+| Purpose | Lets any Workcenter-owned host render in the right mode on its **first** paint, before any message arrives |
+| Contents | The literal string `dark` or `light`. It carries no identity, no token and no personal datum, and nothing may ever be added to it |
+
+> **Rule D-T5:** the shell's own repaint is instant and reloads nothing. The shell never blocks the
+> user's chrome on an application's response.
+> **Rule D-T6 (supersedes D-T2):** a pane is refreshed **only** where the application offers no live
+> channel — today that is the Files pane alone — and only after the preference has been persisted, so
+> the refresh lands on the new value. The refresh restores the pane's current path.
+> **Rule D-T7:** the Files pane refresh is **deferred** while that pane is in a document editor
+> (Workcenter knows the pane's path from the `filebrowser:navigation` message FileBrowser Quantum
+> posts to its parent on every route change). While deferred, the user menu reads
+> `Files will switch when you close the editor.` Unsaved work is never discarded to apply a colour.
+> **Rule D-T8:** a pane message is always posted to an exact origin taken from the configured
+> application URL. A listener inside an application must verify `event.origin` against the Workcenter
+> origin and must act on nothing but the mode/language values. No pane message ever carries a token,
+> a credential or user data.
+> **Rule D-T2 (withdrawn):** superseded by D-T5 and D-T6. It required that no pane ever reload on a
+> theme change; that is not achievable for FileBrowser Quantum, which has no live channel, and the
+> user-visible requirement is that the mode change reaches every application.
+
+#### 4.4.3 Not overwriting the user
 
 > **Rule D-T1:** the theme bridge is **advisory**. Workcenter never overwrites a user's explicit
 > in-application preference.
-> **Rule D-T2:** switching theme in the shell must not reload any pane.
+
+Enforcement is per application, not a single flag:
+
+| Application | How D-T1 is honoured |
+| --- | --- |
+| Zulip | The realm-wide pass run by `setup.sh` uses `target_users` with `skip_if_already_edited: true`, which Zulip evaluates per setting against its own audit log: a user who has ever changed their own `color_scheme` is skipped. A user-initiated switch from the Workcenter user menu is that user's own explicit choice, so it always applies |
+| FileBrowser Quantum | The bridge writes only in response to a user-initiated switch. The instance default (`userDefaults.ui.darkMode`) is written once at setup and never re-imposed on an existing user |
+| SOGo | There is no user preference to overwrite |
 
 ### 4.5 Custom CSS
 
 Administrators may inject a stylesheet through `appConfig.customCss` (Workcenter's mechanism) and users
 through their profile. Custom CSS is scoped to shell chrome; it cannot reach inside iframes.
+
+### 4.6 Branding the embedded applications
+
+The bridge in §4.4 carries the **mode**. It cannot carry a look: three applications built by three
+projects do not become one product because they are all dark. The remaining work — palette, logo,
+name, corner radius — is done **once, at deployment, by `setup.sh`**, so that a running Workcenter
+reads as one system. The operator contract, stage by stage, is in
+[`production.md` §5.2a](./production.md#52a-stage-b1--branding-the-embedded-applications); the
+mechanisms are:
+
+| Application | What `setup.sh` sets | Mechanism |
+| --- | --- | --- |
+| **FileBrowser Quantum** | The reference palette itself, the Workcenter accent, the product name and the shell's corner radius | `frontend.styling.lightBackground`, `frontend.styling.darkBackground`, `frontend.styling.customCSS` (a path to a Workcenter stylesheet), `frontend.name`, `frontend.favicon`, `frontend.loginIcon`, and `userDefaults.ui.themeColor` in `Filebrowser/config.yaml` |
+| **SOGo** | The whole Workcenter palette, in both modes — SOGo has none of its own | A Workcenter stylesheet mounted into SOGo's web resources, plus a block appended to Mailcow's SOGo JavaScript hook (`data/conf/sogo/custom-sogo.js`, already loaded through `SOGoUIAdditionalJSFiles`) that links the stylesheet, reads `wc_mode` for first paint and listens for `workcenter:mode`. Logos go in Mailcow's existing `data/conf/sogo/custom-fulllogo.svg` and `custom-shortlogo.svg` mounts |
+| **Mailcow UI** | Palette and logo, so the authentication hand-off to SOGo and the admin surface match | `data/web/css/build/0081-custom-mailcow.css` (untracked upstream, survives `update.sh`), the Bootswatch theme selected by `$UI_THEME` in `data/web/inc/vars.local.inc.php` (also untracked), and the light/dark logos uploaded in **Configuration → Customize** |
+| **Zulip** | Organisation name, icon and both logos | `PATCH /api/v1/realm` for the name, `POST /api/v1/realm/icon`, and `POST /api/v1/realm/logo` twice — `night=false` for the light logo and `night=true` for the dark one, so Zulip swaps logos with the theme. Zulip's new-user default is set with `PATCH /api/v1/realm/user_settings_defaults` (`color_scheme=2`) |
+
+| Ref | Requirement |
+| --- | --- |
+| D-T9 | Every value `setup.sh` writes into an application's branding is **derived from the same palette source** ([§4.3.1](#431-where-the-palette-comes-from)). There is no second place where a Workcenter colour is decided. |
+| D-T10 | Branding is **idempotent and re-appliable**: re-running `setup.sh` changes nothing if the branding is already current, and re-applies it after an application upgrade has reverted a file. |
+| D-T11 | Branding never edits an upstream file that upstream also edits. Where the only available surface is such a file, the change is a delimited, re-appliable block and the fact is recorded in [`production.md` §10](./production.md#10-upgrading). |
+| D-T12 | **Zulip cannot be restyled.** It ships no custom-CSS mechanism, and its production tarball contains no editable CSS. Workcenter brands Zulip with name, icon, logos and theme only, and does not fork it for appearance. Documentation must not imply otherwise. |
+| D-T13 | Branding must never reduce contrast below the D-A1 floor inside an embedded application. Where a Workcenter colour would fail there, the application keeps its own value. |
 
 ---
 
@@ -479,6 +713,8 @@ through their profile. Custom CSS is scoped to shell chrome; it cannot reach ins
 
 ## 8. i18n
 
+### 8.1 Shell strings
+
 | Ref | Requirement |
 | --- | --- |
 | D-I1 | Every shell string lives in `src/assets/locales/en.json` and is referenced with `$t('key')`. |
@@ -486,6 +722,29 @@ through their profile. Custom CSS is scoped to shell chrome; it cannot reach ins
 | D-I3 | Application names are **not** translated (they are proper nouns); their descriptors are. |
 | D-I4 | Dates, file sizes and numbers are formatted with `Intl` using the active locale. |
 | D-I5 | English is the master locale; adding a language requires no component changes. |
+| D-I6 | Every language offered by the shell's switcher (D-6.2) has an entry in the locale registry carrying its endonym, its English name, its flag glyph, and the identifier each embedded application uses for the same language. A language with no mapping for an application is still offered — the shell simply cannot forward it there. |
+
+### 8.2 The language bridge
+
+Language forwards the same way the mode does, and for the same reason: a user who has put the shell
+into German should not have to find three more language settings. The mechanism differs per
+application because — as with appearance — each one names languages differently, and only two of the
+four surfaces can be set programmatically at all.
+
+| Application | Identifier space | How Workcenter drives it | Live? |
+| --- | --- | --- | --- |
+| **FileBrowser Quantum** | Its own internal keys, **not** BCP-47 (`en`, `de`, `fr`, `ptBR`, `zhCN`, `svSE`) | The broker calls `PATCH /api/users?username=<login>` with `{"which":["locale"],"data":{"locale":"<key>"}}` — the same endpoint the mode bridge uses, so one call can carry both | After a pane refresh |
+| **Zulip** | Django language codes (`en`, `de`, `zh-hans`) | The broker calls `PATCH /api/v1/settings` with `default_language`. Zulip emits the setting change to the open client but **cannot** re-render without a reload — its own source says so — so the Chat pane is refreshed once the call succeeds | After a pane refresh |
+| **SOGo** | SOGo language **names** (`English`, `German`, `BrazilianPortuguese`) — not tags | Not driven. SOGo resolves the user's own `SOGoLanguage` preference first, and otherwise takes the first of the browser's `Accept-Language` values that it supports, which already follows the user's browser | Not applicable |
+| **Mailcow UI** | IETF tags of its own (`en-gb`, `de-de`) | Not driven. The admin links open it in a new tab where its own switcher applies | Not applicable |
+
+| Ref | Requirement |
+| --- | --- |
+| D-I7 | The language bridge is **advisory**, exactly as D-T1 makes the theme bridge advisory. A user who has set a language inside an application keeps it. |
+| D-I8 | A language change forwards in **one** broker call per application, batched with the mode when both changed, so the panes refresh at most once. |
+| D-I9 | Refreshing a pane for a language change obeys D-T7: it waits for an open editor or an in-flight transfer. |
+| D-I10 | Where an application cannot be driven (SOGo, the Mailcow UI), the shell says so plainly in the language menu's footer rather than silently doing nothing: `Mail follows your browser's language.` |
+| D-I11 | The **language cookie** `wc_lang` mirrors `wc_mode` (4.4.2): same attributes, value is a BCP-47 tag, contents carry no identity. It exists so a Workcenter-owned surface can render in the right language on first paint. |
 
 ---
 
@@ -525,7 +784,17 @@ through their profile. Custom CSS is scoped to shell chrome; it cannot reach ins
 | `FilePickerModal.vue` | Overlay | D-8.2 |
 | `TransferProgress.vue` | Rail | D-8.3 |
 | `TransferToasts.vue` | Surface | D-8.4 |
-| `ThemeSwitcher.vue` / `LanguageSwitcher.vue` | Popover | §4, §8 |
+| `ThemeSwitcher.vue` | Popover | D-6.1 |
+| `LanguageSwitcher.vue` | Popover | D-6.2 |
+| `LanguageMenu.vue` | Popover | D-6.2 |
+| `AppMark.vue` | Rail / Surface | D-2I |
+
+Two non-component modules carry the bridges, so no component talks to an application directly:
+
+| Module | Responsibility |
+| --- | --- |
+| `src/utils/Theming.js` | Owns `data-wc-mode`, the `localStorage` mirror and the `wc_mode` cookie; posts `workcenter:mode` to the panes; calls the broker |
+| `src/utils/i18n.js` + `src/utils/languages.js` | The locale registry of D-I6 — endonym, English name, flag glyph and the per-application identifier — plus the same cookie/post/broker path for language |
 
 ---
 
@@ -541,6 +810,8 @@ Every UI pull request is reviewed against this list:
 - [ ] Does it survive a rail collapse and each breakpoint in §5?
 - [ ] Are all strings in `en.json`?
 - [ ] Are all colours and dimensions tokens, not literals?
+- [ ] Does it look right in **both** modes, and does anything it adds to a pane still look right after the mode is forwarded (§4.4)?
+- [ ] Does every brand mark come from `icons/` through the `@icons` alias, unrecoloured (D-2I)?
 - [ ] Does it respect `prefers-reduced-motion`?
 - [ ] Does it have a Playwright assertion for its happy path and one failure path? (see [`Testing.md`](./Testing.md))
 - [ ] Are the screenshots in the PR taken at a consistent viewport with before/after side by side?

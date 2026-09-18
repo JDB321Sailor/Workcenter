@@ -98,7 +98,7 @@ Workcenter's answer is to treat those three applications as **one workspace**:
 | **Persistent content surface** | Applications are embedded once and kept mounted, so switching preserves scroll position and session state. |
 | **Sidebar navigation** | Sections and items come from `user-data/conf.yml`; sections that set `hideFromWorkspace` are omitted. |
 | **Theming** | The full theme set inherited from Dashy, plus custom colours and an external stylesheet. |
-| **Multi-language** | 33 locales; English is the master. `yarn validate-locales` enforces key parity. |
+| **Multi-language** | 32 locales; English is the master. `yarn validate-locales` enforces key parity. |
 | **OIDC client** | The Workcenter-derived Authentik-compatible OIDC client, with silent renewal and group-based admin. |
 | **Healthcheck** | `/healthz` reports status, uptime and version for the container healthcheck. |
 

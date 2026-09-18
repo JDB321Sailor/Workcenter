@@ -39,7 +39,7 @@ Workcenter is built on the following projects. Full credit to their authors.
 | --- | --- |
 | [oidc-client-ts](https://github.com/authts/oidc-client-ts) | The OIDC client, used for Authentik sign-in |
 | [jose](https://github.com/panva/jose) | Server-side token verification |
-| [vue-i18n](https://github.com/intlify/vue-i18n) | The 33 locales |
+| [vue-i18n](https://github.com/intlify/vue-i18n) | The 32 locales |
 | [DOMPurify](https://github.com/cure53/DOMPurify) | Sanitising untrusted HTML |
 | [crypto-js](https://github.com/brix/crypto-js) | Password hashing for the local auth fallback |
 | [ajv](https://github.com/ajv-validator/ajv) | Validating `user-data/conf.yml` against the schema |
@@ -61,6 +61,14 @@ apply to their own code.
 | [SOGo](https://github.com/Alinto/sogo) | LGPL-2.1 | Webmail, calendar and contacts |
 | [Authentik](https://github.com/goauthentik/authentik) | MIT / GPL-3.0 | The identity provider |
 | [Traefik](https://github.com/traefik/traefik) | MIT | The reverse proxy |
+
+### Assets
+
+The application marks in [`icons/`](../icons) are the base SVG variants from the
+[Dashboard Icons](https://dashboardicons.com) collection by
+[@homarr-labs](https://github.com/homarr-labs/dashboard-icons) and its contributors, which is
+MIT licensed. Each mark remains the trademark of the project it represents; it is used to
+identify that project and for no other purpose.
 
 ## Contributing
 

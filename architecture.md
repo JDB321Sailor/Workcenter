@@ -108,6 +108,7 @@ Workcenter/                          # repository root == the Workcenter applica
 │   ├── fixtures/
 │   ├── support/
 │   └── playwright.config.ts
+├── icons/                           # NEW: application marks (SVG), one per integrated app
 ├── user-data/                       # runtime config + user assets            [kept from Dashy]
 │   ├── conf.yml                     # the Workcenter configuration file
 │   └── broker/                      # NEW: broker token store (gitignored)
@@ -151,6 +152,7 @@ Workcenter/                          # repository root == the Workcenter applica
 | AR-5 | Workcenter top-level names are preserved where the purpose is unchanged. Renaming a kept entry requires an entry in [`CHANGELOG.md`](./CHANGELOG.md). |
 | AR-6 | No generated artifact (`.env`, `node_modules/`, `dist/`, `*.sqlite`, `acme.json`) is committed. |
 | AR-7 | Documentation Markdown lives at the repository root (the specification set) or in `docs/` (the long-form guides). Nothing else may be added to the root. |
+| AR-46 | `icons/` holds exactly one SVG per integrated application, named for the application, and is the **single source of truth** for every application mark in the shell. Components reach it through the `@icons` build alias, never by a relative path and never from a remote URL. See [`design.md` D-2I](./design.md#d-2i--switcher-icons). |
 
 ---
 
@@ -172,8 +174,10 @@ src/
 ├── broker/                     # NEW: shell-side broker client
 │   ├── client.js               # typed fetch wrapper, token attaching, error mapping
 │   ├── transfers.js            # the four transfer actions, progress events
+│   ├── preferences.js          # NEW: appearance/language fan-out call (see §4.3)
 │   └── types.ts                # shared transfer/health types
 ├── components/
+│   ├── AppMark.vue             # NEW: brand mark from icons/, never recoloured (D-2I)
 │   ├── AppSwitcher/            # NEW: the three-button switcher with status indicators
 │   │   ├── AppSwitcher.vue     # button row + indicator row + STATUS label
 │   │   ├── AppSwitchButton.vue
@@ -198,8 +202,9 @@ src/
 │   │   ├── UserMenu.vue
 │   │   └── UserBadge.vue
 │   └── Settings/               # theme, language, per-user preferences       [kept, pruned]
-│       ├── ThemeSwitcher.vue
-│       └── LanguageSwitcher.vue
+│       ├── ThemeSwitcher.vue   # light/dark segmented control (D-6.1)
+│       ├── LanguageSwitcher.vue# language in use + flag button (D-6.2)
+│       └── LanguageMenu.vue    # the language listbox opened by the flag button
 ├── directives/                 # v-tooltip and friends                      [kept from Dashy]
 ├── mixins/                     # shared component behaviour                  [kept, pruned]
 │   ├── AppLaunchMixin.js       # opening methods: same pane, new tab
@@ -239,10 +244,10 @@ src/
 │   │   ├── ErrorHandler.js     # kept from Dashy
 │   │   └── CoolConsole.js
 │   ├── i18n.js
-│   ├── languages.js
+│   ├── languages.js            # locale registry: endonym, flag, per-application id (D-I6)
 │   ├── request.js
 │   ├── Sanitizer.js            # URL sanitising for pane targets
-│   ├── Theming.js
+│   ├── Theming.js              # mode state, wc_mode cookie, pane message, bridge call
 │   ├── Toast.js
 │   └── yaml.js
 └── views/
@@ -360,6 +365,7 @@ services/utils/broker/
 ├── engine/
 │   ├── transfer.js       # stream, size cap, cancel, atomic write, hash, audit
 │   ├── naming.js         # collision-safe naming, extension preservation
+│   ├── preferences.js    # appearance/language fan-out (see §4.3)
 │   └── audit.js          # structured transfer records
 ├── adapters/
 │   ├── files.js          # FileBrowser Quantum: source root resolution, read/write
@@ -386,6 +392,7 @@ services/utils/broker/
 | `POST` | `/api/broker/chat/files/send` | **F4** — send a file-source file into a Zulip message |
 | `GET` | `/api/broker/transfers/:id` | Transfer status and progress |
 | `POST` | `/api/broker/transfers/:id/cancel` | Cancel an in-flight transfer |
+| `POST` | `/api/broker/preferences` | Forward the user's appearance and/or language choice into the embedded applications ([`design.md` §4.4](./design.md#44-the-theme-bridge-forwarding-the-mode-switch), [§8.2](./design.md#82-the-language-bridge)) |
 
 | Ref | Requirement |
 | --- | --- |
@@ -393,6 +400,8 @@ services/utils/broker/
 | AR-15 | Every broker route is authenticated and authorised per user; there is no unauthenticated route except `/api/broker/health` returning liveness only. |
 | AR-16 | The broker is the only component allowed to write into the FileBrowser source tree on behalf of another application. |
 | AR-17 | Adapters are pure modules with injected transports, so they are unit-testable without a live Mailcow or Zulip. |
+| AR-47 | `POST /api/broker/preferences` acts **only** on the calling user, resolved from the verified token — never on a user named in the request body. It accepts `mode` and `locale`, fans out to the adapters in parallel, and answers with a per-application result so the shell can report a partial failure (`design.md` D-6.1) instead of pretending the switch succeeded. |
+| AR-48 | The preference fan-out is implemented in `services/utils/broker/engine/preferences.js` and uses the existing adapters. An adapter that has no preference surface reports `unsupported`; that is a normal outcome, not an error. |
 
 ---
 

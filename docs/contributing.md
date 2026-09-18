@@ -23,8 +23,9 @@ is useful.
 
 Run `yarn validate-locales` before opening the pull request: it fails if a locale file is
 missing, if a key used in code is absent from `en.json`, or if a locale is registered in
-`src/utils/languages.js` without a file. The full guide is in
-[`multi-language-support.md`](./multi-language-support.md).
+`src/utils/languages.js` without a file. The i18n requirements the shell must satisfy — the
+user menu's language control among them — are in
+[the design specification](../design.md#8-i18n).
 
 ## Submit a pull request
 

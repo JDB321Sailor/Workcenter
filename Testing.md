@@ -107,15 +107,20 @@ tests/
 │   ├── apps-registry.test.js
 │   ├── transfer-naming.test.js
 │   ├── config-helpers.test.js
+│   ├── theming.test.js          # mode state, cookie, pane message, default
+│   ├── languages.test.js        # locale registry and per-application mapping
 │   └── …
 ├── components/              # Vue components
 │   ├── app-switcher.test.js
 │   ├── app-sidebar.test.js
 │   ├── pane-host.test.js
+│   ├── theme-switcher.test.js
+│   ├── language-switcher.test.js
 │   └── …
 └── server/                  # Express + broker, node environment
     ├── broker-auth.test.js
     ├── broker-transfers.test.js
+    ├── broker-preferences.test.js
     ├── oidc-verify.test.js
     └── health.test.js
 ```
@@ -130,7 +135,11 @@ tests/
 | **Broker authorisation** | User A can never read user B's source, mailbox or chat identity |
 | **Adapters** | FileBrowser, Mail and Zulip adapters against recorded fixtures — including the Zulip 25 MiB boundary that selects `/api/v1/tus` |
 | **Config pipeline** | A missing key falls back to its default; an unknown key in `config.yaml` is rejected |
-| **Theming** | The theme bridge is advisory and never overwrites a user's explicit in-app choice |
+| **Theming** | Dark is the default with no stored preference; a switch sets `data-wc-mode`, writes the `wc_mode` cookie with `Secure`/`SameSite=Lax` and no identity in its value, and posts `workcenter:mode` to each pane **with that pane's exact origin**, never `'*'` |
+| **Theme bridge** | The broker fan-out calls FileBrowser with `{"which":["darkMode"]}` and Zulip with `color_scheme` 2/3; an application without a preference surface reports `unsupported` rather than failing; one failing application does not prevent the others; the bridge is advisory and never overwrites a user's explicit in-app choice |
+| **Pane refresh** | The Files pane refreshes only after a `204`, restores the path last reported by `filebrowser:navigation`, and is **deferred** while the pane is in an editor (D-T7). Zulip and SOGo are never refreshed for a mode change |
+| **Preference route** | `POST /api/broker/preferences` acts only on the caller from the verified token and ignores any user identifier in the body (AR-47) |
+| **Language** | The registry maps one shell locale to FileBrowser's key, Zulip's code and a flag glyph; a language with no mapping is still offered; changing language never changes the mode |
 | **i18n** | Every `$t('…')` key used in code exists in `en.json` (`yarn validate-locales`) |
 
 ### 4.3 Conventions
@@ -317,7 +326,10 @@ e2e/
 │   ├── zulip-large-upload.spec.ts         # the >25 MiB tus path
 │   ├── status-indicators.spec.ts # per-application indicators in the switcher
 │   ├── admin.spec.ts            # Traefik dashboard allowed for admin, denied for user
-│   ├── theme.spec.ts            # theme switch without reloading panes
+│   ├── theme.spec.ts            # the shell's own light/dark switch
+│   ├── theme-bridge.spec.ts     # the switch reaches all three embedded applications
+│   ├── language.spec.ts         # language in use, flag menu, forwarding
+│   ├── branding.spec.ts         # the applications carry Workcenter's name, logo and palette
 │   └── a11y.spec.ts             # keyboard traversal, focus visibility, contrast spot checks
 ├── fixtures/
 └── support/
@@ -371,7 +383,31 @@ test.describe('F1 — mail attachment to files', () => {
 });
 ```
 
-### 8.4 What must be covered
+### 8.3a Asserting *inside* a pane
+
+The mode-switch specs only mean something if they observe the **embedded application**, not
+Workcenter's own state. Asserting that the shell wrote a preference proves nothing about what the
+user sees in the pane.
+
+Playwright drives the browser through CDP rather than through page script, so it reads a
+cross-origin iframe directly — `frameLocator()` crosses the origin boundary that `postMessage` exists
+to work around. The assertion is therefore the real DOM of the real application:
+
+| Pane | The thing to assert | Why that specific thing |
+| --- | --- | --- |
+| Files | `dark-mode` present on, or absent from, the frame's `<html>` | It is the class FileBrowser Quantum itself toggles; nothing else sets it |
+| Chat | `dark-theme` on the frame's `:root` | It is the class Zulip's own `theme` module sets when it processes the `user_settings` event |
+| Mail | `data-wc-mode` on the frame's `<html>`, **plus** a changed computed background colour | SOGo has no theme of its own, so the attribute alone would only prove Workcenter's script ran — the colour proves the stylesheet applied |
+
+| Ref | Requirement |
+| --- | --- |
+| T-8.4 | A mode or language spec asserts the state of the **application** inside the pane. A spec that stops at the shell's `data-wc-mode`, at `localStorage`, or at a 200 response does not satisfy the requirement. |
+| T-8.5 | The Chat assertion runs **without reloading the frame**, because "changed without a reload" is the behaviour being tested. Reloading first would pass even if the live path were broken. |
+| T-8.6 | Where an application's stored preference is also checked (FileBrowser's `darkMode`, Zulip's `color_scheme`), it is checked **in addition to** the DOM, never instead of it — a stored value that the UI ignores is exactly the failure this suite exists to catch. |
+| T-8.7 | Every mode spec runs in **both directions** (dark → light → dark) and asserts the starting state, so a pane that was already in the target mode cannot produce a false pass. |
+| T-8.8 | The partial-failure spec stops one application's container and asserts the shell still switches, the remaining applications still change, and the failure is named in the UI. A silent failure is a test failure. |
+
+
 
 | # | Area | Assertion |
 | --- | --- | --- |
@@ -391,8 +427,15 @@ test.describe('F1 — mail attachment to files', () => {
 | 14 | **Status indicators** | All three indicators report healthy beneath their respective buttons; stopping a service flips its indicator and shows the diagnostic card; clicking a non-healthy indicator does not change the active application |
 | 15 | **Admin surfaces** | Admin reaches the Traefik dashboard; a normal user is denied |
 | 16 | **Cascade** | A pane that cannot load shows the error card with **Retry** and **Open in new tab** — never a blank frame |
-| 17 | **Theme** | Switching theme does not reload any pane |
-| 18 | **Keyboard** | The rail and switcher are fully traversable; focus is always visible |
+| 17 | **Mode, shell** | Dark is what a fresh user gets; the user menu labels it as the default; switching repaints the shell with no page reload and no full pane remount |
+| 18 | **Mode → Files** | After switching to light, FileBrowser's stored `darkMode` is `false` **and** the Files frame's `<html>` has lost the `dark-mode` class. Switching back restores both |
+| 19 | **Mode → Chat** | After switching, `:root` inside the Chat frame gains or loses `dark-theme` — asserted **without reloading the frame**, which is what proves Zulip's live event path is being used |
+| 20 | **Mode → Mail** | After switching, `<html data-wc-mode>` inside the Mail frame matches the shell, and SOGo's computed background colour changes — the proof that the supplied stylesheet, not a SOGo feature, is doing the work |
+| 21 | **Mode, state preserved** | Text typed into the Chat and Mail panes survives a mode switch; the Files pane refresh returns to the same path; a mode switch while a document editor is open defers the Files refresh and does not lose the document |
+| 22 | **Mode, partial failure** | With one application stopped, the shell still switches, the other two still change, and the user menu names the one that did not |
+| 23 | **Language** | The row shows the language in use in its own language; the flag button opens the menu; choosing German translates the shell, sets `<html lang>`, and updates the stored locale in FileBrowser and Zulip |
+| 24 | **Branding** | Each application shows the Workcenter name and logo, and its background matches the palette for the active mode |
+| 25 | **Keyboard** | The rail and switcher are fully traversable; focus is always visible |
 
 > **Rule T-8.1:** every spec asserts something a **user** can observe. A spec that only checks that a
 > request returned 200 belongs in the server tests.
@@ -620,8 +663,13 @@ The full stack takes minutes and several gigabytes. Most changes do not need it.
 ./setup.sh --base-domain wc.test --non-interactive
 ./setup.sh --base-domain wc.test --non-interactive   # must make no change
 ./setup.sh --base-domain wc.test --non-interactive   # must still make no change
+./setup.sh --brand                                   # must also make no change
 git status --porcelain                               # must be empty apart from gitignored files
 ```
+
+The `--brand` run is included deliberately: branding writes into files the applications own, so it is
+the stage most likely to append twice, duplicate a block or rewrite a file it has already written
+(P-29, P-31).
 
 ### 14.2 Testing stubs
 
@@ -666,6 +714,7 @@ A change is tested when **all** of the following hold:
 - [ ] No new flake was introduced, and no existing test was weakened or deleted to pass.
 - [ ] Fixtures remain synthetic and deterministic.
 - [ ] If the change touches `setup.sh` or a compose file, the three-run idempotency check passes.
+- [ ] If the change touches appearance, language or branding, the assertion is made **inside the pane**, against the embedded application's own DOM (T-8.4).
 
 ---
 

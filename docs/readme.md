@@ -21,7 +21,6 @@ The specification set lives at the repository root. These are the long-form guid
 
 - [Branch protection](./branch-protection.md) - GitHub-side branch, ruleset and check configuration
 - [Developing](./developing.md) - Running the development server locally, and the general workflow
-- [Development guides](./development-guides.md) - Common development tasks
 - [Release workflow](./release-workflow.md) - Releases, CI and automated tasks
 
 ## Running Workcenter
@@ -36,11 +35,10 @@ The specification set lives at the repository root. These are the long-form guid
 
 - [Authentication](./authentication.md) - How authentication works, and per-provider notes
 - [Theming](./theming.md) - Applying, writing and modifying themes
-- [Language switching](./multi-language-support.md) - Switching language, and adding a locale
+- [Appearance and language](../design.md#d-6--user-menu) - The user menu's mode switcher and language switcher, and how both reach the embedded applications
 - [REST API](./api.md) - Reading and updating configuration over HTTP
 - [Security](./security.md) - Security features, threat model and hardening
 - [Privacy](./privacy.md) - Network requests and data storage
-- [Icons](./icons.md) - Available icon types
 
 ## Misc
 
