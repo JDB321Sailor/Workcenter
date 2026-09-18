@@ -12,7 +12,7 @@
 
 > **Write code that looks like the code already next to it.**
 
-Workcenter is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter) and follows
+Workcenter is a derivative of [Dashy](https://github.com/lissy93/dashy) and follows
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser)'s contribution discipline. Where
 this document is silent, match the surrounding file. Where a linter and this document disagree, the
 linter wins and this document is corrected in the same PR.
@@ -475,4 +475,4 @@ Every one of these is a required CI check on the `Dev` branch.
 
 ---
 
-<p align="center"><sub>Workcenter standards · commit and branch discipline after <a href="https://github.com/gtsteffaniak/filebrowser">FileBrowser Quantum</a> · documentation style after <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>
+<p align="center"><sub>Workcenter standards · commit and branch discipline after <a href="https://github.com/gtsteffaniak/filebrowser">FileBrowser Quantum</a> · documentation style after <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>

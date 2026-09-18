@@ -38,7 +38,7 @@ Mailcow** (mail and calendar) — inside one page, with one sign-in, one navigat
 and one set of move-file actions that work *between* those services without the user
 ever leaving the page.
 
-Workcenter is a **derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter)**. Workcenter's
+Workcenter is a **derivative of [Dashy](https://github.com/lissy93/dashy)**. Dashy's
 Workspace view is the seed: a left-hand navigation sidebar plus an iframe surface that
 launches web applications without leaving the dashboard. Workcenter takes that seed and
 turns it into a purpose-built, three-application product with a real backend, a real
@@ -442,7 +442,7 @@ requirements are:
 
 | Ref | Requirement |
 | --- | --- |
-| U-8 | Styling derives from **Workcenter's theming model**: CSS custom properties, `color-palette.scss` variables, `--side-bar-*` tokens, light/dark themes and per-user custom CSS |
+| U-8 | Styling derives from **Dashy's theming model**: CSS custom properties, `color-palette.scss` variables, `--side-bar-*` tokens, light/dark themes and per-user custom CSS |
 | U-9 | The three applications are visually distinguished by an accent colour used on the active switcher button, the active sidebar affordance and the pane loading state |
 | U-10 | Workcenter chrome must be **quiet**: neutral surfaces, one accent, no gradients or decoration that competes with embedded applications |
 | U-11 | Because embedded applications carry their own theming, Workcenter must apply a **theme bridge**: one switch in the shell changes the shell *and* all three applications. FileBrowser Quantum through its per-user `darkMode`, Zulip through `color_scheme`, SOGo through the Workcenter stylesheet supplied at setup — SOGo has no dark mode of its own |
@@ -856,4 +856,4 @@ Workcenter 1.0 is done when **all** of the following are true:
 
 ---
 
-<p align="center"><sub>Workcenter roadmap · derived from <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a> · built on FileBrowser Quantum, Zulip, Mailcow/SOGo, OnlyOffice, Authentik and Traefik</sub></p>
+<p align="center"><sub>Workcenter roadmap · derived from <a href="https://github.com/lissy93/dashy">Dashy</a> · built on FileBrowser Quantum, Zulip, Mailcow/SOGo, OnlyOffice, Authentik and Traefik</sub></p>

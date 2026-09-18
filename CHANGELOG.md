@@ -258,7 +258,7 @@ as described in [`contributions.md`](./contributions.md).
    instead of reporting a success it did not achieve.
  - The realm-wide Zulip appearance pass needs a **human** administrator account. Zulip's settings
    endpoint rejects bot API keys, so the file-broker bot cannot perform it.
- - Workcenter is a **derivative of Workcenter**: the Default and Minimal views are intentionally
+ - Workcenter is a **derivative of Dashy**: the Default and Minimal views are intentionally
    discarded; only the Workspace view is carried forward.
  - The REST API's section and item routes are removed. `POST`, `GET`, `PATCH` and `DELETE` under
    `/api/config/:filename/sections/…` no longer exist, and neither does the `:sid` / `:iid`

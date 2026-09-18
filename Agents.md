@@ -11,7 +11,7 @@
 
 ## 0. Read this first
 
-Workcenter is a **derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter)** that integrates
+Workcenter is a **derivative of [Dashy](https://github.com/lissy93/dashy)** that integrates
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser),
 [Zulip](https://github.com/zulip/docker-zulip), Mailcow/SOGo, OnlyOffice, Authentik and Traefik.
 Almost every convention in this repository was inherited from Dashy and is intentional. An agent's

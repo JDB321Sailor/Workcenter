@@ -2,7 +2,7 @@
 
 Thank you for considering a contribution. Workcenter is a self-hosted workspace application that
 brings **FileBrowser Quantum**, **Zulip** and **SOGo on Mailcow** into one page with one sign-in and
-one set of cross-application file actions. It is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter).
+one set of cross-application file actions. It is a derivative of [Dashy](https://github.com/lissy93/dashy).
 
 This guide is the **process** document: how to set up, how to branch, how to raise a pull request, how
 it is reviewed, and how a release reaches `Stable`.
@@ -651,7 +651,7 @@ maintainers.
 
 ## 18. Licence and attribution
 
-Workcenter is a derivative work of [Workcenter](https://github.com/JDB321Sailor/Workcenter), which is MIT licensed.
+Workcenter is a derivative work of [Dashy](https://github.com/lissy93/dashy), which is MIT licensed.
 By contributing, you agree that your contribution is licensed under the same terms as this repository.
 
 Workcenter integrates, but does not vendor, the following projects. Their licences apply to their own
@@ -659,7 +659,7 @@ code:
 
 | Project | Licence |
 | --- | --- |
-| [Workcenter](https://github.com/JDB321Sailor/Workcenter) | MIT |
+| [Dashy](https://github.com/lissy93/dashy) | MIT |
 | [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) | Apache-2.0 |
 | [Zulip](https://github.com/zulip/zulip) | Apache-2.0 |
 | [Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized) | GPL-3.0 |
