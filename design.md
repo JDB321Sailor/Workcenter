@@ -2,7 +2,7 @@
 
 > **Scope:** every user-interface element of the Workcenter application: structure, layout, states,
 > interaction, theming, accessibility and responsiveness.
-> **Foundations:** [Workcenter](https://github.com/JDB321Sailor/Workcenter)'s theming model, CSS custom properties and
+> **Foundations:** [Dashy](https://github.com/lissy93/dashy)'s theming model, CSS custom properties and
 > Workspace view layout; [FileBrowser Quantum's sidebar](https://filebrowserquantum.com/en/docs/features/sidebar-links/)
 > as the sidebar interaction pattern.
 > **Companions:** [`roadmap.md`](./roadmap.md) · [`architecture.md`](./architecture.md) · [`standards.md`](./standards.md)
@@ -818,4 +818,4 @@ Every UI pull request is reviewed against this list:
 
 ---
 
-<p align="center"><sub>Workcenter design specification · sidebar pattern after <a href="https://filebrowserquantum.com/en/docs/features/sidebar-links/">FileBrowser Quantum</a> · theming after <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>
+<p align="center"><sub>Workcenter design specification · sidebar pattern after <a href="https://filebrowserquantum.com/en/docs/features/sidebar-links/">FileBrowser Quantum</a> · theming after <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>

@@ -2,7 +2,7 @@
 
 Thank you for considering a contribution. Workcenter is a self-hosted workspace application that
 brings **FileBrowser Quantum**, **Zulip** and **SOGo on Mailcow** into one page with one sign-in and
-one set of cross-application file actions. It is a derivative of [Workcenter](https://github.com/JDB321Sailor/Workcenter).
+one set of cross-application file actions. It is a derivative of [Dashy](https://github.com/lissy93/dashy).
 
 This guide is the **process** document: how to set up, how to branch, how to raise a pull request, how
 it is reviewed, and how a release reaches `Stable`.
@@ -138,6 +138,7 @@ Workcenter uses **three long-lived branches**, promoted in one direction only.
 | C-3.6 | Promotion is performed by maintainers using the `promote.yml` workflow with a semantic version argument (`X.Y.Z`), mirroring FileBrowser Quantum's `promote-dev-to-beta` workflow. |
 | C-3.7 | Never force-push a long-lived branch. Never rewrite published history. |
 | C-3.8 | Release branches, if ever needed for a hotfix, are named `hotfix/vX.Y.Z` and merge back into `Dev` as well as the release branch. |
+| C-3.9 | GitHub has one default-branch setting and it governs both what a visitor lands on and what a new pull request is based on, so the two cannot be set apart. `Stable` keeps the setting, and the `pull-request base` workflow (`pr-base.yml`) moves a pull request opened against `Beta` or `Stable` to `Dev` instead. A promotion is left alone. Because `pull_request_target` runs the copy of the workflow on the *base* branch, retargeting only works once `pr-base.yml` has been promoted to that branch; until then `ci.yml` still fails the pull request and it is retargeted by hand. |
 
 ### Branch naming
 
@@ -364,7 +365,9 @@ same PR, under `## [Unreleased]`.
 
 ### 8.2 Opening the PR
 
-* **Base branch: `Dev`.** Always.
+* **Base branch: `Dev`.** Always. GitHub proposes `Stable`, because that is the default branch; the
+  `pull-request base` workflow moves the pull request to `Dev` when it is opened ([C-3.9](#the-rules)),
+  and `ci.yml` fails it if it ends up anywhere else.
 * **Title:** Conventional Commit format, ≤ 72 characters — it becomes the merge commit subject.
   `feat(switcher): add three-button application switcher above the rail`
 * **Draft early** if you want feedback before the change is finished. Draft PRs still get CI.
@@ -651,7 +654,7 @@ maintainers.
 
 ## 18. Licence and attribution
 
-Workcenter is a derivative work of [Workcenter](https://github.com/JDB321Sailor/Workcenter), which is MIT licensed.
+Workcenter is a derivative work of [Dashy](https://github.com/lissy93/dashy), which is MIT licensed.
 By contributing, you agree that your contribution is licensed under the same terms as this repository.
 
 Workcenter integrates, but does not vendor, the following projects. Their licences apply to their own
@@ -659,7 +662,7 @@ code:
 
 | Project | Licence |
 | --- | --- |
-| [Workcenter](https://github.com/JDB321Sailor/Workcenter) | MIT |
+| [Dashy](https://github.com/lissy93/dashy) | MIT |
 | [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) | Apache-2.0 |
 | [Zulip](https://github.com/zulip/zulip) | Apache-2.0 |
 | [Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized) | GPL-3.0 |

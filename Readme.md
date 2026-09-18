@@ -480,14 +480,14 @@ If you are an AI coding agent, read [`Agents.md`](./Agents.md) first — it cont
 
 ## Licence and credits
 
-Workcenter is released under the **MIT Licence**, matching [Workcenter](https://github.com/JDB321Sailor/Workcenter),
+Workcenter is released under the **MIT Licence**, matching [Dashy](https://github.com/lissy93/dashy),
 from which it is derived.
 
 Workcenter is possible because of these projects:
 
 | Project | Licence | Role |
 | --- | --- | --- |
-| [**Workcenter**](https://github.com/JDB321Sailor/Workcenter) by Alicia Sykes | MIT | The Workspace view, theming, authentication and documentation conventions this project is built on |
+| [**Dashy**](https://github.com/lissy93/dashy) by Alicia Sykes | MIT | The Workspace view, theming, authentication and documentation conventions this project is built on |
 | [**FileBrowser Quantum**](https://github.com/gtsteffaniak/filebrowser) | Apache-2.0 | The file manager, and the standard for version control and contribution process |
 | [**Zulip**](https://github.com/zulip/zulip) | Apache-2.0 | Team chat |
 | [**Mailcow Dockerized**](https://github.com/mailcow/mailcow-dockerized) | GPL-3.0 | Mail server stack |
@@ -501,4 +501,4 @@ their own code, and upstream documentation remains the authority for upstream be
 
 ---
 
-<p align="center"><sub>Workcenter — files, chat and mail, in one page · built on <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>
+<p align="center"><sub>Workcenter — files, chat and mail, in one page · built on <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>

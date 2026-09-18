@@ -1,0 +1,80 @@
+# Pull-request base branch — points new pull requests at Dev.
+#
+# GitHub has a single default-branch setting, and it decides two things at once:
+# the branch a visitor lands on, and the branch a new pull request is opened
+# against. Workcenter wants those to differ — `Stable` is what a visitor should
+# see, `Dev` is what a pull request must target (contributions.md C-3.1, C-8.1).
+#
+# GitHub offers no setting for that, so this workflow supplies the missing half:
+# `Stable` stays the default branch, and any pull request that lands on `Beta` or
+# `Stable` is moved to `Dev` as soon as it is opened. The `Pull-request base
+# branch` check in `ci.yml` remains the gate; this only spares the contributor
+# the manual retarget.
+#
+# `pull_request_target` runs the copy of this file on the *base* branch, not the
+# one in the pull request, and nothing here checks out the contributor's code.
+# That is what makes a write-scoped token safe here.
+name: pull-request base
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+# A promotion pull request is the only one that may target Beta or Stable.
+# It is marked by its title, exactly as in `ci.yml`.
+env:
+  PROMOTION_TITLE_PREFIX: 'chore(release): promote'
+
+concurrency:
+  group: pr-base-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  retarget:
+    name: Retarget to Dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move the base branch to Dev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ "$BASE" = "Dev" ]; then
+            echo "Nothing to do: '$HEAD' already targets Dev."
+            exit 0
+          fi
+
+          case "$TITLE" in
+            "$PROMOTION_TITLE_PREFIX"*)
+              echo "Leaving '$BASE' alone: this is a promotion pull request."
+              exit 0
+              ;;
+          esac
+
+          case "$HEAD" in
+            Dev|Beta)
+              echo "Leaving '$BASE' alone: '$HEAD' is a promotion branch."
+              exit 0
+              ;;
+          esac
+
+          gh pr edit "$NUMBER" --base Dev
+          gh pr comment "$NUMBER" --body \
+            "Retargeted from \`$BASE\` to \`Dev\`. Every pull request targets \`Dev\`; \`Beta\` and \`Stable\` advance only by promotion. See [contributions.md §8](../blob/Dev/contributions.md#8-pull-request-guide)."
+
+          {
+            echo "### Pull request retargeted"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Pull request | #${NUMBER} |"
+            echo "| Was | \`${BASE}\` |"
+            echo "| Now | \`Dev\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

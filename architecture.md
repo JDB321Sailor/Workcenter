@@ -1,7 +1,7 @@
 # Workcenter — Architecture
 
 > **Scope:** folder structure, file breakdown and layout requirements for the Workcenter repository.
-> **Starting point:** [Workcenter](https://github.com/JDB321Sailor/Workcenter). Workcenter keeps Workcenter's folder
+> **Starting point:** [Dashy](https://github.com/lissy93/dashy). Workcenter keeps Dashy's folder
 > conventions, build pipeline, theming layout and documentation layout, and removes everything that
 > serves the Default and Minimal views.
 > **Companions:** [`roadmap.md`](./roadmap.md) · [`design.md`](./design.md) · [`standards.md`](./standards.md) ·
@@ -73,7 +73,7 @@ preserved in name and purpose wherever they still apply; new entries are marked 
 Workcenter/                          # repository root == the Workcenter application folder
 ├── .devcontainer/                   # Dev container definition              [kept from Dashy]
 ├── .github/                         # CI/CD, templates, CODEOWNERS          [kept, rewritten]
-│   ├── workflows/                   # lint, test, e2e, build, promote
+│   ├── workflows/                   # lint, test, e2e, build, pr base, promote
 │   ├── ISSUE_TEMPLATE/
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── docs/                            # Long-form documentation site source   [kept from Dashy]
@@ -781,4 +781,4 @@ Workcenter is deliberately closed to arbitrary tiles but open in three controlle
 
 ---
 
-<p align="center"><sub>Workcenter architecture · derived from <a href="https://github.com/JDB321Sailor/Workcenter">Workcenter</a></sub></p>
+<p align="center"><sub>Workcenter architecture · derived from <a href="https://github.com/lissy93/dashy">Dashy</a></sub></p>
