@@ -255,7 +255,7 @@ type(scope): description
 | S-G-3 | The body explains **why**, wrapping at 100 characters; the diff already shows what. |
 | S-G-4 | Breaking changes are marked with `!` after the type/scope and a `BREAKING CHANGE:` footer. |
 | S-G-5 | One coherent change per commit; no "wip" or "fixes" commits in the final history. |
-| S-G-6 | The upstream Workcenter import is one commit with the exact upstream commit hash in the body. |
+| S-G-6 | The upstream Dashy import is one commit with the exact upstream commit hash in the body. |
 | S-G-7 | Never commit generated artifacts, editor configuration or OS files. |
 
 Examples:

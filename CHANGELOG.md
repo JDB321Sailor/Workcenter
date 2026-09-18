@@ -174,7 +174,7 @@ as described in [`contributions.md`](./contributions.md).
    lissy93/fix/status-check-ping-mem-limits", 2026-09-12). Workcenter is derived from this commit.
  - Initial documentation baseline for the Workcenter application: roadmap, architecture,
    design, agent, standards, contribution, OIDC, testing and production specifications.
- - Defined the single-pane Workcenter shell derived from the Workcenter Workspace view
+ - Defined the single-pane Workcenter shell derived from the Dashy Workspace view
    (application switcher above a per-application sidebar).
 
 ### Deployment
@@ -184,6 +184,9 @@ as described in [`contributions.md`](./contributions.md).
    lint, typecheck, unit tests, locale check, config validation and production build.
  - `.github/workflows/promote.yml` — promotion of `Dev` → `Beta` and `Beta` → `Stable` by
    semantic version.
+ - `.github/workflows/pr-base.yml` — retargets a pull request opened against `Beta` or `Stable` to
+   `Dev`, so `Stable` can stay the branch a visitor lands on while every pull request still lands on
+   `Dev` (`contributions.md` C-3.9). A promotion pull request is left alone.
  - `.github/ISSUE_TEMPLATE/` and `.github/pull_request_template.md`, covering the requirement-ID,
    changelog and test-evidence obligations.
 
@@ -205,6 +208,14 @@ as described in [`contributions.md`](./contributions.md).
    the upstream project now names Workcenter. The only surviving reference is the
    acknowledgement that Workcenter was built from Dashy, which the MIT licence requires and
    which now appears in one consistent form.
+ - Restore the Dashy attribution the rebrand overwrote. The rename replaced the upstream name
+   inside the acknowledgements themselves, leaving `Agents.md`, `Readme.md`, `architecture.md`,
+   `CHANGELOG.md`, `contributions.md`, `design.md`, `roadmap.md` and `standards.md` claiming that
+   Workcenter is a derivative of Workcenter and pointing the MIT credit at this repository rather
+   than at Dashy.
+ - Record how the base branch of a pull request is chosen: `Stable` stays the GitHub default so it
+   is what a visitor lands on, and `pr-base.yml` moves a new pull request to `Dev`
+   (`contributions.md` C-3.9, §8.2).
  - `docs/credits.md` rewritten: it credits Dashy as the origin, lists the dependencies
    Workcenter actually uses, and drops the sponsor, stargazer and contributor widgets that
    pulled data from another project.

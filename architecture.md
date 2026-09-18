@@ -73,7 +73,7 @@ preserved in name and purpose wherever they still apply; new entries are marked 
 Workcenter/                          # repository root == the Workcenter application folder
 ├── .devcontainer/                   # Dev container definition              [kept from Dashy]
 ├── .github/                         # CI/CD, templates, CODEOWNERS          [kept, rewritten]
-│   ├── workflows/                   # lint, test, e2e, build, promote
+│   ├── workflows/                   # lint, test, e2e, build, pr base, promote
 │   ├── ISSUE_TEMPLATE/
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── docs/                            # Long-form documentation site source   [kept from Dashy]
