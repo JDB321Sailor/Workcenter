@@ -2,14 +2,16 @@
  * Integration health.
  *
  * The application switcher shows one status indicator per application (design.md
- * D-2S). The states come from the broker's health endpoint, which composes the
- * container healthchecks described in integration.md section 10.
+ * D-2S). The states come from the broker's health route, which probes each
+ * configured application address server-side — the shell cannot see a cross-origin
+ * response's headers from inside a frame. Container healthchecks join that
+ * composition when the stack is deployed (roadmap Phase 3, architecture.md AR-49).
  *
- * Until the broker exists the endpoint is absent, so every application reports
- * `unknown`. That is a real state, not an error: the indicator is grey and its
- * tooltip says the check has not run.
+ * A check that does not run is not a failure: every application reports
+ * `unknown`, the indicator is grey, and its tooltip says the check has not run.
  */
 
+import { reactive } from 'vue';
 import request from '@/utils/request';
 import { APP_LIST } from '@/utils/apps/registry';
 import { serviceEndpoints } from '@/utils/config/defaults';
@@ -32,24 +34,47 @@ const MIN_INTERVAL_MS = 15 * 1000;
 
 /** Every application starts unknown, and its own entry carries the detail. */
 const unknownState = () => APP_LIST.reduce((acc, app) => {
-  acc[app.id] = { state: HEALTH.UNKNOWN, check: '', since: null };
+  acc[app.id] = {
+    state: HEALTH.UNKNOWN,
+    check: '',
+    endpoint: '',
+    since: null,
+    /* Facts the shell cannot learn from inside a cross-origin frame: whether
+       the application refuses to be framed, and whether its session is gone.
+       The broker reports both (design.md D-7.1). */
+    frameBlocked: false,
+    authError: false,
+  };
   return acc;
 }, {});
 
 const HealthService = {
-  /** Reactive-by-reference state, read by the switcher's indicators. */
-  state: {
+  /**
+   * Reactive-by-reference state, read by the switcher's indicators.
+   *
+   * It must be reactive: a poll landing outside a component's own proxy would
+   * otherwise never repaint the indicator it belongs to.
+   */
+  state: reactive({
     apps: unknownState(),
     lastChecked: null,
     polling: false,
-  },
+  }),
 
   _timer: null,
   _interval: BASE_INTERVAL_MS,
 
   /** The health entry for one application. */
   forApp(appId) {
-    return this.state.apps[appId] || { state: HEALTH.UNKNOWN, check: '', since: null };
+    return this.state.apps[appId]
+      || {
+        state: HEALTH.UNKNOWN,
+        check: '',
+        endpoint: '',
+        since: null,
+        frameBlocked: false,
+        authError: false,
+      };
   },
 
   /** True when every application is healthy. */
@@ -59,23 +84,33 @@ const HealthService = {
 
   /** Replace the state from a health payload keyed by application id. */
   apply(payload) {
+    const now = new Date().toISOString();
     const next = unknownState();
     Object.entries(payload || {}).forEach(([appId, entry]) => {
       if (!next[appId]) return; // An application this build does not have.
       next[appId] = {
         state: entry?.state || HEALTH.UNKNOWN,
         check: entry?.check || '',
-        since: entry?.since || null,
+        endpoint: entry?.endpoint || '',
+        since: entry?.since || now,
+        frameBlocked: Boolean(entry?.frameBlocked),
+        authError: Boolean(entry?.authError),
       };
     });
     this.state.apps = next;
-    this.state.lastChecked = new Date().toISOString();
+    this.state.lastChecked = now;
   },
 
   /** Mark one application's state directly, for tests and for local changes. */
-  set(appId, state, check = '') {
+  set(appId, state, check = '', endpoint = '') {
     if (!this.state.apps[appId]) return;
-    this.state.apps[appId] = { state, check, since: new Date().toISOString() };
+    this.state.apps[appId] = {
+      ...this.state.apps[appId],
+      state,
+      check,
+      endpoint,
+      since: new Date().toISOString(),
+    };
   },
 
   /**
@@ -89,7 +124,10 @@ const HealthService = {
       const res = await request.get(serviceEndpoints.brokerHealth);
       this.apply(res?.apps || res || {});
       return this.state.apps;
-    } catch {
+    } catch (e) {
+      // The check itself did not run, so every application is unknown rather
+      // than unhealthy — and the reason is reported, never swallowed.
+      this.warn(`health poll failed: ${e?.message || e}`);
       this.apply({});
       return this.state.apps;
     }

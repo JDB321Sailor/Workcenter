@@ -32,6 +32,7 @@ const sslServer = require('./utils/ssl-server'); // TLS-enabled web server
 const corsProxy = require('./endpoints/cors-proxy'); // Enables API requests to CORS-blocked services
 const getUser = require('./endpoints/get-user'); // Enables server side user lookup
 const { apiEnabledGate, apiErrorHandler, createApiRouter } = require('./endpoints/api'); // Opt-in REST API
+const { createBrokerServer } = require('./broker-server'); // Same-origin broker API for the shell
 
 const { loadOidcSettings, createOidcMiddleware, maybeBootstrapConfig } = require('./utils/auth-oidc');
 
@@ -44,6 +45,7 @@ const ENDPOINTS = {
   getUser: '/get-user',
   configSchema: '/schema.json',
   api: '/api',
+  broker: '/api/broker',
 };
 
 /* Read package version once at startup, so healthcheck never touches the disk per-request */
@@ -280,6 +282,14 @@ const app = express()
     } catch (e) {
       safeEnd(res, errBody(e));
     }
+  }))
+  // The broker API. Same origin as the shell, so the session token applies and
+  // no CORS arrangement is needed (architecture.md AR-14). It is mounted before
+  // the opt-in `/api` router, whose gate answers 404 for everything under /api
+  // when ENABLE_API is not set.
+  .use(ENDPOINTS.broker, createBrokerServer({
+    applications: config?.appConfig?.applications || {},
+    authConfig: config?.appConfig?.auth || {},
   }))
   // REST API for reading / writing config files (no-op 404 unless ENABLE_API=true)
   .use(ENDPOINTS.api, apiEnabledGate, createApiRouter({
