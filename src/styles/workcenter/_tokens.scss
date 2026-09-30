@@ -1,0 +1,99 @@
+/* Workcenter shell tokens.
+ *
+ * Two layers, as design.md section 4.1 requires: the palette layer holds raw
+ * values, and this semantic layer holds the meaning-bearing tokens the shell's
+ * components use. Components reference these tokens only — no component carries
+ * a colour literal.
+ *
+ * FileBrowser Quantum is the appearance standard (design.md D-T3, D-T4): the
+ * surface, text and border values below are its own, so the Files pane and the
+ * shell around it agree exactly. The light-mode "ink" variants exist because
+ * the Files accent at its own lightness does not reach the 4.5:1 contrast floor
+ * for small text on a light surface (design.md D-A1, roadmap U-16); the accent
+ * itself is unchanged, so D-T4 still holds.
+ *
+ * The default is dark. `html[data-wc-mode='light']` overrides it, and an
+ * operator-selected inherited theme (a `html[data-theme='…']` block) still wins
+ * for the tokens it defines — that is the documented precedence.
+ */
+
+:root,
+html[data-wc-mode='dark'] {
+  /* Surfaces and text: FileBrowser Quantum's dark values. */
+  --wc-surface: #141d24;
+  --wc-surface-raised: #20292f;
+  --wc-surface-sunken: #3a4147;
+  --wc-text: rgb(255 255 255 / 87%);
+  --wc-text-muted: rgb(255 255 255 / 60%);
+  --wc-border: rgb(255 255 255 / 12%);
+
+  /* Accents: Files is FileBrowser's primary colour; Chat and Mail sit at the
+     same lightness and chroma so no application looks louder than another. */
+  --wc-accent-files: #2196f3;
+  --wc-accent-chat: #8a6cf0;
+  --wc-accent-mail: #2fb8a8;
+  --wc-accent-files-ink: var(--wc-accent-files);
+  --wc-accent-chat-ink: var(--wc-accent-chat);
+  --wc-accent-mail-ink: var(--wc-accent-mail);
+
+  --wc-icon-plate: rgb(255 255 255 / 8%);
+  --wc-focus-ring: #64b5f6;
+  --wc-scrim: rgb(0 0 0 / 50%);
+  --wc-shadow-popover: 0 6px 22px rgb(0 0 0 / 45%);
+
+  /* Health states, readable against the dark rail. */
+  --wc-status-healthy: #4caf50;
+  --wc-status-degraded: #ffb300;
+  --wc-status-unhealthy: #ef5350;
+  --wc-status-unknown: #9e9e9e;
+
+  /* The rail follows the mode, through the retained token names. */
+  --side-bar-background: var(--wc-surface);
+  --side-bar-background-lighter: var(--wc-surface-raised);
+  --side-bar-color: var(--wc-text);
+  --side-bar-item-background: var(--wc-surface-raised);
+  --side-bar-item-color: var(--wc-text);
+  --workspace-web-content-background: var(--wc-surface);
+}
+
+html[data-wc-mode='light'] {
+  /* Surfaces and text: FileBrowser Quantum's light values. */
+  --wc-surface: #f5f5f5;
+  --wc-surface-raised: #ebebeb;
+  --wc-surface-sunken: #d3d3d3;
+  --wc-text: #546e7a;
+  --wc-text-muted: #616161;
+  --wc-border: #c9c9c9;
+
+  --wc-accent-files: #2196f3;
+  --wc-accent-chat: #8a6cf0;
+  --wc-accent-mail: #2fb8a8;
+  /* Darkened for text and icons so the shell meets WCAG AA on a light surface
+     while the accent tokens above stay FileBrowser's own values. */
+  --wc-accent-files-ink: #1565c0;
+  --wc-accent-chat-ink: #5b3fc4;
+  --wc-accent-mail-ink: #17796e;
+
+  --wc-icon-plate: rgb(0 0 0 / 6%);
+  --wc-focus-ring: #1565c0;
+  --wc-scrim: rgb(0 0 0 / 40%);
+  --wc-shadow-popover: 0 6px 22px rgb(0 0 0 / 22%);
+
+  --wc-status-healthy: #2e7d32;
+  --wc-status-degraded: #b26a00;
+  --wc-status-unhealthy: #c62828;
+  --wc-status-unknown: #757575;
+
+  --side-bar-background: var(--wc-surface);
+  --side-bar-background-lighter: var(--wc-surface-raised);
+  --side-bar-color: var(--wc-text);
+  --side-bar-item-background: var(--wc-surface-raised);
+  --side-bar-item-color: var(--wc-text);
+  --workspace-web-content-background: var(--wc-surface);
+}
+
+/* The shell's radius stays the inherited token, so existing themes keep
+   working (design.md section 4.2). */
+:root {
+  --wc-radius: var(--curve-factor);
+}
