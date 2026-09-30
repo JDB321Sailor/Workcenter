@@ -15,11 +15,17 @@ import {
 } from '@/utils/config/defaults';
 import ErrorHandler from '@/utils/logging/ErrorHandler';
 import { applyItemId } from '@/utils/config/SectionHelpers';
-import $store from '@/store';
+import storeRef from '@/utils/config/storeRef';
 
 export default class ConfigAccumulator {
   constructor() {
-    this.conf = $store.state.config;
+    /* The store is read through a reference rather than imported, so this
+       module is not part of an import cycle with `store.js`. The store may not
+       have published itself yet when a caller constructs the accumulator during
+       start-up; an empty config means "defaults only", which is the correct
+       answer at that moment. */
+    const store = storeRef.current;
+    this.conf = (store && store.state && store.state.config) || {};
   }
 
   pages() {

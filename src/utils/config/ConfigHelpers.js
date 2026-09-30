@@ -1,5 +1,4 @@
 import ConfigAccumulator from '@/utils/config/ConfigAccumalator';
-import filterUserSections from '@/utils/CheckSectionVisibility';
 import { languages } from '@/utils/languages';
 import {
   visibleComponents,
@@ -125,18 +124,12 @@ export const formatConfigPath = (configPath) => {
   return stripped;
 };
 
-/**
- * Initiates the Accumulator class and generates a complete config object
- * Self-executing function, returns the full user config as a JSON object
- */
-export const config = (() => {
-  const Accumulator = new ConfigAccumulator();
-  return {
-    appConfig: Accumulator.appConfig(),
-    pageInfo: Accumulator.pageInfo(),
-    sections: filterUserSections(Accumulator.sections()),
-  };
-})();
+/* The eager "the whole config as a JSON object" export that used to live here
+ * was removed: nothing imported it, and building it at module scope meant
+ * constructing the accumulator — which reads the store — during module
+ * evaluation. That is what made start-up depend on import order. Read the
+ * configuration through `store.getters` in components, or construct
+ * `ConfigAccumulator` where a complete config is actually needed. */
 
 /**
  * Generates an object containing booleans indicating which
@@ -179,8 +172,11 @@ export const getCustomKeyShortcuts = (sections) => (sections || [])
  * @returns {object} Language, including code, name and flag
  */
 export const getUsersLanguage = () => {
+  /* Constructed on demand rather than at module scope: reading the effective
+     configuration needs the store, and building it while modules are still
+     evaluating is what made start-up order-dependent. */
   const langCode = localStorage[localStorageKeys.LANGUAGE]
-    || config.appConfig.language
+    || new ConfigAccumulator().appConfig().language
     || defaultLanguage;
   const legacyAliases = { cn: 'zh-CN' };
   const resolvedCode = legacyAliases[langCode] || langCode;
