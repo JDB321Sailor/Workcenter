@@ -57,7 +57,7 @@ And exactly one deliberate deviation:
 | Application | Version pin | Subdomain | Presentation | Identity | Data path | Health |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Workcenter shell + broker** | built from this repo | `example.com` | — | OIDC client | — | `/healthz` |
-| **FileBrowser Quantum** | `2.0.6-beta` | `filebrowser.example.com` | pane (iframe) | OIDC client | REST `/api/` + shared bind mount | image `HEALTHCHECK` → `/health` |
+| **FileBrowser Quantum** | `2.0.9-beta` | `filebrowser.example.com` | pane (iframe) | OIDC client | REST `/api/` + shared bind mount | image `HEALTHCHECK` → `/health` |
 | **ONLYOFFICE Docs** | pinned tag | `office.example.com` (or internal) | inside the Files pane | none (JWT) | JWT-signed callbacks | `/healthcheck` |
 | **Zulip** (5 services) | `ghcr.io/zulip/zulip-server:<ver>-0` | `chat.example.com` | pane (iframe, **derived image**) | OIDC client | REST `/api/v1/` | `/health` (IP-restricted) |
 | **Mailcow** (18 services) | upstream `master` | `mail.example.com` | pane (iframe, SOGo) | **Generic-OIDC IdP** | IMAP/SMTP from the broker | override healthchecks + Mailcow API |
@@ -73,7 +73,7 @@ And exactly one deliberate deviation:
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) is the actively maintained fork of
 the original FileBrowser — which is **deprecated** and is *not* used by Workcenter. Quantum adds
 real-time indexing, search, previews, shares, WebDAV, an office-integration stack and a per-user
-sidebar. **Workcenter targets the v2 line (2.0.6-beta) exclusively**, because v2 changed the
+sidebar. **Workcenter targets the v2 line (2.0.9-beta) exclusively**, because v2 changed the
 configuration schema, the database engine (SQLite rather than BoltDB) and the sidebar model.
 
 ### 3.2 Why Workcenter uses it
@@ -88,7 +88,7 @@ transfer in Workcenter ultimately writes into, or reads from, a FileBrowser sour
 ```yaml
 services:
   filebrowser:
-    image: ${FILEBROWSER_IMAGE}          # gtstef/filebrowser:2.0.6-beta
+    image: ${FILEBROWSER_IMAGE}          # gtstef/filebrowser:2.0.9-beta
     # ghcr.io/gtsteffaniak/filebrowser is an equivalent registry
     expose: ["80"]
     volumes:
@@ -106,7 +106,7 @@ services:
 
 | Ref | Note |
 | --- | --- |
-| IN-3.1 | Image tags strip the leading `v`: git tag `v2.0.6-beta` → `2.0.6-beta`. There is **no `latest`** on the beta line, so the pin is mandatory. |
+| IN-3.1 | Image tags strip the leading `v`: git tag `v2.0.9-beta` → `2.0.9-beta`. There is **no `latest`** on the beta line, so the pin is mandatory. |
 | IN-3.2 | `FILEBROWSER_DATABASE_PATH` does **not** override `server.database.path` — if the YAML sets the path, the YAML wins. Set it in exactly one place. |
 | IN-3.3 | The image runs as uid/gid `1000:1000`; the bind-mounted source must be writable by that user. |
 
@@ -167,7 +167,7 @@ integrations:
 
 | Ref | Note |
 | --- | --- |
-| IN-3.4 | **`config.defaultEnabled: true` on the source is mandatory.** The default is `false`, and a user created via OIDC sees no files until a source is enabled for them. It is only implied automatically when there is exactly one source — do not rely on that. |
+| IN-3.4 | **`config.defaultEnabled: true` on the source is mandatory.** Set it explicitly: a user created via OIDC sees no files until a source is enabled for them, and relying on the implied case (exactly one source) is a trap. The generated reference for `2.0.9-beta` documents `true` as the default, but the setting is written out so the behaviour does not depend on which way that default falls. |
 | IN-3.5 | **`http.trustProxyHeaders: true` is mandatory.** FileBrowser builds its OIDC redirect URI from the **incoming request** (`https://<host><baseURL>api/auth/oidc/callback`), never from `externalUrl`. Traefik must send `X-Forwarded-Proto` and `X-Forwarded-Host` with `passHostHeader`. Register exactly the derived URI in Authentik. |
 | IN-3.6 | Provider discovery runs **at startup**, and failure is fatal. If Authentik is unreachable when FileBrowser starts, FileBrowser will not start. Order the stack accordingly. |
 | IN-3.7 | Valid v2 keys are `http.disableWebDAV` (not `server.disableWebDAV` — the latter fails startup), and `integrations.office` (not a root `office:`). There is **no** `disableVerifyTLS` for OnlyOffice; it exists only for auth methods. |
@@ -231,7 +231,10 @@ other applications derive from ([`design.md` §4.3.1](./design.md#431-where-the-
 | IN-3.19 | **Per-user, at runtime.** `PATCH /api/users?username=<login>` with `{"which":["darkMode"],"data":{"darkMode":<bool>}}` (and/or `"locale"`), answering `204`. `darkMode` and `locale` are non-admin-editable, so the user's own session is sufficient and no admin token is used. |
 | IN-3.20 | The SPA reads `darkMode` from its own store at load and exposes **no inbound message channel and no theme query parameter**; the only outbound message is `{type:"filebrowser:navigation", url}`. The Files pane is therefore refreshed after a successful `PATCH`, at the path that message last reported ([`design.md` D-T6, D-T7](./design.md#442-the-mode-cookie)). |
 | IN-3.21 | `locale` values are FileBrowser's **own keys**, not BCP-47: `en`, `de`, `fr`, `ptBR`, `zhCN`, `svSE`. The mapping lives in the shell's locale registry (`design.md` D-I6), never inline in a caller. |
-| IN-3.22 | Unknown keys inside a valid `config.yaml` section are **fatal** — the parser rejects them. Every key `setup.sh` writes must exist in the pinned version; a branding key is verified before it is written, not after the container fails to start. |
+| IN-3.22 | Unknown keys inside a valid `config.yaml` section are **fatal** — the parser rejects them. Every key `setup.sh` writes must exist in the pinned version; a branding key is verified before it is written, not after the container fails to start. Unknown **top-level** keys are the opposite: they are silently dropped, so a misspelled section looks as though it were accepted. |
+| IN-3.23 | **The outbound navigation message carries a path, not an address.** `frontend/src/router/index.ts` posts `{type: "filebrowser:navigation", url: to.fullPath}` to the parent after **every** navigation, with `targetOrigin` `"*"`, and only while the SPA is framed (`window.self !== window.top`). A host page must therefore verify `event.origin` and `event.source` itself and resolve the reported path against the application's origin before reusing it. The message never identifies a document editor: the OnlyOffice editor is selected from the `onlyOfficeId` field of an `/api/resources` response and carries no URL marker, so a host can detect only the SPA's own text editor (`#edit`) and Markdown preview (`#preview`) hashes ([`design.md` D-T7](./design.md#442-the-mode-cookie)). |
+| IN-3.24 | **A host page may frame FileBrowser Quantum.** The image ships no nginx and the served document's CSP restricts `script-src` only — there is no `X-Frame-Options` and no `frame-ancestors`, and no configuration key adds one. The practical constraint is the session cookie: `filebrowser_quantum_jwt` is `SameSite=Strict` for a password login and `Lax` for the OIDC callback, and `HttpOnly`, so a frame on the **same registrable domain** works while a cross-site frame renders logged out. The health probe in `services/utils/broker/health/integrations.js` reports a framing refusal when it sees one, and the Files pane shows its `blocked` state rather than a blank frame. |
+| IN-3.25 | **The `v2.0.9-beta` tag and `v2.0.8-beta` point at the same commit** (`7a06fb1e5fb3063dd34d9a62f1bfe14a890a144f`, subject `Beta/v2.0.8 (#2992)`). Workcenter pins `v2.0.9-beta` because it is the newest 2.x beta tag, and the tree is what it is: a re-tag, not a new beta. Anything that claims a *behaviour* difference between the two tag names is wrong. Re-verify this whenever the pin moves, and record the digest alongside the tag ([`broker.md` §12](./broker.md#12-upstream-verification)). |
 
 ---
 
@@ -420,6 +423,7 @@ Zulip/
 | IN-5.26 | **Zulip cannot be restyled.** It exposes no custom-CSS mechanism; the production tarball ships compiled assets with no editable stylesheet, and docker-zulip's `custom_zulip_files/` is applied after the build, so CSS placed there has no effect. Workcenter brands Zulip with name, icon, logos and theme only. Nothing in Workcenter may fork Zulip's frontend for appearance. |
 | IN-5.27 | **Language.** `default_language` on `PATCH /api/v1/settings` takes Django language codes (`en`, `de`, `zh-hans`). Zulip's own client comment states a reload is fundamentally required because server-rendered strings cannot be swapped in place, so the Chat pane is refreshed after the call. |
 | IN-5.28 | The supported runtime hooks on the pinned image are `/data/post-setup.d/` scripts and `ZULIP_CUSTOM_SETTINGS`. Branding that needs to run inside the container uses those and nothing else. |
+| IN-5.29 | **The view fragments for a native sidebar**, verified against the pinned client (`web/src/navigation_views.ts`, `web/src/hashchange.ts`, `web/src/internal_url.ts`): inbox `#inbox`, recent conversations `#recent`, combined feed `#feed`, mentions `#narrow/is/mentioned`, starred `#narrow/is/starred`, drafts `#drafts`, all direct messages `#narrow/is/dm`, search `#narrow/search/<query>`. Channel and topic forms are `#narrow/channel/<id>[-<slug>]`, `#topics/channel/<id>` and `#narrow/channel/<id>/topic/<encoded-topic>`; a direct message is `#narrow/dm/<ids>[-group]`. The pre-2018 `#narrow/stream/<name>` form is still parsed by the client (`stream` is an alias for `channel`, `zerver/lib/url_decoding.py`), but the **server-side** parser rejects a bare-name slug, so only the id form is safe to generate. `#recent_topics` and `#all_messages` are retained as aliases that redirect to `#recent` and `#feed`. |
 
 ---
 
@@ -434,7 +438,7 @@ eighteen containers and expects to own its own lifecycle through `generate_confi
 
 ### 6.2 Why Workcenter uses it
 
-It is the Mail pane, and it is the source and destination for two of the four file-movement flows.
+It is the Mail pane, and it is an end of four of the six file-movement flows: Mail → Files, Mail → Chat, Files → Mail and Chat → Mail.
 SOGo is not deployed separately — it ships inside Mailcow.
 
 ### 6.3 The orchestration rule
@@ -591,6 +595,7 @@ single theme stylesheet. There is nothing to switch; the Workcenter palette has 
 | IN-6.28 | Mailcow's light and dark logos are stored in **Redis** (`MAIN_LOGO`, `MAIN_LOGO_DARK`) and are uploaded through **Configuration → Customize** in the admin UI. There is no API for it, so this is a documented manual step, not a silent `setup.sh` failure. |
 | IN-6.29 | **Language, SOGo.** The per-user key is `SOGoLanguage` and its values are SOGo language *names* (`English`, `German`, `BrazilianPortuguese`), not tags. Resolution is: the user's own `SOGoLanguage` → the first `Accept-Language` value present in `SOGoSupportedLanguages` → the system default. Because the browser fallback already follows the user, Workcenter does **not** drive it; `sogo-tool user-preferences set defaults <user> SOGoLanguage …` exists but is a per-user shell command, not an API, and is out of scope for a shell control. |
 | IN-6.30 | **Language, Mailcow UI.** `?lang=<tag>` sets and persists it in the `mailcow_locale` cookie; tags are Mailcow's own (`en-gb`, `de-de`), with `Accept-Language` autodetection otherwise. Not driven by the shell, for the same reason as IN-6.27. |
+| IN-6.31 | **Mailcow's nginx refuses cross-origin framing.** `data/conf/nginx/templates/sites-default.conf.j2` sets `add_header X-Frame-Options "SAMEORIGIN" always;` at server scope, and the `location ^~ /SOGo` proxy defines no `add_header` of its own, so the header is inherited and the Mail pane is blocked in the shell's frame. The supported fix is an nginx snippet under `Mailcow/data/conf/nginx/*.custom` (untracked upstream, so it survives `update.sh`) declaring a `/SOGo` location whose own `add_header Content-Security-Policy "frame-ancestors 'self' https://<workcenter-host>"` replaces the inherited set — nginx inherits `add_header` only when the current level defines none. Roadmap Phase 3 adds it ([`roadmap.md` R14](./roadmap.md#15-risks-and-mitigations)). Until it is deployed, the Mail pane shows its `blocked` diagnostic card: never a blank frame.  Note the scope precisely: the header is set at **server scope**, so the main `/SOGo` location inherits it, while the nested regex location for `/SOGo/so/*.(xml|js|html|xhtml)` sets its own `add_header` and therefore drops it. Framing policy is about the HTML shell, not about every resource under `/SOGo/so/` ([`broker.md` §12](./broker.md#12-upstream-verification)). |
 
 ---
 
@@ -814,7 +819,7 @@ Workcenter gates startup on its dependencies and reports their health through th
 | IN-10.1 | Every service has an explicit `healthcheck`. "No healthcheck upstream" means "Workcenter adds one", not "skip it". |
 | IN-10.2 | Workcenter declares `depends_on` with `condition: service_healthy` for FileBrowser, OnlyOffice, Zulip and Authentik. |
 | IN-10.3 | Mailcow is brought up by its own tooling before Workcenter; the broker's health probe, not a compose dependency, is what asserts Mail readiness. |
-| IN-10.4 | The application switcher status indicators reflect these checks. A failing check produces a `degraded` or `unhealthy` indicator, never a blank pane. |
+| IN-10.4 | The application switcher status indicators reflect these checks. A failing check produces a `degraded` or `unhealthy` indicator, never a blank pane. Until the Workcenter container can read the compose healthchecks (roadmap Phase 3), the indicators are fed by the broker's server-side probe of each configured application address, which reports reachability and a framing refusal and reports `unknown` when a check cannot run ([`architecture.md` AR-49](./architecture.md#10-architecture-decision-summary)). |
 
 ---
 

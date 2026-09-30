@@ -15,6 +15,7 @@
 4. [Unit and component tests](#4-unit-and-component-tests)
 5. [Server and broker tests](#5-server-and-broker-tests)
 6. [The end-to-end harness](#6-the-end-to-end-harness)
+   - [6.5 The manual verification harness](#65-the-manual-verification-harness)
 7. [Deterministic fixtures](#7-deterministic-fixtures)
 8. [The Playwright suite](#8-the-playwright-suite)
 9. [Running the tests](#9-running-the-tests)
@@ -157,6 +158,10 @@ tests/
 
 ## 5. Server and broker tests
 
+The broker's own contract — routes, credential handling, the six flows, the bridge outcomes and the
+security cases — is specified in [`broker.md`](./broker.md) §9, which is the source of the matrix
+below.
+
 Server tests run in Node, not happy-dom, and drive the real Express app.
 
 ```js
@@ -256,6 +261,78 @@ docker compose -f compose.test.yaml down -v       # full reset; used by CI
 
 CI always uses `-v` so every run starts clean.
 
+### 6.5 The manual verification harness
+
+The Playwright suite ([§8](#8-the-playwright-suite)) is roadmap Phase 7 work; until it exists,
+`scripts/e2e.sh` is the end-to-end entry point and a person is the runner. It builds the shell,
+starts the server (shell and broker), deploys whatever the current phase can deploy, and prints the
+checks to walk through in a browser. It is a verification aid, not a gate of its own: it reports no
+pass/fail result to CI.
+
+```bash
+./scripts/e2e.sh                    # build → serve → deploy what exists → print the checklist
+./scripts/e2e.sh --no-build         # reuse the existing dist/
+./scripts/e2e.sh --port 8080        # serve on another port
+./scripts/e2e.sh --host 127.0.0.1   # bind to loopback only
+./scripts/e2e.sh --down             # stop the local server, and the stack if one is deployed
+./scripts/e2e.sh --clean            # stop everything, then remove dist/ and user-data/e2e/
+./scripts/e2e.sh --help             # print the full option list
+```
+
+| Option | Effect |
+| --- | --- |
+| `--port <port>` | Port the shell is served on. Default `4180`, or `$PORT`. |
+| `--host <host>` | Address the server binds to. Default `0.0.0.0`, or `$HOST`. |
+| `--no-build` | Skip `yarn build` and serve the existing `dist/`; warns when `dist/index.html` is missing. |
+| `--down` | Stop **every** Workcenter server of this checkout and the compose stack, keeping volumes, then report anything still holding the port, then exit. |
+| `--clean` | Stop both, verify nothing survived, then remove `dist/` and the run directory, then exit. |
+| `-h`, `--help` | Print usage and exit `0`. |
+
+The script checks the toolchain and installs dependencies when `node_modules` is missing. It waits
+for `GET /healthz` on `127.0.0.1:<port>` rather than sleeping — forty probes, half a second apart.
+It fails loudly on a missing tool, an unknown option or a health check that never turns green. It
+writes both of its runtime files into `user-data/e2e/`, a **gitignored** directory, so neither is
+ever part of a commit:
+
+| File | Contents |
+| --- | --- |
+| `user-data/e2e/workcenter.log` | The server's stdout and stderr; also tailed when the health check times out. |
+| `user-data/e2e/workcenter.pid` | The most recent start, kept for compatibility. |
+| `user-data/e2e/pids/workcenter-<port>.pid` | One record per port, so two runs cannot overwrite each other's. |
+
+**A pid file is a convenience, never the source of truth.** `--down` stops the recorded processes
+*and* sweeps the process table for `node server.js` running from this checkout, because a server
+started by hand — or by a run whose record was since removed — is still a server that must stop.
+"The recorded pid is gone" is not the same as "nothing is running", and treating the two as the same
+is what left instances alive on their port. The rules the script follows:
+
+| Situation | Behaviour |
+| --- | --- |
+| Recorded pid belongs to another process | Not touched. Only a process that is `node server.js` in this checkout is ever signalled. |
+| A server of this checkout is running on the requested port | Adopted, and its pid recorded. |
+| A server of this checkout is running on **another** port | Stopped before the new one starts, so instances never accumulate. |
+| A server exits but is not reaped (a zombie) | Counted as stopped: it holds no port. |
+| Something else holds the port after the stop | Named by pid and command line, with a warning that it is not a Workcenter server from this checkout. |
+| A stop fails | The pid record is **kept** and reported, so the next `--down` can retry — `--clean` refuses to delete the records while a server survives. |
+
+The contract **grows with the roadmap** rather than being replaced
+([`roadmap.md` §12](./roadmap.md#12-step-by-step-build-plan)). Every phase adds its step to the
+same entry point:
+
+| Phase | What the script does |
+| --- | --- |
+| **Phase 2** (current) | Serves the **shell and the broker** only. The root `compose.yaml` arrives in Phase 3, so the panes show their diagnostic card and the checklist covers the shell. |
+| **Phase 3+** | Also brings the stack up from the root compose file and prints the subdomains, so the panes load real applications and the checklist gains the per-application checks. |
+| **Phase 7** | Runs the Playwright suite against the same stack; the printed checklist is retired and the suite takes over the same checks. |
+
+> **Rule T-6.7:** `scripts/e2e.sh` is the **manual** stand-in for the deferred Playwright gate
+> (T-10.3). It never replaces an automated gate: a change still carries the unit, component and
+> server tests of [§4](#4-unit-and-component-tests) and [§5](#5-server-and-broker-tests).
+>
+> **Rule T-6.8:** the script must keep working at every phase. A phase adds its deployment step to
+> this entry point instead of forking a second script, and Phase 7 replaces the checklist with the
+> Playwright run inside the same `./scripts/e2e.sh` invocation.
+
 ---
 
 ## 7. Deterministic fixtures
@@ -314,7 +391,7 @@ Every test run must be byte-identical at the start.
 e2e/
 ├── playwright.config.ts
 ├── specs/
-│   ├── auth.spec.ts             # OIDC sign-in, groups, admin badge, logout
+│   ├── auth.spec.ts             # OIDC sign-in, groups, the role label, logout
 │   ├── switcher.spec.ts         # three buttons, keyboard shortcuts, accents, aria-current
 │   ├── sidebar.spec.ts          # sidebar swaps per application; search filters
 │   ├── panes.spec.ts            # panes load, stay mounted, deep links, error cards
@@ -411,7 +488,7 @@ to work around. The assertion is therefore the real DOM of the real application:
 
 | # | Area | Assertion |
 | --- | --- | --- |
-| 1 | **Authentication** | A `workspaceusers` member signs in once and reaches all three panes; an outsider is denied; an admin sees the admin badge |
+| 1 | **Authentication** | A `workspaceusers` member signs in once and reaches all three panes; an outsider is denied; the brand header reads `Workcenter - Admin` for an admin and `Workcenter - User` for everyone else |
 | 2 | **Switcher** | Three buttons; the active one carries the accent and `aria-current`; `Alt+1/2/3` switch; the sidebar body changes with the application. Each button has exactly one status indicator directly beneath it, plus a centred `STATUS` label |
 | 3 | **Pane persistence** | Typing in one pane, switching away and back preserves the input — proving the pane was not reloaded |
 | 4 | **Deep links** | `/#/files`, `/#/chat`, `/#/mail` restore the right pane on reload |
@@ -491,6 +568,11 @@ A convenience script wraps all of it:
 ./scripts/e2e.sh --clean    # tear down first
 ./scripts/e2e.sh --down     # tear down afterwards
 ```
+
+That is the Phase 7 shape of the script. Until then it stops at the manual checklist: it seeds no
+fixtures and runs no suite, and `--clean` and `--down` tear down and exit. See
+[§6.5](#65-the-manual-verification-harness) for the options, the files it writes and the
+phase-by-phase contract.
 
 ### 9.4 Everything at once
 
@@ -574,6 +656,18 @@ jobs:
 
 > **Rule T-10.1:** a red E2E gate **blocks** the merge into `Dev`. It is not advisory.
 > **Rule T-10.2:** a red E2E gate on `Dev` blocks **every** other merge until it is fixed.
+>
+> **Rule T-10.3 (deferred gate):** gate 9 is **deferred, not waived**. The Playwright suite,
+> `compose.test.yaml` and the `e2e.yml` workflow are roadmap Phase 7 work
+> ([`roadmap.md` §12](./roadmap.md#12-step-by-step-build-plan)). Until they exist, the automated
+> gates are lint, typecheck, unit/component/server tests, the locale check, config validation and
+> the build, with the conditional gates (ShellCheck, compose validity, Docker build, dependency
+> audit, secret scanning) unchanged. The user-visible behaviour at the current phase gate is covered
+> by the **manual checklist** in [`scripts/e2e.sh`](./scripts/e2e.sh)
+> ([§6.5](#65-the-manual-verification-harness)), which a person walks in a browser. This is a
+> **temporary state, not a permanent exemption**: the Phase 7 change that adds the suite **must**
+> restore gate 9 as a required check and delete this rule. T-10.1 and T-10.2 apply unchanged from
+> the moment gate 9 exists.
 
 ---
 
@@ -715,6 +809,11 @@ A change is tested when **all** of the following hold:
 - [ ] Fixtures remain synthetic and deterministic.
 - [ ] If the change touches `setup.sh` or a compose file, the three-run idempotency check passes.
 - [ ] If the change touches appearance, language or branding, the assertion is made **inside the pane**, against the embedded application's own DOM (T-8.4).
+
+> **Deferred gate:** the two Playwright items above are roadmap Phase 7 work and are **deferred, not
+> dropped** (T-10.3). At the current phase gate the user-visible behaviour is verified with the
+> manual checklist in [`scripts/e2e.sh`](./scripts/e2e.sh)
+> ([§6.5](#65-the-manual-verification-harness)).
 
 ---
 
