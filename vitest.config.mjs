@@ -30,6 +30,7 @@ export default defineConfig({
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
     alias: {
       '@': path.resolve(__dirname, './src'), // same as the vite.config.ts
+      '@icons': path.resolve(__dirname, './icons'), // application brand marks
     },
   },
 });

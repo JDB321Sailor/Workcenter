@@ -23,6 +23,13 @@ export const APP_LIST = Object.freeze([
     name: 'Files',
     descriptionKey: 'apps.files.description',
     icon: 'fas fa-folder-open',
+    /* The application's brand mark under `icons/`, reached through `@icons`
+     * (design.md D-2I). Rendered by AppMark.vue, never recoloured. */
+    mark: 'filebrowser-quantum',
+    /* The mark a pane's own loading and error states use. For Files and Chat
+     * the application mark is the pane mark; Mail's pane is SOGo, which has its
+     * own mark (design.md D-2I). */
+    paneMark: 'filebrowser-quantum',
     /* The CSS custom property carrying this application's accent colour. */
     accentVar: '--wc-accent-files',
     /* The key this application occupies in `appConfig.applications`. */
@@ -39,6 +46,8 @@ export const APP_LIST = Object.freeze([
     name: 'Chat',
     descriptionKey: 'apps.chat.description',
     icon: 'fas fa-comments',
+    mark: 'zulip',
+    paneMark: 'zulip',
     accentVar: '--wc-accent-chat',
     configKey: 'chat',
     healthKey: 'zulip',
@@ -50,6 +59,10 @@ export const APP_LIST = Object.freeze([
     name: 'Mail',
     descriptionKey: 'apps.mail.description',
     icon: 'fas fa-envelope',
+    /* Mailcow is the deployment that serves SOGo webmail, so the switcher
+     * carries Mailcow's mark and the pane carries SOGo's. */
+    mark: 'mailcow',
+    paneMark: 'sogo',
     accentVar: '--wc-accent-mail',
     configKey: 'mail',
     healthKey: 'mailcow',
