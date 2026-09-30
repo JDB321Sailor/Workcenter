@@ -1,6 +1,6 @@
 <template>
   <div class="wc-pane-error" role="alert">
-    <i class="wc-pane-error__icon" :class="icon" aria-hidden="true" />
+    <AppMark v-if="appMark" class="wc-pane-error__mark" :name="appMark" :size="48" decorative />
 
     <h2 class="wc-pane-error__title">{{ title }}</h2>
     <p class="wc-pane-error__body">{{ message }}</p>
@@ -27,6 +27,8 @@
 </template>
 
 <script>
+import AppMark from '@/components/AppMark.vue';
+
 /**
  * The diagnostic card a pane shows instead of a blank frame.
  *
@@ -36,10 +38,15 @@
  */
 export default {
   name: 'PaneErrorCard',
+  components: {
+    AppMark,
+  },
   props: {
     /* unavailable | blocked | auth-error | timeout */
     reason: { type: String, default: 'unavailable' },
     appName: { type: String, default: '' },
+    /* The application's brand mark key, shown at 48px (design.md D-2I.5). */
+    appMark: { type: String, default: '' },
     /* Extra lines: the failing check, or the header that needs changing. */
     detail: { type: String, default: '' },
     /* Where Open in new tab goes. */
@@ -47,12 +54,6 @@ export default {
   },
   emits: ['retry'],
   computed: {
-    icon() {
-      if (this.reason === 'auth-error') return 'fas fa-key';
-      if (this.reason === 'blocked') return 'fas fa-shield-halved';
-      if (this.reason === 'timeout') return 'fas fa-clock';
-      return 'fas fa-plug-circle-xmark';
-    },
     title() {
       return this.$t(`pane.reason.${this.reason}.title`, { app: this.appName });
     },
@@ -81,9 +82,9 @@ export default {
   color: var(--wc-text);
 }
 
-.wc-pane-error__icon {
-  font-size: 1.8rem;
-  color: var(--wc-status-unhealthy);
+.wc-pane-error__mark {
+  margin-bottom: 0.2rem;
+  opacity: 0.9;
 }
 
 .wc-pane-error__title {
