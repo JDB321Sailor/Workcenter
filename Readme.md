@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Derived from Dashy](https://img.shields.io/badge/derived%20from-Dashy-8616ee.svg)](https://github.com/lissy93/dashy)
-[![FileBrowser Quantum](https://img.shields.io/badge/FileBrowser%20Quantum-2.0.6--beta-4cb6e0.svg)](https://github.com/gtsteffaniak/filebrowser)
+[![FileBrowser Quantum](https://img.shields.io/badge/FileBrowser%20Quantum-2.0.9--beta-4cb6e0.svg)](https://github.com/gtsteffaniak/filebrowser)
 [![Zulip](https://img.shields.io/badge/Zulip-docker--zulip-52c2e2.svg)](https://github.com/zulip/docker-zulip)
 [![Mailcow](https://img.shields.io/badge/Mailcow%20%2B%20SOGo-dockerized-e8462c.svg)](https://github.com/mailcow/mailcow-dockerized)
 [![ONLYOFFICE](https://img.shields.io/badge/ONLYOFFICE-Docs-ff6f3d.svg)](https://github.com/ONLYOFFICE/DocumentServer)
@@ -32,11 +32,13 @@ Authentication is **[Authentik](https://goauthentik.io/)** for every application
 group model. Ingress is **[Traefik](https://traefik.io/)** — one TLS certificate story, one place to
 route. Deployment is **one script**: `./setup.sh`.
 
-> **Build status:** Phase 1 complete. The Workcenter derivation is finished: Workcenter renders a
-> single view — the sidebar plus the embedded content surface — with deep-linkable pane routes.
-> The application switcher, the status indicators, the OIDC sign-in flow and the
-> cross-application file broker are in the roadmap's later phases. The table below marks what
-> is shipped and what is planned.
+> **Build status:** Phase 1 and Phase 2 complete. Workcenter renders the shell: a rail with the
+> product mark, the application switcher and its status indicators, a filter, the active
+> application's own navigator and the user menu, with the three panes kept mounted beside it and
+> `/files`, `/chat`, `/mail` deep-linkable. The stack itself — Traefik, Authentik, FileBrowser
+> Quantum, Zulip, Mailcow/SOGo and OnlyOffice — plus single sign-on and the cross-application file
+> broker are in the roadmap's later phases. The table below marks what is shipped and what is
+> planned, and the panes show a diagnostic card until the applications behind them are deployed.
 >
 > **Workcenter is a derivative of [Dashy](https://github.com/lissy93/dashy).** Dashy's *Workspace*
 > view — a persistent left sidebar with applications launched inside the page — is the seed from which
@@ -94,10 +96,18 @@ Workcenter's answer is to treat those three applications as **one workspace**:
 | Feature | Detail |
 | --- | --- |
 | **Single view** | One page. No Default dashboard, no Minimal start page, no config-download page. |
-| **Deep-linkable panes** | `/` for the workspace, and `/files`, `/chat` and `/mail` for the three applications. |
-| **Persistent content surface** | Applications are embedded once and kept mounted, so switching preserves scroll position and session state. |
-| **Sidebar navigation** | Sections and items come from `user-data/conf.yml`; sections that set `hideFromWorkspace` are omitted. |
-| **Theming** | The full theme set inherited from Dashy, plus custom colours and an external stylesheet. |
+| **Application switcher** | Three buttons — Files, Chat, Mail — above the sidebar, each carrying the application's own brand mark and accent colour. `Alt+1/2/3` switches from anywhere in the shell. |
+| **Swapping sidebar** | The sidebar body follows the active application: FileBrowser Quantum's browse and tool routes, Zulip's views, SOGo's mail folders, calendars and address books. Groups collapse and the state is remembered. |
+| **Sidebar filter** | Type to narrow the active application's rows; `Esc` clears it, `Ctrl/Cmd+K` focuses it. |
+| **Persistent panes** | A pane's frame is created when it is first opened and stays mounted, so switching preserves drafts, scroll position and sessions. Each pane has an overflow menu with Reload, Open in new tab and Copy link. |
+| **Deep-linkable panes** | `/` for the workspace, and `/files`, `/chat` and `/mail` for the three applications; a reload restores the pane. |
+| **Status indicators** | One health indicator beneath each application button, under a `STATUS` label, fed by the broker's probe of each application. |
+| **Diagnostic panes** | An application that will not load says what failed and offers **Retry** and **Open in new tab** — never a blank frame. |
+| **User row** | The signed-in user's initials, their name stacked first-over-last (cut at 14 characters a line), and two buttons on its right: the mode toggle and the language button. Collapsing the rail leaves the initials alone, and the menu behind them stays full size. |
+| **User menu** | Identity from the session, the administrative links for `workspaceadmin`, and **Sign out**. Who the user is — `User` or `Admin` — is stated once, in the brand header. |
+| **Appearance** | A sun/moon button with **dark as the default**, applied to the shell instantly and forwarded to the applications that can accept it. |
+| **Language** | A rounded flag and the ISO 639-1 code, opening a menu of 32 languages, each written in its own characters and spelling; forwarded to FileBrowser Quantum and Zulip, and stated plainly where it cannot be. |
+| **Theming** | The inherited theme set, plus per-mode shell tokens derived from FileBrowser Quantum's own palette, custom colours and an external stylesheet. |
 | **Multi-language** | 32 locales; English is the master. `yarn validate-locales` enforces key parity. |
 | **OIDC client** | The Workcenter-derived Authentik-compatible OIDC client, with silent renewal and group-based admin. |
 | **Healthcheck** | `/healthz` reports status, uptime and version for the container healthcheck. |
@@ -106,21 +116,22 @@ Workcenter's answer is to treat those three applications as **one workspace**:
 
 | Feature | Detail |
 | --- | --- |
-| **Application switcher** | Three buttons — Files, Chat, Mail — above the sidebar, each with its own accent colour. Keyboard shortcuts `Alt+1/2/3`. |
-| **Swapping sidebar** | The sidebar body follows the active application: FileBrowser sources, folders and links; Zulip channels, topics and DMs; SOGo mail folders, calendars and address books. |
-| **Pane state preservation** | Switching applications keeps each pane mounted, so drafts, scroll position and sessions survive. |
-| **Status indicators** | Per-application health from the Docker healthchecks, shown beneath each application button in the switcher, under a `STATUS` label. |
-| **Diagnostic panes** | An application that will not load shows what failed and offers Retry — never a blank frame. |
-| **Theme bridge** | The shell's light/dark choice is pushed into each embedded application where it supports one. |
+| **Broker transfers** | The six file-movement flows below, with per-user credentials and an audit trail. |
+| **Live sidebar data** | FileBrowser sources and usage, Zulip subscriptions with unread counts, and Mail folder counts, read through the broker rather than listed statically. |
+| **Server-side preferences** | The appearance mode and language following the user to another browser, rather than living in that browser's storage. |
+| **One-command deployment** | `setup.sh` and the root `compose.yaml` bringing up Traefik, Authentik, FileBrowser Quantum, Zulip, Mailcow/SOGo and OnlyOffice. |
+| **Playwright suite** | The automated end-to-end suite that replaces the manual checklist in `scripts/e2e.sh`. |
 
 ### Cross-application file movement
 
 | Flow | From → To | Where the action lives |
 | --- | --- | --- |
-| **F1** | SOGo mail → Files | **Save to files** next to the attachment |
-| **F2** | Files → SOGo mail | **Attach from files** in the compose window |
-| **F3** | Zulip → Files | **Save to files** on the message attachment |
-| **F4** | Files → Zulip | **Send from files** in the Zulip compose box |
+| **F1** | Mail → Files | **Save to files** in the Mail attachment panel |
+| **F2** | Files → Mail | **Attach from files** for a mail draft |
+| **F3** | Chat → Files | **Save to files** in the chat attachment chooser |
+| **F4** | Files → Chat | **Send from files** for a chat target |
+| **F5** | Mail → Chat | **Send to chat** in the Mail attachment panel |
+| **F6** | Chat → Mail | **Send to mail** in the chat attachment chooser |
 
 Every transfer streams, shows progress, can be cancelled, de-duplicates by content hash, writes
 atomically (no partial files ever appear) and is recorded in an audit log.
@@ -274,9 +285,8 @@ pageInfo:
   description: Files, chat and mail in one place
 
 appConfig:
-  baseDomain: example.com
-  defaultTheme: dark
-  enableMultiTasking: true          # panes stay mounted — the Workcenter default
+  theme: default                    # a theme from the inherited gallery; the mode is separate
+  language: en
   auth:
     enableOidc: true
     oidc:
@@ -284,18 +294,19 @@ appConfig:
       endpoint: https://auth.example.com/application/o/workcenter/
       adminGroup: workspaceadmin
       scope: openid profile email groups
+      enableSilentRenew: true
+  # The address of each application the shell embeds. A pane with no address
+  # shows an unavailable card rather than a blank frame.
   applications:
-    files: { url: https://filebrowser.example.com, accent: blue }
-    chat:  { url: https://chat.example.com,       accent: violet }
-    mail:  { url: https://mail.example.com/SOGo,  accent: teal }
-
-broker:
-  enabled: true
-  transfer:
-    maxSizeMiB: 512
-    timeoutSeconds: 300
-    deduplicate: true
+    files: { url: https://filebrowser.example.com }
+    chat:  { url: https://chat.example.com }
+    mail:  { url: https://mail.example.com/SOGo }
 ```
+
+The appearance mode starts dark and the language follows the browser until the user chooses in the
+user menu; both are remembered per browser. Accent colours are not configuration: each application's
+accent is a shell token derived from FileBrowser Quantum's palette
+([`design.md` §4.3.1](./design.md#431-where-the-palette-comes-from)).
 
 Every setting, with types and defaults, is documented in
 [`architecture.md` §6](./architecture.md#6-configuration-model) and `docs/configuring.md`.
@@ -312,7 +323,7 @@ the deployment guide in [`production.md`](./production.md). Per-application sett
 
 | Application | Version policy | Deployed by | Folder |
 | --- | --- | --- | --- |
-| **[FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser)** | Pinned to **`2.0.6-beta`** | Workcenter `compose.yaml` | `Filebrowser/` |
+| **[FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser)** | Pinned to **`2.0.9-beta`** | Workcenter `compose.yaml` | `Filebrowser/` |
 | **[ONLYOFFICE Docs](https://github.com/ONLYOFFICE/DocumentServer)** | Pinned tag | Workcenter `compose.yaml` | `OnlyOffice/` |
 | **[Zulip](https://github.com/zulip/docker-zulip)** | `ghcr.io/zulip/zulip-server:<version>-0` | `Zulip/compose.yaml` | `Zulip/` |
 | **[Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized)** | Upstream `master`, updated by `update.sh` | Mailcow's own compose + Workcenter override | `Mailcow/` |
@@ -337,6 +348,7 @@ Full wiring for each: [`integration.md`](./integration.md).
 | [`architecture.md`](./architecture.md) | Folder structure, file breakdown, layout, configuration model |
 | [`design.md`](./design.md) | Every UI element, state, token and interaction |
 | [`integration.md`](./integration.md) | What each integrated application is, and exactly how it is wired in |
+| [`broker.md`](./broker.md) | The broker: identity, credentials, the six file flows, the appearance and language bridges, security and its test criteria |
 | [`OIDC.md`](./OIDC.md) | How OIDC works here, the Authentik setup walkthrough, and the `setup.sh` prompt contract |
 | [`Testing.md`](./Testing.md) | Test strategy, the Playwright harness, and the gates every merge passes |
 | [`production.md`](./production.md) | Production deployment, the `setup.sh` contract, volumes, upgrades, backups |
@@ -362,18 +374,28 @@ git checkout Dev
 yarn install --frozen-lockfile
 yarn dev                       # http://localhost:8080
 
-# Checks
-yarn check-all                 # lint + typecheck + unit tests + locales + config
-yarn test:coverage
-yarn test:e2e                  # needs the test stack
+# Verify the shell by hand: build, serve, and print the phase checklist
+./scripts/e2e.sh               # --help lists every option; --down stops it
+
+# Checks (CI runs exactly these)
+yarn lint
+yarn typecheck
+yarn test
+yarn validate-locales
+yarn validate-config
+yarn build
 ```
+
+> The Playwright suite arrives with roadmap Phase 7. Until then `scripts/e2e.sh` is the
+> user-visible verification path, and unit, component and server tests cover the behaviour
+> (`Testing.md` §6.5 and rule T-10.3).
 
 | Command | What it does |
 | --- | --- |
 | `yarn dev` | Vite dev server with hot reloading |
 | `yarn build` | Production bundle into `dist/` |
 | `yarn start` | Run the Express server (requires a prior build) |
-| `yarn lint` / `yarn lint:fix` | ESLint over `src/`, `services/`, `tests/`, `e2e/` |
+| `yarn lint` | ESLint over `src/**/*.{js,vue}` (widening it to `services/` and `tests/` is its own change) |
 | `yarn typecheck` | `vue-tsc --noEmit` |
 | `yarn test` / `yarn test:coverage` | Vitest |
 | `yarn validate-locales` | Fails if an i18n key is missing from `en.json` |
@@ -438,7 +460,7 @@ Everything operational is in [`production.md`](./production.md).
 | A service is unhealthy after an update | `docker compose logs <service>`; Mailcow must only ever be updated with `./update.sh` |
 
 Full runbook: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and
-[`OIDC.md`](./OIDC.md#troubleshooting).
+[`OIDC.md`](./OIDC.md#12-troubleshooting).
 
 ---
 
@@ -459,7 +481,7 @@ To report a vulnerability, please do **not** open a public issue — see
 ## Roadmap
 
 The build plan, milestones and definition of done live in [`roadmap.md`](./roadmap.md). In short:
-the shell, the deployment, unified OIDC and the four file-movement flows are 1.0; everything else is
+the shell, the deployment, unified OIDC and the six file-movement flows are 1.0; everything else is
 deliberately out of scope.
 
 ---
@@ -472,7 +494,9 @@ capabilities.
 1. Read [`contributions.md`](./contributions.md) and [`standards.md`](./standards.md).
 2. Branch from `Dev`, and open your pull request **against `Dev`**.
 3. Add a [`CHANGELOG.md`](./CHANGELOG.md) entry in the same PR.
-4. Make sure `yarn check-all` passes.
+4. Make sure the CI checks pass — `yarn lint`, `yarn typecheck`, `yarn test`,
+   `yarn validate-locales`, `yarn validate-config` and `yarn build` — and walk the
+   `./scripts/e2e.sh` checklist for anything a user sees.
 
 If you are an AI coding agent, read [`Agents.md`](./Agents.md) first — it contains binding rules.
 

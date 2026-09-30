@@ -9,6 +9,7 @@ The specification set lives at the repository root. These are the long-form guid
 - [Architecture](../architecture.md) - Folder structure, file breakdown, layout and configuration model
 - [Design](../design.md) - Every UI element, state, token and interaction
 - [Integration](../integration.md) - What each integrated application is, and how it is wired in
+- [Broker](./broker.md) - The broker: the six file flows, the appearance and language bridges, security and test criteria
 - [OIDC](../OIDC.md) - OIDC mechanics, Authentik setup, and the `setup.sh` prompt contract
 - [Testing](../Testing.md) - Test strategy, the Playwright harness, and the merge gates
 - [Production](../production.md) - Deployment, the `setup.sh` contract, upgrades, backup and restore

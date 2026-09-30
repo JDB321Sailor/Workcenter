@@ -55,7 +55,7 @@ deployment and real cross-application data flows.
 
 | Pane | Application | Upstream | What the user does there |
 | --- | --- | --- | --- |
-| **Files** | FileBrowser Quantum (with OnlyOffice) | [gtsteffaniak/filebrowser](https://github.com/gtsteffaniak/filebrowser) `beta/v2.0.6` | Browse, search, preview, edit, upload and download files |
+| **Files** | FileBrowser Quantum (with OnlyOffice) | [gtsteffaniak/filebrowser](https://github.com/gtsteffaniak/filebrowser) `v2.0.9-beta` | Browse, search, preview, edit, upload and download files |
 | **Chat** | Zulip (full docker stack) | [zulip/docker-zulip](https://github.com/zulip/docker-zulip) | Read and send channel/DM messages, share files |
 | **Mail** | SOGo, deployed by Mailcow Dockerized | [mailcow/mailcow-dockerized](https://github.com/mailcow/mailcow-dockerized) | Read mail, manage calendars and contacts, open attachments |
 
@@ -126,7 +126,7 @@ The defining capability, and the reason Workcenter exists:
 | Zulip → Files | **Save Zulip attachment to my files** |
 | Files → Zulip | **Send a file from my files into a Zulip message** |
 
-All four actions complete **inside the Workcenter page**, with progress feedback and a
+All six flows complete **inside the Workcenter page**, with progress feedback and a
 final notification, and none of them require the user to download to their desktop and
 re-upload.
 
@@ -154,7 +154,7 @@ asking a question.
 
 Every merge into `Dev` runs an automated, containerised **Playwright** suite that brings
 the whole stack up with deterministic defaults and asserts that the three integrations
-and the four file-movement flows actually work.
+and the six file-movement flows actually work.
 
 ### Non-functional goals
 
@@ -198,7 +198,7 @@ and the four file-movement flows actually work.
 | Component | Hostname | Purpose | Deployed by |
 | --- | --- | --- | --- |
 | Workcenter shell | `example.com` | The product (root URL) | Workcenter repo (built image) |
-| FileBrowser Quantum | `filebrowser.example.com` | Files + OnlyOffice editing | Workcenter `compose.yaml`, pinned to `v2.0.6-beta` |
+| FileBrowser Quantum | `filebrowser.example.com` | Files + OnlyOffice editing | Workcenter `compose.yaml`, pinned to `v2.0.9-beta` |
 | Authentik | `auth.example.com` | OIDC provider, groups, forward-auth | Workcenter `Authentik/compose.yaml` |
 | Mailcow (login + SOGo) | `mail.example.com` | Mail, calendar, contacts; SOGo at `/SOGo` | Mailcow's own `docker-compose.yml` + a Workcenter override |
 | Zulip | `chat.example.com` | Team chat | `Zulip/compose.yaml` (docker-zulip) |
@@ -212,7 +212,7 @@ and the four file-movement flows actually work.
 
 | Application | Pin | Rationale |
 | --- | --- | --- |
-| FileBrowser Quantum | **`2.0.6-beta`**, image digest recorded in `.env` | v2 changed the config schema, the database engine (SQLite, not BoltDB) and the sidebar model. Workcenter's integration is written against v2 only. |
+| FileBrowser Quantum | **`2.0.9-beta`**, image digest recorded in `.env` | v2 changed the config schema, the database engine (SQLite, not BoltDB) and the sidebar model. Workcenter's integration is written against v2 only. |
 | Zulip | `ghcr.io/zulip/zulip-server:<version>-0` | docker-zulip is the officially supported container packaging; the legacy Docker Hub image is not used |
 | Mailcow | upstream `master` `docker-compose.yml`, updated by `update.sh` only | Mailcow must be updated by its own tooling; Workcenter only adds an **override** file |
 | OnlyOffice Docs | `onlyoffice/documentserver` pinned tag | Must match FileBrowser Quantum's supported OnlyOffice API version |
@@ -245,7 +245,7 @@ roadmap-listed requirements below are the acceptance contract.
 
 | Ref | Requirement |
 | --- | --- |
-| I-FB-1 | Deploy **Quantum 2.0.6-beta**. Images exist at both `gtstef/filebrowser` and `ghcr.io/gtsteffaniak/filebrowser`; tags strip the leading `v` (`2.0.6-beta`, `2.0-beta`, `beta`, plus `-slim` variants), and **there is no `latest` tag for the beta line** — the pin must be explicit in `.env` |
+| I-FB-1 | Deploy **Quantum 2.0.9-beta**. Images exist at both `gtstef/filebrowser` and `ghcr.io/gtsteffaniak/filebrowser`; tags strip the leading `v` (`2.0.9-beta`, `2.0-beta`, `beta`, plus `-slim` variants), and **there is no `latest` tag for the beta line** — the pin must be explicit in `.env` |
 | I-FB-2 | Configuration must use the **v2 `config.yaml` schema**, which has **exactly six top-level keys**: `server`, `auth`, `frontend`, `userDefaults`, `integrations`, `http`. Decoding is **strict** — an unknown key is a fatal startup error, and there is no `office:` key at the root (it is `integrations.office`) |
 | I-FB-3 | Persistent state is bind-mounted inside `./Filebrowser/`: `./Filebrowser/data:/home/filebrowser/data`, `./Filebrowser/config.yaml:/home/filebrowser/data/config.yaml`, `./Filebrowser/office-cache:/home/filebrowser/data/cache`. Note the image's default database is `/home/filebrowser/data/database.sqlite` (the docs' `filebrowser.sqlite` is wrong), and `server.database.path` in YAML **overrides** `FILEBROWSER_DATABASE_PATH` |
 | I-FB-4 | The user file tree is a **named source** whose path is mounted read-write and is *the same host directory* used by the file broker. The source **must set `config.defaultEnabled: true`**, or OIDC users land in an empty file tree (the default is `false`; it is only implied when there is exactly one source) |
@@ -295,11 +295,11 @@ roadmap-listed requirements below are the acceptance contract.
 | I-MC-4b | **An override file cannot remove Mailcow's published ports.** Docker *concatenates* `ports`/`expose` lists rather than replacing them, so `docker-compose.override.yml` cannot delete `80:80`/`443:443`, and adding `127.0.0.1:80:80` produces two conflicting bindings. The supported fix is Mailcow's own `HTTP_BIND`/`HTTPS_BIND` in `mailcow.conf` (set them to `127.0.0.1`), combined with the override exposing the container and attaching it to the `proxy` network. Mailcow's `.gitignore` already lists `docker-compose.override.yml` and `mailcow.conf`, confirming the override is the sanctioned, untracked customisation point |
 | I-MC-5 | **OIDC into SOGo via the Mailcow UI**: Mailcow's *Identity Provider* feature (`System → Configuration → Access → Identity Provider`) is configured for **Generic-OIDC** against Authentik — Authorization, Token and User Info endpoints, Client ID/Secret, Redirect URL `https://mail.example.com`, scopes `openid profile email mailcow_template`, attribute→mailbox-template mapping, and per-mailbox *Identity Provider = Generic-OIDC*. This is a **first-class upstream feature**; the Mailcow UI must **not** be placed behind an Authentik forward-auth proxy |
 | I-MC-6 | **Mailcow's LDAP identity provider is additionally configured** (Authentik LDAP outpost → Mailcow) so that Authentik becomes the source of truth for *mail protocol* credentials as well as the web UI. This is what gives the broker a non-password path for IMAP/SMTP when the OIDC route only covers the UI. Fields: Host, Port, Use SSL/TLS, Base DN, Username Field, Filter, Attribute Field, Bind DN/Bind Password, Attribute Mapping, Periodic Full Sync, Import Users |
-| I-MC-7 | **SOGo's own OIDC is deliberately not wired.** SOGo ≥ 5.12 has native OIDC and Mailcow ships 5.12.10, but Mailcow does not configure it, and enabling it would require a Dovecot **OAuth2 passdb** (absent) plus an `OCSOpenIdURL` pointing at a `sogo_openid` table that does not exist in Mailcow's schema. Mailcow's documented consequence stands: identity-provider users *"can only log in to SOGo through the mailcow UI."* Workcenter therefore authenticates at the Mailcow UI and reaches SOGo through Mailcow's own `sogo-auth` proxy SSO session. [`OIDC.md` §7](./OIDC.md#7-sogo-mailcow-and-the-oidc-reality) documents the mechanism in full |
+| I-MC-7 | **SOGo's own OIDC is deliberately not wired.** SOGo ≥ 5.12 has native OIDC and Mailcow ships 5.12.11, but Mailcow does not configure it, and enabling it would require a Dovecot **OAuth2 passdb** (absent) plus an `OCSOpenIdURL` pointing at a `sogo_openid` table that does not exist in Mailcow's schema. Mailcow's documented consequence stands: identity-provider users *"can only log in to SOGo through the mailcow UI."* Workcenter therefore authenticates at the Mailcow UI and reaches SOGo through Mailcow's own `sogo-auth` proxy SSO session. [`OIDC.md` §7](./OIDC.md#7-sogo-mailcow-and-the-oidc-reality) documents the mechanism in full |
 | I-MC-7a | The SOGo session is established by the Mailcow UI's **"Login to Webmail"** action (`/sogo-auth.php?login=<address>`), which sets a session flag that nginx's `auth_request` then translates into injected credentials. Opening `/SOGo` with no such session shows **SOGo's own login form** — which the Workcenter Mail pane must detect and surface as its `auth-error` state with **Sign in again** |
 | I-MC-8 | `SKIP_SOGO=n` and the SOGo container must be present and healthy. Mailcow's compose defines **no** `healthcheck:` blocks of its own (only image-baked `HEALTHCHECK` instructions and one `condition: service_healthy` on unbound), so Workcenter's override supplies explicit healthchecks for `nginx-mailcow`, `sogo-mailcow`, `mysql-mailcow` and `redis-mailcow`, plus a Mailcow API key (`API_KEY`, `API_ALLOW_FROM`) for `/api/v1/get/status/containers` |
 | I-MC-9 | External mail clients use Mailcow **app passwords** (documented in `OIDC.md`) unless LDAP is enabled; switching a mailbox's identity provider never destroys the existing SQL password, so fallback to the account password remains possible |
-| I-MC-10 | The vmail store must be reachable for the file broker's "save attachment" path; `./Mailcow/data/` and the FileBrowser source are co-located on the same host filesystem |
+| I-MC-10 | The vmail store must be reachable for the file broker's "save attachment" path; `./Mailcow/data/` and the FileBrowser source are co-located on the same host filesystem  The store is a **named Docker volume** (`mailcowdockerized_vmail-vol-1`, mounted at `/var/vmail`, indexes in a second volume) owned by uid 5000 with `0700`/`0600` permissions and encrypted at rest — **not** a directory under `./Mailcow/data/`. A broker may not mount it: reading it would expose every mailbox and writing it would corrupt a UID list, an index and a SQL-backed quota that only Dovecot maintains ([`broker.md` §5.2](./broker.md#52-how-bytes-move-by-path-or-by-api)). |
 | I-MC-11 | **SOGo 5.12 has no dark mode**, no theme preference and one stylesheet, so Workcenter *supplies* the palette: a stylesheet bind-mounted into SOGo's web resources through `Mailcow/docker-compose.override.yml`, plus a delimited block appended to `data/conf/sogo/custom-sogo.js` — a file `sogo.conf` already loads through `SOGoUIAdditionalJSFiles`, so no Mailcow configuration key is edited. The block preserves Mailcow's own `mc_logout()` |
 | I-MC-12 | That block sets `data-wc-mode` from the `wc_mode` cookie for first paint and updates it on an **origin-checked** `workcenter:mode` message, so the Mail pane changes mode live. It reads only the values `dark` and `light`, never evaluates a received string, and never touches mail content or credentials |
 | I-MC-13 | `sogo-mailcow` is **restarted** after any SOGo branding change, because `bootstrap-sogo.sh` rsyncs the web resources into the nginx volume at container start. Everything under `data/conf/sogo/` is tracked by Mailcow and `update.sh` merges `-X theirs`, so `setup.sh --brand` is a documented post-upgrade step |
@@ -333,7 +333,7 @@ roadmap-listed requirements below are the acceptance contract.
 
 | Ref | Requirement |
 | --- | --- |
-| I-X-1 | A **file broker** service (see [`architecture.md`](./architecture.md#the-file-broker)) provides the four transfer actions over the same host filesystem, with per-user authorisation |
+| I-X-1 | A **file broker** service (see [`architecture.md`](./architecture.md#4-the-broker)) provides the six transfer flows over the same host filesystem, with per-user authorisation |
 | I-X-2 | Every transfer is **streamed**, size-capped and time-limited; no partial file is left visible to the user |
 | I-X-3 | Every transfer emits a user-visible progress state and a terminal success/failure notification, and is recorded in an audit log |
 | I-X-4 | The broker never stores mail or chat credentials in plaintext at rest; per-user tokens are kept in an encrypted store keyed by a secret held only in `.env` |
@@ -357,7 +357,7 @@ already on the same disk as the others. Workcenter therefore *moves bytes by pat
 only uses network APIs where a store is genuinely remote (Zulip's upload store, the mail
 server's IMAP mailbox).
 
-### 7.2 The four flows
+### 7.2 The six flows
 
 **F1 — SOGo attachment → Files** *(highest priority)*
 
@@ -392,9 +392,26 @@ server's IMAP mailbox).
 
 1. In the Zulip compose box, the user clicks **Send from files**.
 2. The Workcenter file picker opens; on selection the broker uploads the file with
-   `POST /api/v1/user_uploads` using a Zulip bot API key, receives `{ "uri": ..., "url": ... }`,
-   and inserts the returned Markdown link into the message being composed.
+   `POST /api/v1/user_uploads` using the **user's own** Zulip credential, and then sends the message
+   that carries it to the chosen channel/topic or DM — as the user, never as a bot.
 3. Files ≥ 25 MB use the resumable `POST /api/v1/tus` endpoint instead.
+
+> The broker sends the message rather than handing a link back to the shell: the composer is inside a
+> cross-origin frame, so no host page can insert text into it. See [`broker.md` §5.6](./broker.md#56-f3--chat--files-and-f4--files--chat).
+
+**F5 — SOGo attachment → Zulip message**
+
+1. The user selects **Send to chat** on an attachment in the Mail pane's attachment panel.
+2. The broker reads that one MIME part over IMAP with the user's own credential, then uploads it to
+   Zulip and sends the message the user composed — as the user, not as a bot.
+3. Nothing is written to the mail store, and the message is never modified.
+
+**F6 — Zulip file → SOGo mail draft**
+
+1. The user opens the shell's chat attachment chooser for the conversation and selects **Send to mail**.
+2. The broker streams that upload with the user's Zulip credential and attaches it to a mail draft over
+   IMAP, exactly as F2 does.
+3. The draft appears in SOGo for the user to complete; nothing is sent on their behalf.
 
 ### 7.3 Why a broker and not just iframes
 
@@ -414,7 +431,7 @@ authorisation, and present one consistent progress UI to the user.
 | B-5 | Streaming with backpressure; configurable max size; no full-file buffering in memory |
 | B-6 | Audit record per transfer: actor, direction, source, destination, byte count, result, timestamp |
 | B-7 | Unit-tested against fixtures; end-to-end tested by Playwright (see [`Testing.md`](./Testing.md)) |
-| B-8 | Degrades gracefully: if the broker is down the shell still works, and the four actions report "unavailable" instead of hanging |
+| B-8 | Degrades gracefully: if the broker is down the shell still works, and all six flows report "unavailable" instead of hanging |
 
 ---
 
@@ -433,9 +450,9 @@ requirements are:
 | U-4 | To the right of the rail, a single **content surface**. Panes are kept mounted (`enableMultiTasking` semantics inherited from Dashy) so switching preserves scroll position, drafts and sessions |
 | U-5 | The switcher never scrolls away; the sidebar body scrolls independently; the content surface scrolls independently |
 | U-6 | The **application switcher carries a status indicator beneath each button**, plus a `STATUS` label beneath the indicators, showing per-application health (from the healthchecks in §9) without leaving the page |
-| U-7 | A **user menu** in the rail footer: identity, admin badge when in `workspaceadmin`, the appearance control (U-17), the language control (U-18), the admin links, and Logout (which ends the Authentik session) |
-| U-17 | The user menu carries the **light/dark mode switcher**, and it is the only appearance control Workcenter offers. Dark is the default, and the menu says so |
-| U-18 | The user menu carries a **language element showing the language in use**, written in its own language, with a **flag button** that opens the language menu |
+| U-7 | A **user row** in the rail footer: the user's initials, their name stacked first-over-last, the mode toggle (U-17) and the language button (U-18) on its right; and a menu holding identity, the admin links and Logout (which ends the Authentik session). The `User`/`Admin` role is stated in the brand header (U-40) |
+| U-17 | The user row carries a single **mode toggle button** — a sun in dark mode, a moon in light mode, each labelled with the action it performs — and it is the only appearance control Workcenter offers. Dark is the default |
+| U-18 | The user row carries a **language button**: a rounded committed flag and the ISO 639-1 two-letter code, opening a **language menu** whose rows show a flag, the language in its own characters and spelling, and its English name |
 | U-19 | Each switcher button carries the **real brand mark** of its application, committed to `icons/` in the repository and never fetched from a third-party CDN at runtime |
 
 ### 8.2 Visual language
@@ -455,8 +472,8 @@ requirements are:
 
 | Ref | Requirement |
 | --- | --- |
-| U-12 | A global keyboard shortcut switches applications (`Alt+1/2/3`), and each embedded app is reachable by URL (`/#/files`, `/#/chat`, `/#/mail`) so panes are linkable |
-| U-13 | The four file-movement actions are surfaced as **context actions inside each pane's own UI** (attachment row, compose window, message action) — not hidden in a Workcenter menu |
+| U-12 | A global keyboard shortcut switches applications (`Alt+1/2/3`), and each embedded app is reachable by URL (`/files`, `/chat`, `/mail`) so panes are linkable |
+| U-13 | The six file-movement actions are **first-class, one click from the file they act on** — the Mail attachment panel, the chat attachment chooser and the file picker — never buried in a settings screen. They are the shell's own surfaces beside the pane rather than controls inside it: each application is a cross-origin frame, so no host page can add a button to SOGo's attachment list or an action to a Zulip message ([`design.md` D-8](./design.md#d-8--file-movement-elements)) |
 | U-14 | Every long-running action shows progress and can be cancelled without breaking the pane |
 | U-15 | If an application fails to load or fails its healthcheck, the pane shows a diagnostic card with the service name, the failing check and a **Retry** button — never a blank iframe |
 | U-16 | Accessibility: full keyboard navigation of the rail and switcher, visible focus rings, `aria-current` on the active application, and WCAG AA contrast for shell chrome |
@@ -619,7 +636,7 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 | 2.8 | Implement routing: `/files`, `/chat`, `/mail`, deep-linkable, with the pane restored on reload |
 | 2.9 | Implement the status indicators inside the application switcher (one beneath each button, plus the `STATUS` label) and the per-pane failure card (`U-15`) |
 | 2.10 | Apply the shell theming, with the palette derived from FileBrowser Quantum's own values (`U-21`) and dark as the default |
-| 2.11 | Build the user menu: identity, admin badge, admin links and Logout (`U-7`) |
+| 2.11 | Build the user row and its menu: initials, stacked name (U-40), the mode toggle, the language button, identity, admin links and Logout (`U-7`) |
 | 2.12 | Build the **appearance control** — the light/dark switcher, dark labelled as the default (`U-17`) |
 | 2.13 | Build the **language control** — the language in use plus the flag button and its menu (`U-18`) |
 | 2.14 | Implement the **theme bridge**: `POST /api/broker/preferences`, the pane message, the mode cookie, and the per-application adapters so one switch changes all three applications (`U-11`, `U-20`) |
@@ -699,7 +716,7 @@ Implement exactly the contract in [`production.md`](./production.md):
 
 ### Phase 6 — The file broker
 
-**Goal:** the four cross-application flows work.
+**Goal:** the six cross-application flows work.
 
 | Step | Work |
 | --- | --- |
@@ -708,11 +725,11 @@ Implement exactly the contract in [`production.md`](./production.md):
 | 6.3 | Implement the Mail adapter: IMAP(S) fetch of MIME parts; attachment listing; SMTP submission for attach-from-files |
 | 6.4 | Implement the Zulip adapter: `POST /api/v1/user_uploads` (+ `/api/v1/tus` for large files), attachment fetch by `uri`, message insertion |
 | 6.5 | Implement the transfer engine: streaming, max size, cancellation, atomic rename, audit log |
-| 6.6 | Wire the four UI entry points in the shell (attachment row, SOGo compose, Zulip message action, Zulip compose) |
+| 6.6 | Wire the six UI entry points in the shell: the Mail attachment panel (F1, F5), the chat attachment chooser (F3, F6) and the file picker (F2, F4) |
 | 6.7 | Progress and notification UI, plus the **Open** deep link into the destination |
 | 6.8 | Authorisation tests: user A can never touch user B's files or mailbox |
 
-**Exit criteria:** all four flows (F1–F4) complete inside the page, with progress, notifications, correct filenames, no residue on failure, and a clean audit trail.
+**Exit criteria:** all six flows (F1–F6) complete inside the page, with progress, notifications, correct filenames, no residue on failure, and a clean audit trail.
 
 **Depends on:** Phases 2, 3, 5.
 
@@ -726,7 +743,7 @@ Implement exactly the contract in [`production.md`](./production.md):
 | --- | --- |
 | 7.1 | Deterministic test profile: fixed test users, fixed groups, seeded files, a seeded mail message and a seeded Zulip channel |
 | 7.2 | `docker compose -f compose.test.yaml up -d` harness that brings the full stack up with test defaults |
-| 7.3 | Playwright specs for: OIDC login, application switching, sidebar swap, deep links, theme persistence, each of the four transfers, the switcher status indicators, the pane failure card |
+| 7.3 | Playwright specs for: OIDC login, application switching, sidebar swap, deep links, theme persistence, each of the six transfers, the switcher status indicators, the pane failure card |
 | 7.4 | Seeded-fixture mode that stubs the external mail/chat edges so the suite runs without outbound network |
 | 7.5 | CI workflow `e2e.yml` triggered on pull requests into `Dev`; required check |
 | 7.6 | Scheduled nightly run and artifact upload (traces, screenshots, videos, service logs) |
@@ -780,7 +797,7 @@ Implement exactly the contract in [`production.md`](./production.md):
 | **M3 — Stack up** | 3 | All services healthy behind Traefik on subdomains | G4, G12 |
 | **M4 — One command** | 4 | Bare host → running stack with `setup.sh` | G4 |
 | **M5 — One identity** | 5 | Single Authentik login across all four surfaces, group-driven admin | G5, G10 |
-| **M6 — File movement** | 6 | All four transfer flows complete in-page | **G3** |
+| **M6 — File movement** | 6 | All six transfer flows complete in-page | **G3** |
 | **M7 — Verified** | 7 | Playwright suite green on every PR into `Dev` | G7 |
 | **M8 — Operable** | 8 | Backup, restore, upgrade, internal TLS, security review | G9, G10 |
 | **M9 — 1.0** | 9 | Public release, Quick Start reproducible by a stranger | G4, G6 |
@@ -811,8 +828,9 @@ Workcenter 1.0 will **not**:
 | R11 | **The "never fork a bundled application" rule is violated once**, for Zulip's framing header | Precedent creep: every future problem gets solved by forking | The exception is recorded in [`architecture.md` AD-11](./architecture.md#10-architecture-decision-summary) with its exact scope (one nginx include file, no source patches, no behavioural changes), and any further fork request requires a roadmap change |
 | R12 | **Zulip admin sync is unavailable on the pinned version** — OIDC group→role sync lands in Zulip 13 | `workspaceadmin` cannot be expressed declaratively in Zulip on 12.2 | `setup.sh` propagates the role out of band via `PATCH /api/v1/users/{user_id}` (I-ZU-6), and re-runs on demand; tracked as open question 4 |
 | R13 | **FileBrowser Quantum sidebar cannot be injected into** — no slot, no plugin hook, no custom JS | The Workcenter switcher cannot live inside FileBrowser's own sidebar component tree | Workcenter renders the switcher as a body-level fixed element and shifts FileBrowser's fixed `#sidebar` with `frontend.styling.customCSS`, and mirrors the switcher inside FileBrowser as per-user `custom` `sidebarLinks` (I-FB-12/I-FB-13). Verified visually by Playwright |
+| R14 | **Mailcow's nginx refuses cross-origin framing** — `add_header X-Frame-Options "SAMEORIGIN" always;` is set at server scope in `data/conf/nginx/templates/sites-default.conf.j2` | The Mail pane cannot embed in the shell until the header is relaxed | Roadmap Phase 3 adds a `/SOGo` location in `Mailcow/data/conf/nginx/*.custom` (untracked upstream, survives `update.sh`) carrying a CSP `frame-ancestors` allow-list that names the Workcenter origin; nginx replaces the inherited `add_header` set at that level. Verify with `curl -sI https://mail.example.com/SOGo` and the pane's `blocked` state. Until it lands the Mail pane shows its diagnostic card, never a blank frame (IN-6.31) |
 | R2 | **SOGo has no native OIDC** | Mail pane authentication story is indirect | Use Mailcow's built-in Generic-OIDC identity provider as the authenticated front door (I-MC-5/I-MC-7) and Mailcow's LDAP identity provider for mail-protocol credentials (I-MC-6); the broker uses LDAP-backed or app-password credentials for IMAP(S)/SMTP; document the limitation honestly |
-| R3 | **FileBrowser Quantum v2 churn** (beta) | Config schema or API may shift under us | Pin `2.0.6-beta` exactly, record the digest, isolate all v2-specific assumptions in the adapter layer, and re-verify on every bump |
+| R3 | **FileBrowser Quantum v2 churn** (beta) | Config schema or API may shift under us | Pin `2.0.9-beta` exactly, record the digest, isolate all v2-specific assumptions in the adapter layer, and re-verify on every bump |
 | R4 | **Mailcow upgrade breakage** | Mail breaks on `update.sh` | Never edit Mailcow's compose file; keep every change in `docker-compose.override.yml`; test upgrades in the harness |
 | R5 | **Cross-origin credential handling in the broker** | Security exposure of mail/chat credentials | Encrypted per-user token store; no plaintext at rest; strict per-user authorisation tests; broker is the only writer into the file source |
 | R6 | **Resource footprint** (Zulip + Mailcow + OnlyOffice + Authentik together) | Won't run on small VPS | Document minimums (D-11), allow `SKIP_*` flags for optional Mailcow components, and publish a "minimum viable" profile |
@@ -844,7 +862,7 @@ Workcenter 1.0 is done when **all** of the following are true:
 - [ ] A clean host with Docker and DNS pointed at it reaches a working Workcenter using only `./setup.sh`.
 - [ ] One Authentik login grants access to Files, Chat and Mail, with no second prompt in any pane.
 - [ ] The application switcher is above the sidebar, and the sidebar content swaps per active application.
-- [ ] All four file-movement flows complete inside the page with progress and a success notification.
+- [ ] All six file-movement flows complete inside the page with progress and a success notification.
 - [ ] `workspaceusers` and `workspaceadmin` behave identically across all four surfaces and the Traefik dashboard.
 - [ ] Every service reports healthy in `docker compose ps`, and Workcenter gates on those healthchecks.
 - [ ] TLS is terminated at Traefik for every public hostname; internal TLS is available on request.

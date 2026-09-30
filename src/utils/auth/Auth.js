@@ -189,6 +189,40 @@ export const login = (username, pass, timeout) => {
 export const logout = () => {
   document.cookie = `${cookieKeys.AUTH_TOKEN}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/`;
   localStorage.removeItem(localStorageKeys.USERNAME);
+  localStorage.removeItem(localStorageKeys.DISPLAY_NAME);
+  localStorage.removeItem(localStorageKeys.EMAIL);
+  localStorage.removeItem(localStorageKeys.GROUPS);
+};
+
+/**
+ * The identity the shell shows in the user menu.
+ *
+ * Every field comes from the session — a token claim or the built-in login —
+ * and nothing here is editable from inside the shell. A deployment with no
+ * identity provider configured returns the empty profile, which the menu
+ * renders as "not signed in" rather than inventing a name.
+ */
+export const getUserProfile = () => {
+  const username = localStorage[localStorageKeys.USERNAME] || '';
+  if (!username) {
+    return {
+      username: '', displayName: '', email: '', groups: [], isAdmin: false,
+    };
+  }
+  let groups = [];
+  try {
+    const parsed = JSON.parse(localStorage[localStorageKeys.GROUPS] || '[]');
+    if (Array.isArray(parsed)) groups = parsed;
+  } catch (e) {
+    ErrorHandler('Malformed group claim in local storage', e);
+  }
+  return {
+    username,
+    displayName: localStorage[localStorageKeys.DISPLAY_NAME] || username,
+    email: localStorage[localStorageKeys.EMAIL] || '',
+    groups,
+    isAdmin: isUserAdmin(),
+  };
 };
 
 /* Returns the URL to redirect to after logout if set */

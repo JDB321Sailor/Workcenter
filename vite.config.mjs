@@ -111,6 +111,10 @@ export default defineConfig({
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Application brand marks live at the repository root so they are the
+      // single source of truth and a missing file is a build failure
+      // (architecture.md AR-46, design.md D-2I).
+      '@icons': path.resolve(__dirname, './icons'),
     },
   },
 
@@ -129,6 +133,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     chunkSizeWarningLimit: 7000,
+    /* Committed icons stay files. Vite inlines any asset under 4 KB as a data
+       URI, which would fold the language flags and the theme glyphs into the
+       JavaScript payload that every page load downloads — even for a user who
+       never opens the language menu. As files they are cached once, fetched
+       when they are first shown, and the shell's own bundle stays about the
+       shell. */
+    assetsInlineLimit: (filePath) => (filePath.includes('/icons/') ? false : undefined),
   },
 
   server: {

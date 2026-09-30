@@ -13,7 +13,12 @@
         @select="select"
       />
 
-      <p class="wc-app-sidebar__footnote">{{ $t('sidebar.chat.footnote') }}</p>
+      <p v-if="hasNoMatches" class="wc-app-sidebar__notice">
+        {{ $t('sidebar.search.no-matches', { app: app.name }) }}
+        <span class="wc-app-sidebar__hint">{{ $t('sidebar.search.no-matches-hint', { app: app.name }) }}</span>
+      </p>
+
+      <p v-else class="wc-app-sidebar__footnote">{{ $t('sidebar.chat.footnote') }}</p>
     </template>
   </div>
 </template>
@@ -23,12 +28,18 @@ import SidebarGroup from '@/components/AppSidebar/SidebarGroup.vue';
 import SidebarMixin from '@/mixins/SidebarMixin';
 
 /**
- * The Chat navigator: the Zulip left sidebar.
+ * The Chat navigator: Zulip's views.
  *
- * Views, channels and direct messages. Zulip builds this list from the signed-in
- * user's subscriptions, which the shell can read once the broker carries the
- * Zulip adapter (roadmap Phase 6); until then the rows are the views every Zulip
- * account has.
+ * Every hash below is a Zulip view fragment, verified against the pinned
+ * client (`web/src/navigation_views.ts`, `web/src/hashchange.ts`):
+ * `#inbox`, `#recent`, `#feed`, `#narrow/is/mentioned`, `#narrow/is/starred`
+ * and `#drafts`. Zulip's own client parses them on load, so a pane navigation
+ * lands on the right view.
+ *
+ * Channels and direct messages are read from the user's subscriptions by the
+ * broker's Zulip adapter (`GET /api/v1/users/me/subscriptions`, roadmap Phase
+ * 6); their URL grammar is `#narrow/channel/<id>-<slug>[/topic/<topic>]` and
+ * `#narrow/dm/<ids>`, and the shell will build those rows when it has them.
  */
 export default {
   name: 'ChatSidebar',
@@ -43,45 +54,32 @@ export default {
           id: 'views',
           labelKey: 'sidebar.chat.views',
           items: [
-            { id: 'inbox', labelKey: 'sidebar.chat.inbox', icon: 'fas fa-inbox', path: '' },
+            { id: 'inbox', labelKey: 'sidebar.chat.inbox', icon: 'fas fa-inbox', path: '#inbox' },
             {
               id: 'recent',
               labelKey: 'sidebar.chat.recent',
               icon: 'fas fa-clock-rotate-left',
-              path: '',
+              path: '#recent',
             },
             {
               id: 'combined',
               labelKey: 'sidebar.chat.combined',
               icon: 'fas fa-layer-group',
-              path: '',
+              path: '#feed',
             },
             {
               id: 'mentions',
               labelKey: 'sidebar.chat.mentions',
               icon: 'fas fa-at',
-              path: '',
-            },
-            { id: 'starred', labelKey: 'sidebar.chat.starred', icon: 'fas fa-star', path: '' },
-            { id: 'drafts', labelKey: 'sidebar.chat.drafts', icon: 'fas fa-pen', path: '' },
-          ],
-        },
-        {
-          id: 'messages',
-          labelKey: 'sidebar.chat.messages',
-          items: [
-            {
-              id: 'direct',
-              labelKey: 'sidebar.chat.direct',
-              icon: 'fas fa-comment-dots',
-              path: '',
+              path: '#narrow/is/mentioned',
             },
             {
-              id: 'new-topic',
-              labelKey: 'sidebar.chat.new-topic',
-              icon: 'fas fa-plus',
-              path: '',
+              id: 'starred',
+              labelKey: 'sidebar.chat.starred',
+              icon: 'fas fa-star',
+              path: '#narrow/is/starred',
             },
+            { id: 'drafts', labelKey: 'sidebar.chat.drafts', icon: 'fas fa-pen', path: '#drafts' },
           ],
         },
       ];

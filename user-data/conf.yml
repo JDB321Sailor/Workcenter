@@ -9,16 +9,18 @@ pageInfo:
 appConfig:
   theme: default
   # The address of each application the shell embeds. A pane with no address is
-  # shown as unavailable rather than silently blank.
+  # shown as unavailable rather than silently blank. The Mail pane points at
+  # SOGo, which Mailcow serves under /SOGo.
   applications:
     files:
       url: https://filebrowser.example.com
     chat:
       url: https://chat.example.com
     mail:
-      url: https://mail.example.com
-  # Workcenter renders one page. The three applications are sidebar sections,
-  # each pane deep-linkable at /files, /chat and /mail.
+      url: https://mail.example.com/SOGo
+  # The appearance mode starts dark; a user's own choice is remembered locally.
+  # An operator can still select an inherited theme with `theme`, which wins for
+  # the tokens that theme defines.
   defaultOpeningMethod: newtab
 
   auth:

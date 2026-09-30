@@ -2,7 +2,7 @@
 
 > **Applies to:** every file in this repository — application source, deployment files, shell scripts,
 > tests and documentation.
-> **Enforced by:** ESLint, Stylelint, ShellCheck, Prettier, `markdownlint`, Vitest coverage gates and CI.
+> **Enforced by:** ESLint, ShellCheck, Vitest, and the checks in CI. There is no formatter and no style linter (see the note in §1).
 > **Companions:** [`contributions.md`](./contributions.md) · [`Agents.md`](./Agents.md) ·
 > [`Testing.md`](./Testing.md) · [`architecture.md`](./architecture.md)
 
@@ -100,7 +100,7 @@ version is missing.
 
 | Ref | Rule |
 | --- | --- |
-| S-ST-1 | Vuex modules are the only shared state. Module names: `config`, `apps`, `health`, `user`, `ui`. |
+| S-ST-1 | Shared state lives in the single root Vuex store (`src/store.js`, `modules: {}`). State that is not configuration — health, appearance mode — lives in a small reactive module under `src/utils/` and is imported where it is needed. Do not introduce Vuex modules: `Agents.md` §4.1 pins the single-root shape. |
 | S-ST-2 | Mutations are synchronous and named `SET_*` / `UPDATE_*`; asynchronous work belongs in actions. |
 | S-ST-3 | Getters are pure. No side effects, no fetching. |
 | S-ST-4 | The `apps` module reads from `src/utils/apps/registry.js`; components never hard-code application URLs. |
@@ -128,7 +128,7 @@ version is missing.
 | Files: docs | kebab-case `.md` (specification set keeps its published names) | `troubleshooting.md` |
 | Variables, functions | camelCase | `resolveSourceRoot()` |
 | Constants | `SCREAMING_SNAKE_CASE` | `MAX_TRANSFER_BYTES` |
-| Vuex mutations | `SCREAMING_SNAKE_CASE`, verb-first | `SET_ACTIVE_APP` |
+| Vuex mutations | `SCREAMING_SNAKE_CASE`, verb-first | `SET_APP_CONFIG` |
 | CSS custom properties | kebab-case, `--wc-` prefix for shell tokens | `--wc-accent-chat` |
 | i18n keys | dot-namespaced | `transfer.save.success` |
 | Env vars | `SCREAMING_SNAKE_CASE`, app-prefixed where app-specific | `FILEBROWSER_OIDC_CLIENT_ID` |
@@ -264,7 +264,7 @@ Examples:
 feat(switcher): add three-button application switcher above the rail
 fix(broker): stream mail attachments instead of buffering them in memory
 docs(oidc): document the mailcow generic-oidc provider fields
-chore(compose): pin filebrowser quantum to 2.0.6-beta
+chore(compose): pin filebrowser quantum to 2.0.9-beta
 ```
 
 ### 8.2 Branches
@@ -416,16 +416,12 @@ Yarn is the package manager; the scripts below are invoked as `yarn <script>`.
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server",
-    "lint": "eslint \"src/**/*.{js,vue,ts}\" \"services/**/*.js\" \"tests/**/*.js\" \"e2e/**/*.ts\"",
-    "lint:fix": "yarn lint -- --fix",
-    "lint:sh": "shellcheck setup.sh scripts/**/*.sh",
+    "lint": "eslint \"src/**/*.{js,vue}\"",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test --config e2e/playwright.config.ts",
-    "check-all": "yarn lint && yarn typecheck && yarn test && yarn validate-locales && yarn validate-config",
     "validate-locales": "node tests/locales/check-locales.js",
     "validate-config": "node services/utils/config-validator",
     "health-check": "node services/healthcheck",
@@ -434,8 +430,20 @@ Yarn is the package manager; the scripts below are invoked as `yarn <script>`.
 }
 ```
 
-> **Rule S-TL-1:** `yarn check-all` must pass before a PR is opened. It is the same gate CI runs.
+> **Rule S-TL-1:** the gate a pull request must pass is exactly the one CI runs:
+> `yarn lint`, `yarn typecheck`, `yarn test`, `yarn validate-locales`, `yarn validate-config` and
+> `yarn build`. Run each of them, or run them all in one shell line — there is deliberately no
+> aggregate script to hide behind.
 > **Rule S-TL-2:** `validate-config` requires a valid `user-data/conf.yml`; CI supplies one from `tests/fixtures/valid-config.yml`.
+>
+> **Not yet available.** `test:e2e`, `lint:fix`, `lint:sh` and a `check-all` aggregate are documented
+> in parts of this repository but do not exist as scripts: the Playwright suite and its
+> `e2e/` configuration arrive with roadmap Phase 7, the shell lint tools with the commit that adds
+> them. `yarn lint` currently covers `src/**/*.{js,vue}` only; widening it to `services/`, `tests/`
+> and `e2e/` is its own change, because the inherited `services/` code has never been linted and
+> would fail on the first run. Do not report a check as run because a script for it is documented
+> here — run the command and read its output. `scripts/e2e.sh` is the interim, human-run verification
+> entry point and is documented in [`Testing.md`](./Testing.md).
 
 ---
 

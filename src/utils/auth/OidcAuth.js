@@ -261,9 +261,18 @@ class OidcAuth {
       || user.profile.email
       || user.profile.sub
       || 'oidc-user';
+    // The user menu shows a display name and an address; both come from the
+    // token, never from anything the user types into the shell.
+    const fullName = user.profile.name
+      || [user.profile.given_name, user.profile.family_name].filter(Boolean).join(' ')
+      || username;
     statusMsg(`Authenticated as ${username} ${isAdmin ? '(admin)' : '(non-admin)'}`, JSON.stringify(info));
     localStorage.setItem(localStorageKeys.KEYCLOAK_INFO, JSON.stringify(info));
     localStorage.setItem(localStorageKeys.USERNAME, username);
+    localStorage.setItem(localStorageKeys.DISPLAY_NAME, fullName);
+    localStorage.setItem(localStorageKeys.GROUPS, JSON.stringify(groups));
+    if (user.profile.email) localStorage.setItem(localStorageKeys.EMAIL, user.profile.email);
+    else localStorage.removeItem(localStorageKeys.EMAIL);
     localStorage.setItem(localStorageKeys.ISADMIN, isAdmin);
     if (user.id_token) localStorage.setItem(localStorageKeys.ID_TOKEN, user.id_token);
     sessionStorage.removeItem(SIGNIN_GUARD_KEY);
@@ -275,6 +284,9 @@ class OidcAuth {
     localStorage.removeItem(localStorageKeys.KEYCLOAK_INFO);
     localStorage.removeItem(localStorageKeys.ISADMIN);
     localStorage.removeItem(localStorageKeys.ID_TOKEN);
+    localStorage.removeItem(localStorageKeys.DISPLAY_NAME);
+    localStorage.removeItem(localStorageKeys.EMAIL);
+    localStorage.removeItem(localStorageKeys.GROUPS);
 
     try {
       await this.userManager.signoutRedirect();

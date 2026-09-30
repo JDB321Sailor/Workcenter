@@ -6,27 +6,43 @@
     :style="accentStyle"
     role="tab"
     :aria-selected="isActive ? 'true' : 'false'"
+    :aria-current="isActive ? 'page' : undefined"
     :aria-controls="`wc-pane-${app.id}`"
     :id="`wc-tab-${app.id}`"
     :tabindex="isActive ? 0 : -1"
     :title="available ? label : unavailableTitle"
+    :aria-label="collapsed ? label : undefined"
     @click="$emit('select', app.id)"
   >
-    <i :class="app.icon" class="wc-switch-button__icon" aria-hidden="true" />
-    <span class="wc-switch-button__label">{{ label }}</span>
+    <AppMark :name="app.mark" :size="24" decorative />
+    <span v-if="!collapsed" class="wc-switch-button__label">{{ label }}</span>
     <span class="wc-switch-button__underline" aria-hidden="true" />
   </button>
 </template>
 
 <script>
+import AppMark from '@/components/AppMark.vue';
 import { appUrl } from '@/utils/apps/urls';
 
+/**
+ * One application's button in the switcher.
+ *
+ * The mark is the button's visual identity; the label names it. When the rail is
+ * collapsed the label is not rendered, so the button carries the application
+ * name as its accessible name instead (design.md D-2I.6) — a 24px mark on its
+ * own would otherwise be an unlabelled control.
+ */
 export default {
   name: 'AppSwitchButton',
+  components: {
+    AppMark,
+  },
   props: {
     app: { type: Object, required: true },
     activeId: { type: String, default: '' },
     appConfig: { type: Object, default: () => ({}) },
+    /* The rail is icon-only, so the label is not rendered. */
+    collapsed: { type: Boolean, default: false },
   },
   emits: ['select'],
   computed: {
@@ -47,6 +63,12 @@ export default {
       return { '--wc-app-accent': `var(${this.app.accentVar})` };
     },
   },
+  methods: {
+    /* The switcher moves focus between the tabs itself (roving tabindex). */
+    focusButton() {
+      this.$el.focus();
+    },
+  },
 };
 </script>
 
@@ -62,8 +84,12 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
-  height: var(--switcher-button-height);
-  padding: 0.25rem 0.15rem;
+  /* The height is a floor, not a cap: a mark, the gap and a label need more
+     room than the token alone reserves, and a clipped label is worse than a
+     slightly taller button. */
+  height: auto;
+  min-height: var(--switcher-button-height);
+  padding: 0.35rem 0.15rem;
   border: none;
   border-radius: var(--wc-radius);
   background: transparent;
@@ -94,13 +120,10 @@ export default {
   }
 }
 
-.wc-switch-button__icon {
-  font-size: 1.05rem;
-  line-height: 1;
-}
-
 .wc-switch-button__label {
   font-size: 0.7rem;
+  /* An explicit line box, so descenders are never cut by the button's edge. */
+  line-height: 1.2;
   letter-spacing: 0.02em;
   max-width: 100%;
   overflow: hidden;

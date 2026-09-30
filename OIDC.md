@@ -618,7 +618,7 @@ This is the most commonly misunderstood part of the stack, so it is stated plain
 
 **SOGo ≥ 5.12 does support OpenID Connect natively** — `SOGoAuthenticationType = openid` with
 `SOGoOpenIdConfigUrl`, `SOGoOpenIdClient`, `SOGoOpenIdClientSecret` and friends — and Mailcow *ships*
-SOGo 5.12.10, so the OIDC code is compiled in.
+SOGo 5.12.11, so the OIDC code is compiled in.
 
 **But Mailcow does not configure it, and it cannot be made to work without changes Mailcow does not
 support.** The blocker is not the web UI, it is the **mail protocols**:

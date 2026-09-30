@@ -17,7 +17,7 @@
 | P2 | **One rail, always in the same place** | The left rail never moves, never collapses unexpectedly and never changes width between applications. Only its *contents* change. |
 | P3 | **Switching is not navigating** | Moving between Files, Chat and Mail is a mode change, not a page load. State is preserved: scroll position, open drafts, half-typed messages, expanded folders. |
 | P4 | **The three applications must be instantly distinguishable** | Each carries an accent colour, an icon and a label, applied consistently on the switcher, the sidebar's active affordance and the pane's loading state. |
-| P5 | **File movement is a first-class action, not a settings trip** | The four transfer actions appear where the file already is — on the attachment, in the compose box, in the message action menu. |
+| P5 | **File movement is a first-class action, not a settings trip** | Each flow starts one click from the file it acts on, in the shell's chooser for that source application (D-8). The panes cannot host the controls — they are cross-origin frames — so the choosers sit beside them and never behind a settings screen. |
 | P6 | **Failure is visible, never blank** | A pane that cannot load shows a diagnostic card with the failing check and a Retry. A silent empty iframe is a bug. |
 | P7 | **Theme once, apply everywhere** | The shell owns the theme; the theme bridge pushes light/dark into each application where the application supports it. |
 | P8 | **Keyboard-first is a supported mode** | Every shell action is reachable without a pointer. |
@@ -65,11 +65,11 @@ second navigation level beyond the rail.
 
 | Region | Component | Fixed/Fluid | Scrolls | Ref |
 | --- | --- | --- | --- | --- |
-| Brand header | `AppSwitcher` container header | Fixed height `--rail-header-height` | No | D-1 |
+| Brand header | `BrandHeader.vue` — mark, wordmark and the **role label** | Minimum height `--rail-header-height` | No | D-1 |
 | Application switcher **with status indicators** | `AppSwitcher.vue` | Fixed height `--switcher-height` | No | D-2 |
 | Global search | `SidebarSearch.vue` | Fixed height | No | D-3 |
 | Sidebar body | `AppSidebar.vue` | Fluid | **Yes** | D-4 |
-| User menu | `UserMenu.vue` | Fixed height | No | D-6 |
+| User menu | `UserMenu.vue` — initials, stacked name, mode and language buttons | Minimum height, grows to two name lines | No | D-6 |
 | Content surface | `PaneHost.vue` | Fluid, fills remainder | Per pane | D-7 |
 
 The rail has **six** regions. Switcher and status share one region: the indicators are part of the
@@ -85,11 +85,11 @@ Extends Workcenter's `src/styles/dimensions.scss`.
 | `--side-bar-width` | `16rem` | Rail width. Workcenter's value is `3.5rem` (icons only); Workcenter widens it because its sidebars carry labels, not just icons. |
 | `--side-bar-width-collapsed` | `3.5rem` | Rail width when collapsed to icons. Equals Workcenter's `--side-bar-width`, so a collapsed Workcenter rail has exactly Workcenter's geometry. |
 | `--rail-header-height` | `3rem` | Brand header row. |
-| `--switcher-height` | `4.5rem` | Application switcher region: the button row **and** the status indicator row plus its label. |
-| `--switcher-button-height` | `2.5rem` | A single switcher button. |
+| `--switcher-height` | `5.5rem` | Application switcher region: the button row **and** the status indicator row plus its label. A minimum, not a cap — the region grows with its content rather than clipping it. |
+| `--switcher-button-height` | `3rem` | A single switcher button: a 24px mark, the gap, a label line and the button's padding. A minimum height, so the label is never cut off. |
 | `--switcher-indicator-height` | `2rem` | The status indicator row and the `STATUS` label beneath the buttons. |
 | `--sidebar-search-height` | `2.5rem` | Global search row. |
-| `--user-menu-height` | `3rem` | User menu row. |
+| `--user-menu-height` | `3rem` | User row: a minimum, not a cap. The row grows to fit the two name lines (D-6.3) and shrinks to the initials button alone when the rail is collapsed. |
 | `--header-height` | `0` | **Kept as a token, set to `0`.** Workcenter shows a `6.3rem` header on the Workspace view and positions the iframe at `calc(100% - var(--header-height))`. Workcenter replaces that header with the rail's brand header (D-1) and sets this token to `0`, so every inherited `calc()` expression stays correct without editing any component. Re-introducing a top header means changing this token only. |
 | `--pane-gutter` | `0` | No gutter between rail and surface — the embedded app owns its own padding. |
 | `--rail-transition` | `180ms ease` | Width and collapse transitions. |
@@ -105,15 +105,48 @@ Extends Workcenter's `src/styles/dimensions.scss`.
 
 ### D-1 — Brand header
 
+```
+┌──────────────────────────────────────┐
+│  WC   Workcenter  -  Admin      ‹    │   expanded
+└──────────────────────────────────────┘
+┌──────┐
+│  WC  │                                 collapsed: the mark, then the toggle
+│  ›   │                                 beneath it — the way back is never hidden
+└──────┘
+```
+
 | Property | Value |
 | --- | --- |
-| Content | Workcenter mark + wordmark "Workcenter" (hidden when collapsed) |
-| Height | `--rail-header-height` |
+| Content | Workcenter mark + the wordmark `Workcenter`, then the **role label** (D-1.1) |
+| Height | `--rail-header-height` (a minimum: the collapsed form stacks, so the row grows) |
 | Behaviour | Clicking the wordmark returns the shell to the last-used application |
-| Right affordance | Rail collapse/expand toggle (`aria-expanded`) |
-| Collapsed state | Mark only, centred |
+| Right affordance | Rail collapse/expand toggle, `aria-expanded`, arrow pointing the way the click moves the rail: **left to collapse, right to open** |
+| Collapsed state | Mark only, centred, with the toggle beneath it; the role label and the wordmark are not rendered |
 
 The wordmark is the only place the product name appears in the shell. No page title bar, no breadcrumb.
+
+#### D-1.1 — The role label
+
+The shell states who the signed-in user is, once, in the brand header: `Workcenter - User` or
+`Workcenter - Admin`. It is not a badge, not a title, and not repeated anywhere else — the user menu
+no longer carries it (D-6).
+
+| Property | Value |
+| --- | --- |
+| Text | `User` for an authenticated user without the admin group, `Admin` with it. Both are translated (`brand.role-user`, `brand.role-admin`) |
+| Separator | A spaced hyphen, `aria-hidden`, so the accessible text reads `Workcenter Admin` and not "hyphen" |
+| Source | The same session profile the user menu reads: the groups claim, matched against the configured `adminGroup` (roadmap U-20). Never a second copy of the rule |
+| Signed out | No role label at all — the header reads `Workcenter`. An unauthenticated shell must not claim a role |
+| Size | **Smaller than the wordmark** — the role is a qualifier, not a title. It is set at 0.72rem against the wordmark's 0.9rem, and it truncates with an ellipsis rather than pushing the collapse toggle out of the row |
+| Narrow rail | Where the row cannot fit both, the **role label** gives way first (it truncates), then disappears; the mark, the collapse toggle and the wordmark keep their size. Nothing in this row changes size with the mode or the language |
+| Collapsed rail | Not rendered (`v-if`), so the label cannot be clipped or half-drawn |
+| Contrast | `--wc-text-muted`, which meets 4.5:1 against the rail in both modes at this size |
+
+> **Rule D-1.1:** the role label never replaces the wordmark and is never the only way to tell an
+> admin from a user: the admin links in the user menu are still shown to admins alone (D-6.3), so a
+> user who cannot read the small label is not misled about what they may do.
+> **Rule D-1.2:** the role is stated, never implied by colour. There is no red "admin" pill, and no
+> accent that means "admin" — the accent colours belong to the three applications (D-2I.4).
 
 ---
 
@@ -193,6 +226,7 @@ The same set covers the rest of the shell's application references:
 | D-2I.6 | A brand mark is decorative whenever it sits next to its own text label (`aria-hidden="true"`); where it appears without a label — the collapsed rail — the button carries the application name as its accessible name. |
 | D-2I.7 | Marks are identical in light and dark mode. Where a mark would fail the 3:1 non-text contrast check against the rail in one mode, the **button**, not the mark, gains a neutral `--wc-icon-plate` backing. |
 | D-2I.8 | No SVG in `icons/` may contain a `<script>`, an event-handler attribute or a reference to a remote resource. This is checked in CI alongside lint. |
+| D-2I.9 | Brand marks are committed SVGs (above). The shell's **own chrome** — sidebar rows, the pane's overflow menu, the preference controls — uses the icon font instead, and the shell requests it whether or not any section does, because that chrome always needs it. A deployment that would rather not make the third-party request sets `enableFontAwesome: false`; those glyphs are then absent while every label remains. |
 
 ---
 
@@ -228,6 +262,18 @@ user sees at a glance which applications are working before clicking.
 > **Rule D-2S.2:** the indicator row is part of `--switcher-height`. It is never a separate rail
 > region and never scrolls.
 > **Rule D-2S.3:** every indicator has exactly one corresponding button, in the same order.
+>
+> **Collapsed rail.** At `--side-bar-width-collapsed` the switcher **stacks vertically**, so each
+> 24px mark keeps its own row instead of three marks competing for 3.5rem of width; each button takes
+> the application name as its accessible name because its label is not rendered. The indicator row
+> stays beneath the stack, in the same order. The rail's other regions adapt the same way: the user
+> menu shows the avatar alone, the search row becomes the button that reopens the field, and the
+> sidebar becomes an icon rail — rows keep their icon, centred, and drop their label, badge and group
+> heading (`src/styles/workcenter/rail.scss`).
+>
+> **The collapse control never hides itself.** It stays visible and clickable in both states, and its
+> arrow points the way the click will move the rail: left to collapse, right to open. A collapse
+> control that can only be found by hovering is a rail the user cannot get out of.
 
 ---
 
@@ -250,7 +296,8 @@ at the bottom of the results that deep-links into the embedded app.
 
 ### D-4 — Sidebar body (swaps per application)
 
-The sidebar body is a slot host. Each application supplies a navigator that follows the **same visual
+The sidebar body is a host that selects the active application's navigator from the application
+registry (`src/utils/apps/registry.js`); each application supplies one and it follows the **same visual
 grammar**, honouring the FileBrowser Quantum sidebar pattern:
 
 | Grammar rule | Specification |
@@ -295,68 +342,86 @@ Selecting a source or folder navigates the **Files pane** to that path and marks
 | **Files** | "Save an attachment to my files" hint row that opens the Mail pane and explains the flow (F1 entry point) | Broker |
 
 > **Rule D-4.1:** sidebar data is loaded by the shell through the broker's read-only endpoints and
-> cached in the `apps` Vuex module; a failed fetch degrades to a static, still-usable list.
+> cached in the shell's application state; a failed fetch degrades to a static, still-usable list.
 > **Rule D-4.2:** every sidebar row is a real link (`<a>` with an `href` where an in-app route
 > exists), so middle-click and "copy link" behave as users expect.
+>
+> **Verified destinations.** Each navigator's rows point at paths read from the pinned application
+> itself: FileBrowser Quantum's `/files` and `/tools/<tool>` routes; Zulip's view fragments
+> (`#inbox`, `#recent`, `#feed`, `#narrow/is/mentioned`, `#narrow/is/starred`, `#drafts`) and, once
+> the broker can read subscriptions, `#narrow/channel/<id>[-<slug>]` and `#narrow/dm/<ids>`;
+> SOGo's `/SOGo/so/<mailbox>/<Module>/view#!/<module state>`, whose mail folder is the encoded
+> mailbox path (`#!/Mail/0/INBOX`). SOGo exposes **no** URL that selects an individual calendar, so
+> the calendar row opens the calendar module and per-calendar selection stays inside SOGo
+> ([`integration.md` IN-5.29](./integration.md), IN-6.31).
 
 ---
 
 ### D-6 — User menu
 
-The rail's footer. A trigger row that is always visible, and a popover that holds identity, the two
-preference controls Workcenter owns — **appearance** and **language** — the admin links, and Logout.
+The rail's footer: one row that is always visible, and a popover that holds identity, the admin links
+and Logout.
 
 ```
-┌────────────────────────────────────┐
-│  Jane Doe                          │
-│  jane@example.com                  │
-│  Workspace user · Admin            │
-├────────────────────────────────────┤
-│  Appearance      [ ☾ Dark ][ ☀ ]   │   D-6.1  dark is the default
-│  Language        English   [ 🏴 ▾ ]│   D-6.2  language in use + flag button
-├────────────────────────────────────┤
-│  Integrations                    ↗ │   D-6.3  admin only
-│  Mail admin                      ↗ │
-│  Identity                        ↗ │
-├────────────────────────────────────┤
-│  Sign out                          │
-└────────────────────────────────────┘
-          ▲ anchored to the trigger row
-┌────────────────────────────────────┐
-│  ⬤  Jane Doe              Admin    │   the trigger row, in the rail footer
-└────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  JD   Jane           ☀   ▣ en                │   the row, expanded (D-6.1, D-6.2)
+│       Doe                                    │   name stacked, 14 characters a line (D-6.3)
+├──────────────────────────────────────────────┤
+│  Jane Doe                                    │
+│  jane@example.com                            │
+│  workspaceadmin                              │
+├──────────────────────────────────────────────┤
+│  Integrations                             ↗  │   D-6.4  admin only
+│  Mail admin                               ↗  │
+│  Identity                                 ↗  │
+├──────────────────────────────────────────────┤
+│  Sign out                                    │
+└──────────────────────────────────────────────┘
+                ▲ anchored to the row, opening upward
+┌──────┐
+│  JD  │                                          the row, collapsed (D-6.5)
+└──────┘
 ```
 
 | Property | Value |
 | --- | --- |
-| Collapsed content | Avatar (or initials) + admin badge when applicable |
-| Expanded content | Display name, email, group summary, **appearance control (D-6.1)**, **language control (D-6.2)**, admin links (admin only, D-6.3), Logout |
-| Admin badge | Small pill reading `Admin`; shown when the token carries `workspaceadmin` |
-| Logout | Ends the Workcenter session and performs RP-initiated logout at Authentik so all panes end with it |
-| Position | Anchored bottom of the rail; a popover, not a route |
-| Keyboard | `Tab` reaches the trigger; `Enter` opens; arrow keys traverse; `Esc` closes and restores focus |
-| Order | Identity → appearance → language → admin links → Logout. Logout is always last and always separated by a divider, so it is never hit by accident |
-| Collapsed rail | The trigger becomes the avatar alone; the popover is unchanged and opens to the right of the rail |
+| Trigger | The **initials button** — the user's initials, never a photograph (the shell stores no avatar) |
+| Row, expanded | Initials button, the name stacked first-over-last (D-6.3), then **two icon buttons**: the mode toggle (D-6.1) and the language button (D-6.2) |
+| Row, collapsed | The initials button alone. The name and both icon buttons are not rendered (D-6.5) |
+| Panel | Identity (name, email, group summary), admin links (D-6.4), Logout. **The panel carries no appearance or language control when the rail is expanded** — those live in the row, where they are one click away instead of two |
+| Position | Opens **upward, inside the rail column, directly above the initials button**, at the rail's width less a 0.4rem inset — the rail is where the user is looking, and a panel beside it reads as a second surface. It is `position: fixed`, so the rail's `overflow: hidden` cannot clip it. The collapsed rail is the exception (D-6.5) |
+| Keyboard | `Tab` reaches the trigger; `Enter`/`Space` opens; arrow keys traverse; `Esc` closes and restores focus to the initials button |
+| Order | Identity → admin links → Logout. Logout is always last and always separated by a divider, so it is never hit by accident |
+| Role | **Not shown here.** Who the user is — `User` or `Admin` — is stated once, in the brand header (D-1.1) |
 
-> **Rule D-6.1:** the user menu is the **only** place in the shell that changes appearance or
+The implemented appearance, captured from the running shell (signed out, so the role label is absent by
+D-1.1): [the user row and its menu](docs/assets/ui/rail-user-menu.png) ·
+[the language menu](docs/assets/ui/rail-language-menu.png).
+
+> **Rule D-6.1:** the two icon buttons are the **only** place in the shell that change appearance or
 > language. There is no settings route, no configuration modal and no second entry point.
-> **Rule D-6.2:** both controls apply immediately. Neither has an Apply button and neither reloads the
+> **Rule D-6.2:** both apply immediately. Neither has an Apply button and neither reloads the
 > Workcenter page. A pane is refreshed only in the narrow case D-T6 allows, and never while work is
 > unsaved (D-T7).
 
-#### D-6.1 — Appearance: the light/dark mode switcher
+#### D-6.1 — The mode toggle
+
+One button, not a segmented control: the row has no space for two options, and the mode in use is
+readable from the shell itself.
 
 | Property | Specification |
 | --- | --- |
-| Element | `ThemeSwitcher.vue`, rendered in the user-menu popover |
-| Shape | A two-option segmented control, both options always visible, so the current mode is readable without opening a menu |
-| Options | **Dark** (moon glyph) and **Light** (sun glyph) |
+| Element | `ModeToggleButton.vue`, in the row's right-hand group, **left inboard** of the language button |
+| Face in dark mode | A **sun** — the action is to bring light. Activating it switches to light mode |
+| Label in dark mode | `Switch to light mode` |
+| Face in light mode | A **moon** — the action is to bring dark. Activating it switches to dark mode |
+| Label in light mode | `Switch to dark mode` |
+| Glyph source | `icons/ui/sun.svg` and `icons/ui/moon.svg`, committed (D-2I.9) and inlined as components so they take `currentColor` and follow the mode. Never raster, never recoloured by filter |
+| Size | A 1.1rem glyph inside a 1.75rem box — the hit area meets the minimum touch target even though the glyph is small |
+| State | `aria-pressed` is **not** used: the button performs an action rather than exposing a toggle state. The accessible name states the action and `title` repeats it |
 | Default | **Dark.** A user who has never chosen lands in `workcenter-dark` |
-| Expressing the default | The dark option is labelled `Dark (default)` until the user makes a choice, and the row's helper text reads `Dark is the Workcenter default — switch any time.` After an explicit choice the suffix is dropped and the helper text names where the mode is applied: `Applied to Workcenter, Files, Chat and Mail.` |
-| State | The active option carries the accent background, the accent text colour, `aria-checked="true"` and a check glyph — never colour alone |
-| Semantics | `role="radiogroup"` labelled `Appearance`, with two `role="radio"` options; `←`/`→` move between them, `Space` selects |
 | Scope | Changes the shell **and** every embedded application, through the theme bridge in [§4.4](#44-the-theme-bridge-forwarding-the-mode-switch) |
-| Persistence | Written to the user's Workcenter profile (server-side, so the mode follows the user to another browser) and mirrored into `localStorage` so the first paint after a reload is already correct and never flashes |
+| Persistence | Written to a `localStorage` mirror and to the `wc_mode` cookie, so the first paint after a reload is already correct and never flashes. A server-side per-user profile is the target — the mode should follow the user to another browser — and arrives with the broker's per-user store (roadmap Phase 6); until then the choice is per browser, and the shell does not claim otherwise |
 | Feedback | The switch is instant for the shell. Each pane reports back through the bridge; a pane that does not confirm within 3 s is listed in a quiet inline note: `Chat is still switching…`, replaced by `Chat could not switch — open Zulip to change it there` on failure |
 | Reduced motion | The colour transition is suppressed under `prefers-reduced-motion: reduce`; the change is still instant |
 
@@ -366,39 +431,76 @@ preference controls Workcenter owns — **appearance** and **language** — the 
 > **Rule D-6.4:** the mode switch never discards a draft, an upload or an open editor inside a pane.
 > Where applying the mode needs a pane refresh, that refresh waits (D-T7).
 
-#### D-6.2 — Language: language in use, and the flag button
+#### D-6.2 — The language button and its menu
 
 | Property | Specification |
 | --- | --- |
-| Element | `LanguageSwitcher.vue`, rendered directly beneath the appearance control |
-| Row contents | The label `Language`, the **language in use** written in its own endonym (`English`, `Deutsch`, `Français`), and a **flag button** to its right |
-| Flag button | A button whose face is the flag of the active language, with a small chevron; activating it opens the language menu |
-| Why a flag | The rail is narrow and the row is scanned, not read. The flag makes the current language recognisable at a glance to a user who cannot read the shell's current language well enough to find the setting |
-| Flag source | The active language's flag emoji, taken from the locale registry in `src/utils/languages.js`. It is a font glyph, not an image asset, so it costs nothing and needs no icon set |
-| Fallback | A language with no single unambiguous flag uses a globe glyph (`🌐`). The registry, not the component, decides |
-| Accessibility | The flag is decorative (`aria-hidden="true"`). The button's accessible name is `Change language — currently English`, so the flag never carries meaning on its own (D-A5) |
-| Menu | A listbox anchored to the button: one row per available language, each showing flag + endonym + English name, the active row marked with a check and `aria-selected="true"` |
-| Menu keyboard | `↑`/`↓` move, `Home`/`End` jump, typing filters by endonym or English name, `Enter` selects, `Esc` closes and returns focus to the flag button |
-| Filter field | Shown only when more than twelve languages are available |
+| Element | `LanguageButton.vue` (the face) and `LanguageMenu.vue` (the popover), in the row's right-hand group, at the outer edge |
+| Face | A **rounded flag** of the language in use, with the **ISO 639-1 two-letter code** beside it in lower case (`en`, `de`, `pt`, `zh`) — the code rather than the endonym, because the face is four characters wide and the endonym belongs in the menu |
+| Rounded flag | A committed square flag (`icons/flags/<cc>.svg`, `viewBox="0 0 512 512"`) cropped to a circle by CSS. Cropped, never distorted: the flag keeps its own aspect and colours |
+| Flag source | One committed SVG per language in the registry, reached through a static map like the brand marks (D-2I.3), so a missing flag is a **build** failure and nothing is fetched from a CDN at runtime |
+| Languages with no country | The registry carries no flag code for them (Galician, the joke locale): the face falls back to the registry's own glyph (`🌐`, `🏴‍☠️`) rendered as text, and the menu row does the same. A wrong flag is worse than no flag |
+| Accessibility | The flag is decorative (`aria-hidden="true"`); the button's accessible name is `Change language — currently English`, so the flag never carries meaning alone (D-A5) |
+| Menu | A wider popover in the user panel's style — same surface, border, radius and shadow, `role="dialog"` — anchored to the button and opening upward. One row per language: **flag on the left**, the language written **in its own characters and spelling**, and its English name in muted text. The active row carries a check and `aria-selected="true"` |
+| Menu size | Wider than the user panel (`22rem`) because it holds two text columns; it scrolls inside itself rather than growing past 60vh |
+| Menu keyboard | `↑`/`↓` move, `Home`/`End` jump, typing filters by endonym or English name, `Enter` selects, `Esc` closes and returns focus to the button |
+| Filter field | Present: the registry holds 32 languages, well past the twelve that would let it be omitted |
 | On selection | The shell swaps its strings immediately, sets `document.documentElement.lang` (D-A9), re-formats dates, sizes and numbers through `Intl`, and forwards the choice to the panes through the language bridge in [§8.2](#82-the-language-bridge) |
-| Persistence | Identical to the mode: user profile first, `localStorage` mirror second |
+| Persistence | Identical to the mode: the `localStorage` mirror plus the `wc_lang` cookie, and the same Phase 6 profile |
 | First run | With no stored preference the shell uses the browser's preferred language when a translation exists, and English otherwise |
 | Not translated | Application names (`Files`, `Chat`, `Mail` are labels and *are* translated; `FileBrowser Quantum`, `Zulip`, `Mailcow`, `SOGo` are proper nouns and are not — D-I3) |
 
-> **Rule D-6.5:** the language in use is always written in its own language. A user who has landed in
-> the wrong language must be able to recognise the way back.
+> **Rule D-6.5:** the language in use is always written in its own language **in the menu**. A user who
+> has landed in the wrong language must be able to recognise the way back; the two-letter code on the
+> face is the pointer to that menu, never the only statement of the language.
 > **Rule D-6.6:** changing language never changes the mode, and changing the mode never changes the
-> language. The two controls are independent.
+> language. The two buttons are independent.
 
-#### D-6.3 — Admin links
+#### D-6.3 — The name, and what happens when it is long
+
+The row shows the user's name beside their initials, stacked first name over last name.
+
+| Property | Specification |
+| --- | --- |
+| Split | The display name is split on whitespace: the first token is the first line, everything after it is the second. A three-part name keeps the remainder on the second line (`Ana` / `María García`) |
+| Single token | One line only; the second line is not rendered rather than left blank |
+| No display name | The initials read `?` and the second line is the email's local part, so the row is never anonymous |
+| Cap | **14 characters per line.** A longer name is cut to 13 characters plus an ellipsis, so the visible text never exceeds the 14 the row is sized for |
+| Where the cap lives | In the component (`NAME_MAX_LENGTH`), not only in CSS: a hard cut cannot reflow the row, and the ellipsis states that something was cut |
+| Backstop | CSS `text-overflow: ellipsis` stays on both lines for scripts where character counting and rendered width disagree (CJK, Arabic) |
+| Stacking | Two lines at `line-height: 1.15` inside `--user-menu-height`; the row grows to fit rather than clipping the second line |
+| Order | First name above last name, in that order whatever the locale: the row is a fixed-size slot, not a sentence |
+
+#### D-6.4 — Admin links
 
 | Property | Value |
 | --- | --- |
 | Links | "Integrations" → Traefik dashboard, "Mail admin" → Mailcow UI, "Identity" → Authentik. Each opens in a new tab with an external-link glyph and `rel="noopener"` |
 | Icons | `icons/traefik.svg`, `icons/mailcow.svg`, `icons/authentik.svg` at 20px (D-2I.5) |
-| Visibility | **Admin only** — rendered only when the token carries `workspaceadmin`. Hidden, not disabled |
+| Visibility | **Admin only** — rendered only when the token carries `workspaceadmin`. Hidden, not disabled. This is what makes the brand header's role label informative rather than load-bearing (D-1.1) |
 
----
+#### D-6.5 — The collapsed rail
+
+| Property | Value |
+| --- | --- |
+| Row | The initials button alone, centred. The name and the two icon buttons are **not rendered** rather than hidden, so nothing is clipped at `--side-bar-width-collapsed` |
+| Panel | **Full size, beside the rail** — 17rem wide, opening upward from the row's position, with the same padding and content as the expanded rail's panel. Collapsing the rail must not collapse the menu, so the panel is never squeezed into 3.5rem |
+| Position | Fixed **beside** the rail (`left: calc(var(--side-bar-width) + 0.4rem)`), opening upward, so the rail's `overflow: hidden` can never clip it. This is the one case where the panel does not sit inside the rail column, because 3.5rem cannot hold it. Unchanged by the D-6 position change |
+| Reachability | The initials button is the only control left in the row, so it is also the way to the mode and language controls: **when the rail is collapsed the panel carries them** (D-6.1, D-6.2). A collapsed rail with no route to the language menu is a dead end; rule D-6.1 keeps them out of the expanded panel only because the expanded row already has them |
+| Focus | Opening from the collapsed row focuses the first control in the panel, exactly as it does when expanded |
+| On expanding again | The row returns to its expanded form with the name and both buttons; an open panel stays open and keeps focus |
+
+#### D-6.6 — The row’s spacing
+
+The right-hand group is read as one object, so its spacing is not two separate decisions.
+
+| Property | Specification |
+| --- | --- |
+| One distance | The space between the mode toggle and the language button **equals** the space between the language button — flag, code and all — and the edge of the rail. One custom property (`--wc-user-row-edge`, `0.75rem`) sets both, so they cannot drift apart |
+| Measured how the eye measures it | The sun/moon glyph is centred inside a 1.75rem tap target, so its ink starts 0.325rem inside that button. The gap between the buttons subtracts exactly that slack, which makes the two visible distances identical rather than merely similar |
+| The code is never clipped | The two-letter code is `flex: 0 0 auto` and `white-space: nowrap`: the name column ellipsizes first, and the code cannot be squeezed, wrapped or clipped at any rail width |
+| Touch targets | The mode button keeps its 1.75rem box (D-6.1) even though the glyph is 1.1rem wide. The spacing is achieved by the gap, never by shrinking a hit area |
+| Inset | The row is inset by the same 0.75rem on both sides; only the right inset is load-bearing here, the left one follows the rail’s own rhythm |
 
 ### D-7 — Content surface and panes
 
@@ -424,6 +526,15 @@ preference controls Workcenter owns — **appearance** and **language** — the 
 
 > **Rule D-7.1:** the shell always detects "the iframe loaded a login page" and shows the `auth-error`
 > state instead of a login form nested inside the shell.
+>
+> **How it detects it.** A cross-origin frame cannot be read, so the evidence comes from a
+> same-origin source: the broker's health probe fetches each configured application address and
+> reports whether the response refuses framing (`X-Frame-Options`, CSP `frame-ancestors`) and whether
+> the application's own session is intact. The pane consults that before it waits on a frame and
+> again whenever the health state changes. Until the broker has a credential to check a session with
+> (roadmap Phase 6), a pane that lands on a login page is caught by the load timeout instead, which
+> reports `timeout` and offers the same **Open in new tab** escape — the shell therefore never shows a
+> login form nested inside itself, but it may take the timeout to say so.
 > **Rule D-7.2:** **Open in new tab** is always available from the pane's overflow menu, so the user
 > is never trapped by an application that misbehaves inside a frame.
 
@@ -437,22 +548,34 @@ health detail".
 
 ### D-8 — File-movement elements
 
-These are the UI for the four flows in [`roadmap.md` §7.2](./roadmap.md#72-the-four-flows).
+Three applications, and a file that can move from any one of them to either of the others: **six flows**
+([`roadmap.md` §7.2](./roadmap.md#72-the-six-flows), [`broker.md` §5.1](./broker.md#51-the-six-flows)).
 
-#### D-8.1 Attachment row action (F1 — Mail → Files)
+The shell owns a **source chooser** per application — it is the only place a flow can start, because none
+of the three panes can be injected into from outside (each is a cross-origin frame):
+
+| Source | Chooser | Flows it starts |
+| --- | --- | --- |
+| **Mail** | The shell's Mail attachment panel (D-8.1) | F1 Mail → Files, F5 Mail → Chat |
+| **Chat** | The shell's chat attachment chooser (D-8.5) | F3 Chat → Files, F6 Chat → Mail |
+| **Files** | The file picker (D-8.2) | F2 Files → Mail, F4 Files → Chat |
+
+#### D-8.1 Mail attachment panel (F1 Mail → Files, F5 Mail → Chat)
 
 | Property | Value |
 | --- | --- |
-| Placement | Injected next to each attachment in the Mail pane, and listed in the shell's Mail-pane attachment panel |
+| Placement | The shell's Mail attachment panel, fed by the broker's attachment list for the open message. It cannot be placed inside SOGo: the pane is a cross-origin frame, so the shell offers the actions in its own surface beside it |
 | Label | **Save to files** with a download-to-folder icon |
-| Interaction | Click → destination confirmation (folder + filename, de-duplicated) → progress → success toast with **Open folder** |
+| Second action | **Send to chat** with a paper-plane icon, opening the target picker — the F5 flow ([`broker.md` §5.7](./broker.md#57-f5--mail--chat)) |
+| Save to files (F1) | Destination confirmation (folder + filename, de-duplicated) → progress → success toast with **Open folder** |
+| Send to chat (F5) | Target picker (channel + topic, or a direct message) → progress → success toast with **Open message** |
 | Duplicate handling | If an identical file exists, the confirmation reads `report.pdf already exists — save as report (2).pdf` |
 
-#### D-8.2 File picker modal (F2, F4 — Files → Mail, Files → Zulip)
+#### D-8.2 File picker modal (F2 Files → Mail, F4 Files → Chat)
 
 | Property | Value |
 | --- | --- |
-| Trigger | **Attach from files** in the mail compose window; **Send from files** in the Zulip compose box |
+| Trigger | **Attach from files** for a mail draft; **Send from files** for a chat target. Both open the same modal, rooted at the user's FileBrowser source |
 | Shape | Centred modal, max-width 40rem, max-height 70vh, backdrop `--wc-scrim` |
 | Contents | Breadcrumb of the FileBrowser path, a list of folders/files, a search field, size and modified date per row |
 | Multi-select | Supported for mail attachments; single-select for Zulip send |
@@ -480,6 +603,17 @@ These are the UI for the four flows in [`roadmap.md` §7.2](./roadmap.md#72-the-
 | Duration | 5s for success, persistent until dismissed for failures |
 | Content | Icon, one-line message, up to two actions, dismiss button |
 | Accessibility | `role="status"` for success, `role="alert"` for failure |
+
+#### D-8.5 Chat attachment chooser (F3 Chat → Files, F6 Chat → Mail)
+
+| Property | Value |
+| --- | --- |
+| Why a chooser | Zulip's message actions live inside a cross-origin frame, so the shell cannot add an action to a message. It lists the conversation's attachments in its own surface instead, fed by the broker ([`broker.md` §5.10](./broker.md#510-listing-a-messages-attachments)) |
+| Trigger | The **Attachments** action in the rail's chat area (and the pane overflow menu), scoped to the conversation on screen |
+| Contents | One row per attachment the user can see in that conversation: filename, size, the message it came from, and its date |
+| Actions | **Save to files** (F3) → destination confirmation, then **Open folder**; **Send to mail** (F6) → draft composer, then **Open draft** |
+| Empty state | `No attachments in this conversation.` |
+| Accessibility | A listbox of rows, each row a button per action; `↑`/`↓` move, `Enter` opens the first action, `Esc` closes |
 
 ---
 
@@ -539,7 +673,7 @@ configurable. Workcenter therefore adopts FileBrowser Quantum's own values as th
 derives everything else — its own tokens, and the branding it pushes into the other applications —
 from them.
 
-The reference values, read from the pinned FileBrowser Quantum 2.0.6-beta image (its palette is
+The reference values, read from the pinned FileBrowser Quantum 2.0.9-beta image (its palette is
 emitted into `:root` and `.dark-mode` in the served `index.html`):
 
 | FileBrowser variable | Light | Dark | Workcenter token |
@@ -611,6 +745,14 @@ the wrong colour on every pane load.
 > (Workcenter knows the pane's path from the `filebrowser:navigation` message FileBrowser Quantum
 > posts to its parent on every route change). While deferred, the user menu reads
 > `Files will switch when you close the editor.` Unsaved work is never discarded to apply a colour.
+>
+> **What "in a document editor" can mean here, verified against the pin:** the reported navigation
+> carries a path, never a view name. FileBrowser Quantum's own text editor and Markdown preview are
+> visible in that path as the `#edit` and `#preview` hashes, and those are the markers the shell
+> defers on. The **OnlyOffice** editor is chosen from the `onlyOfficeId` field of an `/api/resources`
+> response and carries no URL marker at all, so a host page cannot detect it and a refresh may land
+> while such a document is open. That limitation is recorded rather than papered over
+> ([`integration.md` IN-3.23](./integration.md)).
 > **Rule D-T8:** a pane message is always posted to an exact origin taken from the configured
 > application URL. A listener inside an application must verify `event.origin` against the Workcenter
 > origin and must act on nothing but the mode/language values. No pane message ever carries a token,
@@ -757,7 +899,7 @@ four surfaces can be set programmatically at all.
 | Errors state what happened and what to do | "Chat is not responding. Retry, or open Zulip in a new tab." |
 | No exclamation marks, no blame, no jargon | "Your session for Mail has expired. Sign in again." |
 | Empty states are actionable | "No files here yet. Upload one from FileBrowser, or save an attachment from Mail." |
-| Never say "Workcenter" | The product is Workcenter |
+| Never say "Dashy" | The product is Workcenter |
 
 ---
 
@@ -784,8 +926,8 @@ four surfaces can be set programmatically at all.
 | `FilePickerModal.vue` | Overlay | D-8.2 |
 | `TransferProgress.vue` | Rail | D-8.3 |
 | `TransferToasts.vue` | Surface | D-8.4 |
-| `ThemeSwitcher.vue` | Popover | D-6.1 |
-| `LanguageSwitcher.vue` | Popover | D-6.2 |
+| `ModeToggleButton.vue` | Rail (user row) | D-6.1 |
+| `LanguageButton.vue` | Rail (user row) | D-6.2 |
 | `LanguageMenu.vue` | Popover | D-6.2 |
 | `AppMark.vue` | Rail / Surface | D-2I |
 

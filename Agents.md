@@ -59,7 +59,7 @@ When sources disagree, resolve in this order — highest first:
 | Rank | Source | Notes |
 | --- | --- | --- |
 | 1 | **The code in this repository** | `src/`, `services/`, `compose.yaml`, `setup.sh` |
-| 2 | **The pinned upstream source** | `Filebrowser/` at `beta/v2.0.6`, the docker-zulip `compose.yaml`, Mailcow's `docker-compose.yml`, OnlyOffice, Authentik, Traefik docs |
+| 2 | **The pinned upstream source** | `Filebrowser/` at `v2.0.9-beta`, the docker-zulip `compose.yaml`, Mailcow's `docker-compose.yml`, OnlyOffice, Authentik, Traefik docs |
 | 3 | **The specification set at the repository root** | `roadmap.md`, `architecture.md`, `design.md`, `OIDC.md`, `production.md`, `integration.md` |
 | 4 | **`docs/`** | Long-form guides; may lag the specification set |
 | 5 | **Upstream documentation websites** | Authoritative for upstream behaviour, not for Workcenter's decisions |
@@ -90,7 +90,7 @@ When sources disagree, resolve in this order — highest first:
 
 | Ref | Requirement |
 | --- | --- |
-| A-3.7 | **Never reintroduce a removed Workcenter subsystem**: the Default view, the Minimal view, widgets, status/ping monitoring, the tile grid, the view switcher, the in-app config editor. The removal list is in [`architecture.md` §3.3](./architecture.md#33-removed-from-workcenter). |
+| A-3.7 | **Never reintroduce a removed Workcenter subsystem**: the Default view, the Minimal view, widgets, status/ping monitoring, the tile grid, the view switcher, the in-app config editor. The removal list is in [`architecture.md` §3.3](./architecture.md#33-removed-from-dashy). |
 | A-3.8 | **Never modify an upstream application in place.** Mailcow's `docker-compose.yml`, `generate_config.sh` and `update.sh` are read-only; Workcenter changes go in `docker-compose.override.yml`. Bundled applications are pinned and configured, never forked and patched. |
 | A-3.9 | **Never restructure the per-application folders.** Every application owns exactly one top-level folder, and its volumes are bind mounts inside it. |
 | A-3.10 | **Never overwrite a published requirement ID.** IDs in the specification set are stable; a withdrawn requirement is marked `(withdrawn)`, not renumbered or reused. |
@@ -123,21 +123,21 @@ These are the facts most often hallucinated. They are verified against the sourc
 | Route paths | Declared in `src/utils/config/defaults.js`, **not** in `src/router.js` |
 | Config file | `user-data/conf.yml`, loaded by the store, validated by `ConfigSchema.json` |
 | Config schema | `src/utils/config/ConfigSchema.json`, draft-07, `required: ["sections"]` |
-| Workcenter's sidebar width token | `--side-bar-width` (Workcenter: `3.5rem`; Workcenter widens it — see [`design.md` §2.2](./design.md#22-layout-tokens)) |
-| Workcenter's header token | `--header-height` (Workcenter: `6.3rem`; Workcenter sets `0` and replaces the header with the rail) |
+| Workcenter's sidebar width token | `--side-bar-width` — `16rem` expanded, overridden to `--side-bar-width-collapsed` (`3.5rem`) when the rail is collapsed; see [`design.md` §2.2](./design.md#22-layout-tokens) |
+| Workcenter's header token | `--header-height`, set to `0`: the rail's brand header replaces the inherited page header, so every inherited `calc()` still resolves |
 | i18n | `vue-i18n`, `legacy: false`; templates use `$t('ns.key')`, scripts use `i18n.global.t('ns.key')`; `en.json` is canonical |
 | Package manager | **Yarn**, not npm |
 | Formatting | `.editorconfig` + the written style guide. **There is no Prettier.** |
 | Linting | ESLint 10 flat config, `eslint.config.mjs` |
 | Server | `server.js` → `services/app.js` (Express 5) |
 | Healthcheck endpoint | `/healthz` (Workcenter's own server) — **not** `/health` |
-| Workcenter's brand strings | None may remain. Run `grep -ri workcenter src/ services/ index.html` before declaring done. |
+| Upstream brand strings | None may remain. The product **is** Workcenter, so the string to sweep for is the upstream name: run `grep -ri dashy src/ services/ index.html` before declaring done. The only permitted mention is the MIT attribution line. |
 
 ### 4.2 Integrated-application facts
 
 | Fact | Value |
 | --- | --- |
-| FileBrowser Quantum version | **2.0.6-beta**, config schema **v2** |
+| FileBrowser Quantum version | **2.0.9-beta**, config schema **v2** |
 | FileBrowser config file | `Filebrowser/config.yaml`, container paths `/home/filebrowser/data/config.yaml` and `/home/filebrowser/data/database.sqlite` |
 | FileBrowser health endpoint | `/health` on port **80** inside the container |
 | FileBrowser secrets | `FILEBROWSER_OIDC_CLIENT_ID`, `FILEBROWSER_OIDC_CLIENT_SECRET`, `FILEBROWSER_JWT_TOKEN_SECRET`, `FILEBROWSER_ONLYOFFICE_SECRET`, `FILEBROWSER_DATABASE_PATH`, `FILEBROWSER_CONFIG`, `FILEBROWSER_ADMIN_PASSWORD` |
@@ -332,7 +332,7 @@ A task is complete only when **all** of the following are true:
 - [ ] No secret, credential or personal datum was written anywhere.
 - [ ] No debugging artefact remains.
 - [ ] The final report lists what was verified, what was not, and what a human must check.
-- [ ] `grep -ri workcenter src/ services/ index.html` returns nothing outside of intentional attribution.
+- [ ] `grep -ri dashy src/ services/ index.html` returns nothing outside of the MIT attribution line.
 
 ---
 

@@ -57,7 +57,7 @@ it is reviewed, and how a release reaches `Stable`.
 | Bug fix | PR into `Dev` | Small, always welcome |
 | Regression test for an existing bug | PR into `Dev` | Very welcome — a failing test is a complete contribution |
 | Documentation correction | PR into `Dev` | Very welcome |
-| New integration capability (a fifth flow, a new adapter) | PR into `Dev`, after an issue is agreed | Medium |
+| New integration capability (a new flow, a new adapter) | PR into `Dev`, after an issue is agreed | Medium |
 | New UI element in the shell | PR into `Dev`, with design review | Medium |
 | Deployment improvement (`compose.yaml`, `setup.sh`, Traefik labels) | PR into `Dev`, with a dry-run on a disposable host | Medium |
 | New integrated application pane | PR into `Dev`, **after a roadmap change is agreed** | Large |
@@ -300,10 +300,14 @@ The full strategy is in [`Testing.md`](./Testing.md). The minimum for any PR:
 | Shell logic (store, utils, broker client) | Unit test (`tests/unit/**`) |
 | Vue component behaviour | Component test (`tests/components/**`) |
 | Server or broker route | Server test (`tests/server/**`, `// @vitest-environment node` + `supertest`) |
-| Any user-visible flow | Playwright spec (`e2e/specs/**`) |
+| Any user-visible flow | Playwright spec (`e2e/specs/**`) — **deferred until roadmap Phase 7**; until then, unit/component/server coverage plus the manual checklist in `scripts/e2e.sh` (`Testing.md` T-10.3, §6.5) |
 | A bug fix | The regression test that fails before your fix |
 | Deployment or `setup.sh` | Idempotency run plus the compose validity check |
 | Documentation only | `yarn validate-locales` (if locale keys changed) and a link check |
+
+> **Note:** the Playwright row is the target state, not today's gate. `e2e/`, `compose.test.yaml` and
+> `yarn test:e2e` arrive with the Phase 7 harness; a Phase 2-era pull request demonstrates its
+> user-visible behaviour with unit/component/server tests and the `scripts/e2e.sh` checklist.
 
 ```bash
 yarn test               # unit + component + server
@@ -539,7 +543,7 @@ Refs: #123
 feat(switcher): add three-button application switcher above the rail
 fix(broker): stream mail attachments instead of buffering them in memory
 docs(oidc): document the mailcow generic-oidc provider fields
-chore(compose): pin filebrowser quantum to 2.0.6-beta
+chore(compose): pin filebrowser quantum to 2.0.9-beta
 refactor(sidebar): extract the shared SidebarItem row primitive
 test(broker): cover collision-safe naming for duplicate attachments
 ```

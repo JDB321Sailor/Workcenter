@@ -6,6 +6,7 @@ import {
   makePageName, formatConfigPath, componentVisibility, configScope, stripRootOwnedFields,
 } from '@/utils/config/ConfigHelpers';
 import { applyItemId, mapSectionByName, stripItemIds } from '@/utils/config/SectionHelpers';
+import storeRef from '@/utils/config/storeRef';
 import filterUserSections from '@/utils/CheckSectionVisibility';
 import ErrorHandler, { InfoHandler, InfoKeys } from '@/utils/logging/ErrorHandler';
 import {
@@ -571,5 +572,11 @@ const store = createStore({
   },
   modules: {},
 });
+
+/* Publish the store for the config pipeline. `ConfigAccumulator` reads the
+ * configuration through this reference instead of importing the store, which
+ * would put it in an import cycle with this file and make start-up depend on
+ * module evaluation order (see `src/utils/config/storeRef.js`). */
+storeRef.current = store;
 
 export default store;

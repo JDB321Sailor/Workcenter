@@ -76,9 +76,17 @@ describe('deep links', () => {
       .toBe('https://files.example.com/a');
   });
 
-  it('keeps a sub-path that is part of the configured address', () => {
-    expect(deepLink(config(), 'mail', 'SOGo/'))
-      .toBe('https://mail.example.com/SOGo/SOGo/');
+  it('appends a path below a sub-path that is part of the configured address', () => {
+    // The Mail pane is SOGo at /SOGo, so a row's path is relative to that:
+    // passing the module path again would produce /SOGo/SOGo/… and land on the
+    // wrong page (this was a real defect, caught here).
+    expect(deepLink(config(), 'mail', 'so/jane@example.com/Mail/view#!/Mail/0/INBOX'))
+      .toBe('https://mail.example.com/SOGo/so/jane@example.com/Mail/view#!/Mail/0/INBOX');
+  });
+
+  it('keeps a hash fragment, so a Zulip view lands where it says', () => {
+    expect(deepLink(config(), 'chat', '#narrow/is/starred'))
+      .toBe('https://chat.example.com/#narrow/is/starred');
   });
 
   it('returns an empty string when the application has no address', () => {

@@ -9,7 +9,11 @@
 
   /* Basic Page Components */
   --scroll-bar-width: 8px;
-  --header-height: 6.3rem;
+  /* Workcenter shows no page header: the rail's brand header replaces it, so
+   * every inherited `calc(100% - var(--header-height))` resolves to full
+   * height without editing the components that use it. Re-introducing a top
+   * header means changing this token only (design.md section 2.2). */
+  --header-height: 0;
   --footer-height: 128px;
 
   /* Section & Item dimensions */
@@ -25,8 +29,17 @@
   /* Settings and config menu */
   --settings-container-shadow: none;
 
-  /* Workspace View */
-  --side-bar-width: 3.5rem; // The width of the sidebar
+  /* Workspace shell rail (design.md section 2.2) */
+  --side-bar-width: 16rem; // Expanded rail: the sidebars carry labels, not just icons
+  --side-bar-width-collapsed: 3.5rem; // Collapsed rail: the inherited icon-only geometry
+  --rail-header-height: 3rem; // Brand header row
+  --switcher-height: 5.5rem; // The button row and the status indicator row beneath it
+  --switcher-button-height: 3rem; // A single switcher button: 24px mark, gap, label, padding
+  --switcher-indicator-height: 2rem; // The indicator row and its STATUS label
+  --sidebar-search-height: 2.5rem; // The global sidebar filter row
+  --user-menu-height: 3rem; // The rail footer
+  --pane-gutter: 0; // No gutter between the rail and the surface
+  --rail-transition: 180ms ease; // Rail collapse and expand
 
   --tooltip-arrow-size: 6px;
   --tooltip-width: 250px;

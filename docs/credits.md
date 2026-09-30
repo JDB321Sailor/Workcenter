@@ -70,6 +70,17 @@ The application marks in [`icons/`](../icons) are the base SVG variants from the
 MIT licensed. Each mark remains the trademark of the project it represents; it is used to
 identify that project and for no other purpose.
 
+The language flags in [`icons/flags/`](../icons/flags) are the square (1x1) SVGs from
+[flag-icons](https://github.com/lipis/flag-icons) by [Panayiotis Lipiridis](https://github.com/lipis)
+and its contributors, MIT licensed. They are cropped to a circle in CSS — never distorted and never
+recoloured. A flag identifies the language the shell is set to; it makes no claim about a user's
+nationality, which is why a language with no country of its own shows a globe instead.
+
+The sun and moon glyphs in [`icons/ui/`](../icons/ui) are Solid style icons from
+[Font Awesome Free](https://fontawesome.com) 6.7.2, whose icons are CC BY 4.0. They are committed
+rather than loaded from the Font Awesome kit, so the appearance control renders even when that kit
+is unreachable.
+
 ## Contributing
 
 See [`contributions.md`](../contributions.md) for how to contribute, and

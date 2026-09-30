@@ -15,7 +15,12 @@
         @select="select"
       />
 
-      <p class="wc-app-sidebar__footnote">{{ $t('sidebar.files.footnote') }}</p>
+      <p v-if="hasNoMatches" class="wc-app-sidebar__notice">
+        {{ $t('sidebar.search.no-matches', { app: app.name }) }}
+        <span class="wc-app-sidebar__hint">{{ $t('sidebar.search.no-matches-hint', { app: app.name }) }}</span>
+      </p>
+
+      <p v-else class="wc-app-sidebar__footnote">{{ $t('sidebar.files.footnote') }}</p>
     </template>
   </div>
 </template>
@@ -27,9 +32,15 @@ import SidebarMixin from '@/mixins/SidebarMixin';
 /**
  * The Files navigator: the FileBrowser Quantum sidebar.
  *
- * Each row deep-links into the Files pane. The row list is the shell's own
- * navigation, so it is available even when the embedded application is slow to
- * load.
+ * Every path below is one of FileBrowser Quantum's own routes, read from
+ * `frontend/src/router/index.ts` and `frontend/src/utils/constants.js` at the
+ * pinned version: `files` (with an optional path), and the tool routes
+ * `tools/advancedSearch`, `tools/sizeViewer`, `tools/duplicateFinder`,
+ * `tools/fileWatcher` and `tools/activityViewer`.
+ *
+ * The source list belongs to the broker's FileBrowser adapter (roadmap Phase 6,
+ * design.md D-4.1): the shell cannot read the user's sources without the user's
+ * own FileBrowser session, so it is not invented here.
  */
 export default {
   name: 'FilesSidebar',
@@ -41,32 +52,14 @@ export default {
     sidebarGroups() {
       return [
         {
-          id: 'sources',
+          id: 'browse',
           labelKey: 'sidebar.files.sources',
           items: [
             {
               id: 'all-files',
               labelKey: 'sidebar.files.all-files',
               icon: 'fas fa-hard-drive',
-              path: '',
-            },
-            {
-              id: 'recent',
-              labelKey: 'sidebar.files.recent',
-              icon: 'fas fa-clock-rotate-left',
-              path: '',
-            },
-            {
-              id: 'shared',
-              labelKey: 'sidebar.files.shared',
-              icon: 'fas fa-share-nodes',
-              path: '',
-            },
-            {
-              id: 'favourites',
-              labelKey: 'sidebar.files.favourites',
-              icon: 'fas fa-star',
-              path: '',
+              path: 'files',
             },
           ],
         },
@@ -78,19 +71,31 @@ export default {
               id: 'search',
               labelKey: 'sidebar.files.search',
               icon: 'fas fa-magnifying-glass',
-              path: '',
+              path: 'tools/advancedSearch',
             },
             {
               id: 'size-viewer',
               labelKey: 'sidebar.files.size-viewer',
               icon: 'fas fa-chart-pie',
-              path: '',
+              path: 'tools/sizeViewer',
+            },
+            {
+              id: 'duplicate-finder',
+              labelKey: 'sidebar.files.duplicate-finder',
+              icon: 'fas fa-clone',
+              path: 'tools/duplicateFinder',
+            },
+            {
+              id: 'file-watcher',
+              labelKey: 'sidebar.files.file-watcher',
+              icon: 'fas fa-eye',
+              path: 'tools/fileWatcher',
             },
             {
               id: 'activity',
               labelKey: 'sidebar.files.activity',
               icon: 'fas fa-list-check',
-              path: '',
+              path: 'tools/activityViewer',
             },
           ],
         },

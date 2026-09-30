@@ -1,0 +1,70 @@
+/* The rail's own box model.
+ *
+ * `box-sizing: border-box` is declared on `html` in the inherited global
+ * stylesheet, and `box-sizing` does not inherit — so every element inside the
+ * rail defaulted to `content-box`. Any box with `width: 100%` and horizontal
+ * padding was therefore as wide as its container *plus its padding*, and the
+ * rail's `overflow: hidden` cut the difference off the right-hand edge. That is
+ * what clipped the language code beside the flag: the user row measured 280px
+ * inside a 256px rail, and the last 24px — the code — was hidden.
+ *
+ * The reset is scoped to the rail subtree so nothing outside it changes: the
+ * panes, the toasts and the modals live at the body level and keep the box model
+ * the inherited stylesheets expect. */
+.wc-rail,
+.wc-rail *,
+.wc-rail *::before,
+.wc-rail *::after {
+  box-sizing: border-box;
+}
+
+/* Collapsed-rail chrome.
+ *
+ * When the rail is 3.5rem wide, the shell's inner components have no room for
+ * their labels. Their markup stays where it is — this is presentation, not
+ * structure — so the rules live here, in the shell's own chrome layer, rather
+ * than being threaded through every component as another prop.
+ *
+ * The switcher handles its own collapsed layout (it stacks), and the user menu
+ * swaps its identity row for the avatar; what is left is the sidebar navigator,
+ * which becomes the icon rail the workspace view has always had in that width.
+ * Design.md D-2, D-4.
+ */
+
+.wc-workspace--collapsed {
+  /* A row is its icon and nothing else, centred. */
+  .wc-sidebar-item {
+    justify-content: center;
+    padding: 0 0.25rem;
+    border-left-width: 0;
+  }
+
+  .wc-sidebar-item__icon {
+    width: auto;
+  }
+
+  .wc-sidebar-item__label,
+  .wc-sidebar-item__badge,
+  .wc-sidebar-group__label,
+  .wc-sidebar-group__chevron,
+  .wc-app-sidebar__footnote,
+  .wc-app-sidebar__hint {
+    display: none;
+  }
+
+  /* The one notice that must survive: an application with no address, or a
+     filter with no matches, is why the rail is empty. It becomes the icon that
+     stands for it, with the explanation on hover. */
+  .wc-app-sidebar__notice {
+    margin: 0.5rem 0.35rem;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.6rem;
+    text-align: center;
+  }
+
+  /* The active row keeps a signal that is not colour alone: a left border would
+     be clipped at this width, so the icon carries a filled plate instead. */
+  .wc-sidebar-item.is-active {
+    background: var(--side-bar-item-background);
+  }
+}

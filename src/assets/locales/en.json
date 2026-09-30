@@ -77,7 +77,8 @@
     "title": "Change Application Language",
     "dropdown-label": "Select a Language",
     "save-button": "Save",
-    "success-msg": "Language Updated to"
+    "success-msg": "Language Updated to",
+    "error-msg": "Unable to change the language"
   },
   "critical-error": {
     "title": "Configuration Load Error",
@@ -95,6 +96,47 @@
   "shell": {
     "rail-label": "Workcenter navigation"
   },
+  "brand": {
+    "home": "Workcenter — go to {app}",
+    "collapse": "Collapse the navigation rail",
+    "expand": "Expand the navigation rail",
+    "role-user": "User",
+    "role-admin": "Admin"
+  },
+  "user": {
+    "trigger-label": "{name} — user menu",
+    "menu-label": "User menu",
+    "not-signed-in": "Not signed in",
+    "sign-out": "Sign out",
+    "sign-out-note": "Ends your Workcenter session and signs you out of Authentik, so every pane signs out with it.",
+    "links": {
+      "integrations": "Integrations",
+      "mail-admin": "Mail admin",
+      "identity": "Identity"
+    },
+    "appearance": {
+      "helper-applied": "Applied to Workcenter, Files, Chat and Mail.",
+      "failed": "{app} could not switch — open it to change the appearance there.",
+      "unsupported": "{app} has its own appearance setting; Workcenter left it alone.",
+      "unavailable": "{app} could not be reached to change its appearance.",
+      "deferred": "Files will switch when you close the editor."
+    },
+    "language": {
+      "change": "Change language — currently {language}",
+      "menu-label": "Languages",
+      "filter": "Filter languages",
+      "helper-bridge": "Files and Chat follow the shell. Mail follows your browser's language.",
+      "helper-unmapped": "{app} has no setting for this language, so it was left alone.",
+      "no-matches": "No language matches that search.",
+      "unavailable": "{app} could not be reached to change its language.",
+      "failed": "{app} could not change language — open it to set it there."
+    },
+    "mode": {
+      "to-light": "Switch to light mode",
+      "to-dark": "Switch to dark mode"
+    },
+    "preferences-hint": "Appearance and language"
+  },
   "switcher": {
     "label": "Applications",
     "unavailable": "{app} is not configured. Set its address in appConfig.applications.",
@@ -103,6 +145,12 @@
   "status": {
     "label": "Status",
     "indicator-label": "{app} status: {state}",
+    "tooltip": {
+      "check": "Check: {check}",
+      "endpoint": "Failing endpoint: {endpoint}",
+      "last-checked": "Last checked: {time}",
+      "never-checked": "Not checked yet"
+    },
     "state": {
       "healthy": "healthy",
       "degraded": "degraded",
@@ -114,6 +162,15 @@
     "retry": "Retry",
     "open-new-tab": "Open in new tab",
     "loading-hint": "This is taking longer than usual. The application may be starting up.",
+    "overflow": {
+      "label": "Pane options",
+      "reload": "Reload pane",
+      "open": "Open in new tab",
+      "copy": "Copy link to this view",
+      "copied": "Link copied",
+      "copy-failed": "Could not copy the link",
+      "health": "Show health detail"
+    },
     "reason": {
       "unavailable": {
         "title": "{app} is not responding",
@@ -136,6 +193,16 @@
   },
   "sidebar": {
     "label": "{app} navigation",
+    "search": {
+      "label": "Filter the {app} navigation",
+      "placeholder-files": "Search files…",
+      "placeholder-chat": "Search chats…",
+      "placeholder-mail": "Search mail…",
+      "clear": "Clear the filter",
+      "no-matches": "No matches in {app}",
+      "no-matches-hint": "Search inside {app} itself for a deeper search.",
+      "open-in": "Open search in {app}"
+    },
     "files": {
       "unconfigured": "The Files pane has no address configured. Set appConfig.applications.files.url.",
       "sources": "Sources",
@@ -147,7 +214,9 @@
       "search": "Search",
       "size-viewer": "Size viewer",
       "activity": "Activity",
-      "footnote": "Rows open FileBrowser at that view. Browsing inside the pane arrives with the file broker."
+      "footnote": "Rows open FileBrowser at that view. Browsing inside the pane arrives with the file broker.",
+      "duplicate-finder": "Duplicate finder",
+      "file-watcher": "File watcher"
     },
     "chat": {
       "unconfigured": "The Chat pane has no address configured. Set appConfig.applications.chat.url.",

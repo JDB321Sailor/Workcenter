@@ -8,6 +8,7 @@
     <AppPane
       v-for="app in apps"
       :key="app.id"
+      ref="panes"
       :app="app"
       :url="urls[app.id] || ''"
       :isActive="app.id === activeId"
@@ -33,6 +34,21 @@ export default {
     return {
       apps: APP_LIST,
     };
+  },
+  methods: {
+    /* Focus the pane for an application. A pane that is not on screen cannot
+       take focus, so anything else is ignored. */
+    focusPane(appId) {
+      if (appId !== this.activeId) return;
+      const pane = (this.$refs.panes || []).find((p) => p.app.id === appId);
+      pane?.focus();
+    },
+    /* Point a pane at one of its application's deep links, from a sidebar row
+       (design.md D-4.1). */
+    navigate(appId, url) {
+      const pane = (this.$refs.panes || []).find((p) => p.app.id === appId);
+      return pane ? pane.navigateTo(url) : false;
+    },
   },
 };
 </script>

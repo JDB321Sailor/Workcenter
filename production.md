@@ -551,7 +551,7 @@ pane looks wrong.
 
 | Application | How |
 | --- | --- |
-| FileBrowser Quantum | Change `FILEBROWSER_IMAGE` in `.env` to the new pinned tag, then `docker compose up -d filebrowser`. Review the upstream changelog for config-schema changes — v2 decoding is strict, so a new required key breaks startup loudly |
+| FileBrowser Quantum | Change `FILEBROWSER_IMAGE` in `.env` to the new pinned tag (`gtstef/filebrowser:2.0.9-beta`), then `docker compose up -d filebrowser`. Review the upstream changelog for config-schema changes — v2 decoding is strict, so a new required key breaks startup loudly |
 | Zulip | Change the Zulip image tag, rebuild the derived image, `docker compose up -d`. Follow docker-zulip's upgrade notes; secrets stay stable |
 | OnlyOffice | Change `ONLYOFFICE_IMAGE`, then `docker compose up -d onlyoffice` |
 | Authentik | Change `AUTHENTIK_TAG`, then `docker compose up -d`. Migrations run automatically on first start; watch the `server` logs |
@@ -833,7 +833,7 @@ Before you call a deployment production-ready:
 - [ ] `docker compose ps` shows every service healthy.
 - [ ] A `workspaceusers` member can sign in and reach all three panes.
 - [ ] A `workspaceadmin` member can reach the Traefik dashboard; a non-admin cannot.
-- [ ] All four file-movement flows work end to end.
+- [ ] All six file-movement flows work end to end.
 - [ ] Mailcow's Traefik routing has **no** redirect loop (`HTTP_REDIRECT=n`).
 - [ ] Mailcow updated successfully at least once with `./update.sh`, and the override survived.
 - [ ] Every `.env` and `*/secrets/` file is gitignored and backed up encrypted.

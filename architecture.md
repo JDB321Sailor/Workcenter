@@ -89,6 +89,7 @@ Workcenter/                          # repository root == the Workcenter applica
 │   ├── bootstrap-mailcow.sh
 │   ├── bootstrap-authentik.sh
 │   ├── bootstrap-traefik.sh
+│   ├── e2e.sh                       # NEW: manual verification harness (Testing.md)
 │   └── healthcheck-all.sh
 ├── services/                        # Node services run beside the SPA      [kept + extended]
 │   ├── healthcheck.js               # container healthcheck                  [kept from Dashy]
@@ -101,6 +102,7 @@ Workcenter/                          # repository root == the Workcenter applica
 ├── tests/                           # unit + integration tests               [kept from Dashy]
 │   ├── locales/
 │   ├── unit/
+│   ├── components/                  # NEW: shell component tests
 │   ├── integration/
 │   └── fixtures/
 ├── e2e/                             # NEW: Playwright end-to-end suite
@@ -159,21 +161,21 @@ Workcenter/                          # repository root == the Workcenter applica
 ## 3. `src/` — the shell
 
 Workcenter's `src/` layout is the template. Directories that survive are kept with their names; removed
-directories are listed in [§3.3](#33-removed-from-workcenter).
+directories are listed in [§3.3](#33-removed-from-dashy).
 
 ```
 src/
 ├── App.vue                     # root component: shell frame, router outlet, theme provider
 ├── main.js                     # bootstrap: store, router, i18n, directives, plugins
 ├── router.js                   # single-view router: /files, /chat, /mail (+ /login, /404)
-├── store.js                    # Vuex root: config, apps, health, user, ui modules
+├── store.js                    # Vuex root store, no modules (Agents.md §4.1); shell state in reactive modules
 ├── assets/
 │   ├── interface-icons/        # SVG UI icons (kept subset: switcher, status, user, theme)
 │   ├── locales/                # i18n JSON, English master          [kept from Dashy]
 │   └── *.svg / *.png           # product marks and pane placeholders
 ├── broker/                     # NEW: shell-side broker client
-│   ├── client.js               # typed fetch wrapper, token attaching, error mapping
-│   ├── transfers.js            # the four transfer actions, progress events
+│   ├── client.js               # typed fetch wrapper: bearer token, timeout, typed result
+│   ├── transfers.js            # the six transfer flows, progress events
 │   ├── preferences.js          # NEW: appearance/language fan-out call (see §4.3)
 │   └── types.ts                # shared transfer/health types
 ├── components/
@@ -192,21 +194,27 @@ src/
 │   ├── Panes/                  # NEW: the content surface
 │   │   ├── PaneHost.vue        # keeps all panes mounted, toggles visibility
 │   │   ├── AppPane.vue         # one iframe + loading + error + retry states
+│   │   ├── PaneOverflowMenu.vue# reload pane / open in new tab / copy link / admin-only health detail (D-7)
 │   │   └── PaneErrorCard.vue   # diagnostic card for a failed pane
+│   ├── Rail/                   # NEW: the rail's fixed regions
+│   │   ├── BrandHeader.vue     # mark, wordmark, role label, collapse toggle (D-1, D-1.1)
+│   │   └── SidebarSearch.vue   # the rail's filter row; filters the sidebar body (D-3)
 │   ├── Transfers/              # NEW: cross-application file movement UI
 │   │   ├── FilePickerModal.vue # "choose a file from my files"
 │   │   ├── AttachmentRow.vue   # "save to files" affordance in the mail pane
 │   │   ├── TransferProgress.vue
 │   │   └── TransferToasts.vue
-│   ├── User/                   # NEW: user menu, identity, admin badge, logout
-│   │   ├── UserMenu.vue
-│   │   └── UserBadge.vue
-│   └── Settings/               # theme, language, per-user preferences       [kept, pruned]
-│       ├── ThemeSwitcher.vue   # light/dark segmented control (D-6.1)
-│       ├── LanguageSwitcher.vue# language in use + flag button (D-6.2)
-│       └── LanguageMenu.vue    # the language listbox opened by the flag button
+│   ├── User/                   # NEW: user row, identity, initials, logout (D-6)
+│   │   ├── UserMenu.vue        # the rail footer: identity, admin links, logout, feedback
+│   │   ├── UserRow.vue         # initials + stacked name + the two preference buttons
+│   │   ├── ModeToggleButton.vue# sun/moon mode toggle (D-6.1)
+│   │   └── LanguageButton.vue  # rounded flag + ISO 639-1 code (D-6.2)
+│   ├── LanguageFlag.vue        # a committed flag, cropped round (D-6.2)
+│   └── Settings/               # per-user preferences                          [kept, pruned]
+│       └── LanguageMenu.vue    # flags + endonyms, opened by the language button
 ├── directives/                 # v-tooltip and friends                      [kept from Dashy]
 ├── mixins/                     # shared component behaviour                  [kept, pruned]
+│   ├── PopoverMixin.js         # NEW: open/close, outside click, Esc, focus return (D-6)
 │   ├── AppLaunchMixin.js       # opening methods: same pane, new tab
 │   └── HealthMixin.js          # NEW: subscribe a component to health state
 ├── plugins/                    # Vue plugin registration                     [kept from Dashy]
@@ -220,6 +228,7 @@ src/
 │   ├── typography.scss
 │   ├── themes/
 │   └── workcenter/             # NEW: shell-specific partials
+│       ├── _tokens.scss        # semantic --wc-* tokens for both modes, dark by default
 │       ├── switcher.scss
 │       ├── sidebar.scss
 │       ├── panes.scss
@@ -236,7 +245,7 @@ src/
 │   │   ├── ConfigHelpers.js
 │   │   └── defaults.js
 │   ├── health/                 # NEW: health polling + status derivation
-│   │   └── HealthService.js
+│   │   └── HealthService.js    # not a Vuex module; polls /api/broker/health (AR-49)
 │   ├── apps/                   # NEW: the integrated-application registry
 │   │   ├── registry.js         # id, name, icon, accent, url, sidebar, healthKey
 │   │   └── urls.js             # build public URLs from the configured base URL
@@ -247,7 +256,7 @@ src/
 │   ├── languages.js            # locale registry: endonym, flag, per-application id (D-I6)
 │   ├── request.js
 │   ├── Sanitizer.js            # URL sanitising for pane targets
-│   ├── Theming.js              # mode state, wc_mode cookie, pane message, bridge call
+│   ├── Theming.js              # reactive mode state, wc_mode cookie, pane message, bridge call
 │   ├── Toast.js
 │   └── yaml.js
 └── views/
@@ -260,7 +269,7 @@ src/
 
 | Ref | Requirement |
 | --- | --- |
-| AR-8 | `src/views/Workspace.vue` remains the single functional view and is the direct descendant of Workcenter's `src/views/Workspace.vue`. Its three children are `AppSwitcher`, `AppSidebar` and `PaneHost`. `AppSwitcher` renders both the application buttons and their status indicators, plus the `STATUS` label; there is no separate status component or rail region. |
+| AR-8 | `src/views/Workspace.vue` remains the single functional view and is the direct descendant of Workcenter's `src/views/Workspace.vue`. It renders the rail — `BrandHeader`, `AppSwitcher`, `SidebarSearch`, `AppSidebar` and `UserMenu` — beside `PaneHost`, the content surface. `AppSwitcher` renders both the application buttons and their status indicators, plus the `STATUS` label; the indicators are part of the switcher, not a separate status region. |
 | AR-9 | `src/utils/apps/registry.js` is the **single source of truth** for the three applications. Adding or renaming an application is a one-file change plus locale strings. |
 | AR-10 | Every component directory contains at most one `.vue` per exported component, a co-located `.scss` when the styles exceed ~40 lines, and a co-located `.test.js` for unit-tested components. |
 | AR-11 | All user-visible strings live in `src/assets/locales/en.json` and are referenced with `$t('...')`. No literal user-facing text in components. |
@@ -286,7 +295,7 @@ src/
 | `src/components/LinkItems/Item.vue`, `ItemContextMenu.vue` | **Removed** (tile rendering); icon helpers reused inside `SidebarItem.vue` |
 | `src/components/Widgets/*` | **Removed** |
 | `src/components/Settings/ViewSwitcher.vue` | **Removed** |
-| `src/components/Settings/*` (theme, language) | **Kept**, pruned |
+| `src/components/Settings/*` (theme, language) | **Kept**, pruned — the survivors are `ModeToggleButton.vue` (D-6.1), `LanguageButton.vue` and `LanguageMenu.vue` (D-6.2), rendered from `UserRow.vue`; the segmented `ThemeSwitcher.vue` and the `LanguageSwitcher.vue` row were removed with the D-6 redesign |
 | `src/components/Settings/OptionsPanel.vue`, `SettingsContainer.vue`, `SearchBar.vue`, `LayoutSelector.vue`, `ItemSizeSelector.vue`, `NavLinksSwitcher.vue`, `LocalConfigWarning.vue`, `CustomThemeMaker.vue` | **Removed** — the settings tree is only ever mounted from the Default view, so in a workspace-only application it is already dead code |
 | `src/components/InteractiveEditor/*`, `src/components/Configuration/JsonEditor*` | **Removed** — only reachable from the Default view. Workcenter configuration is a file (`user-data/conf.yml`) validated at startup and by `yarn validate-config`, not an in-app editor. `Configuration/RemoteConfigLoader.vue` is **kept** |
 | `src/components/LinkItems/ItemIcon.vue` | **Kept** — the sidebar renders icons through it |
@@ -297,7 +306,7 @@ src/
 | `src/mixins/HomeMixin.js` | **Kept but trimmed** — `Workspace.vue` mixes it in; home-only helpers (`filterTiles`, `checkIfResults`, `getBackgroundImage`) are removed |
 | `src/mixins/MasonryItem.js`, `ChartingMixin.js`, `GlancesMixin.js`, `NextcloudMixin.js`, `WidgetMixin.js` | **Removed** with the widget engine |
 | `src/utils/IsVisibleToUser.js`, `CheckPageVisibility.js` | **Removed** — replaced by group-based application authorisation |
-| `src/utils/health/…` (status checks) | **Removed** — replaced by `HealthService.js` reading compose healthchecks |
+| `src/utils/health/…` (status checks) | **Removed** — replaced by `HealthService.js`, which polls the broker's server-side health probe (AR-49) |
 
 ### 3.3 Removed from Dashy
 
@@ -345,14 +354,17 @@ ICMP checks.
 ## 4. The broker
 
 The broker is what makes Workcenter more than an iframe host. It is specified functionally in
-[`roadmap.md` §7](./roadmap.md#7-the-headline-capability-cross-application-file-movement) and
-contractually in [`integration.md`](./integration.md).
+[`roadmap.md` §7](./roadmap.md#7-the-headline-capability-cross-application-file-movement),
+contractually in [`integration.md`](./integration.md), and **definitively** in
+[`broker.md`](./broker.md) — identity and credentials, the six flows step by step, the appearance
+and language bridges, the security model and the test criteria. This section is the placement
+summary; `broker.md` is the contract.
 
 ### 4.1 Placement
 
 | Layer | Path | Responsibility |
 | --- | --- | --- |
-| HTTP entry | `services/broker-server.js` | Express app mounted by `server.js` under `/api/broker`, OIDC bearer verification |
+| HTTP entry | `services/broker-server.js` | Express app mounted by `services/app.js` under `/api/broker`, OIDC bearer verification |
 | Runtime | `services/utils/broker/` | Adapters, transfer engine, token vault, audit log |
 | Shell client | `src/broker/` | Typed client, progress events, UI glue |
 
@@ -360,14 +372,15 @@ contractually in [`integration.md`](./integration.md).
 
 ```
 services/utils/broker/
-├── index.js              # wires adapters + engine, exports the router
-├── router.js             # route table (see §4.3)
+├── index.js              # builds the router and the route table (see §4.3); wires adapters + engine
+├── transport.js          # outbound HTTP for every adapter: timeouts, TLS verification
 ├── engine/
 │   ├── transfer.js       # stream, size cap, cancel, atomic write, hash, audit
 │   ├── naming.js         # collision-safe naming, extension preservation
 │   ├── preferences.js    # appearance/language fan-out (see §4.3)
 │   └── audit.js          # structured transfer records
 ├── adapters/
+│   ├── preferences.js    # FileBrowser + Zulip preference writes; Mail is unsupported (AR-48)
 │   ├── files.js          # FileBrowser Quantum: source root resolution, read/write
 │   ├── mail.js           # Mailcow/SOGo: IMAP(S) fetch, SMTP submit
 │   └── chat.js           # Zulip: /api/v1/user_uploads, /api/v1/tus, attachment fetch
@@ -376,32 +389,36 @@ services/utils/broker/
 │   ├── authorize.js      # per-user, per-source authorisation
 │   └── vault.js          # encrypted per-user credential store
 └── health/
-    └── integrations.js   # composes per-application health into one payload
+    └── integrations.js   # reachability + framing probe, composed into one payload
 ```
 
 ### 4.3 Broker API surface
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/broker/health` | Per-application health for the application switcher status indicators |
+| `GET` | `/api/broker/health` | Per-application health for the application switcher status indicators — a server-side reachability and framing probe of each configured address (AR-49) |
 | `GET` | `/api/broker/files/list?path=` | List the user's FileBrowser tree (for the picker) |
 | `GET` | `/api/broker/files/stat?path=` | Existence, size, hash — used for de-duplication |
+| `GET` | `/api/broker/mail/messages/:id/attachments` | The attachment list for one message — what the Mail pane's attachment panel and the **Save to files** action read ([`broker.md` §5.7](./broker.md#59-the-filebrowser-calls-the-engine-makes)) |
 | `POST` | `/api/broker/mail/attachments/save` | **F1** — save a mail attachment into the file source |
 | `POST` | `/api/broker/mail/attachments/attach` | **F2** — attach a file-source file to a mail draft |
 | `POST` | `/api/broker/chat/files/save` | **F3** — save a Zulip attachment into the file source |
 | `POST` | `/api/broker/chat/files/send` | **F4** — send a file-source file into a Zulip message |
+| `POST` | `/api/broker/mail/attachments/send` | **F5** — send a mail attachment into a Zulip message ([`broker.md` §5.7](./broker.md#57-f5--mail--chat)) |
+| `POST` | `/api/broker/chat/files/attach` | **F6** — attach a Zulip attachment to a mail draft ([`broker.md` §5.8](./broker.md#58-f6--chat--mail)) |
 | `GET` | `/api/broker/transfers/:id` | Transfer status and progress |
 | `POST` | `/api/broker/transfers/:id/cancel` | Cancel an in-flight transfer |
-| `POST` | `/api/broker/preferences` | Forward the user's appearance and/or language choice into the embedded applications ([`design.md` §4.4](./design.md#44-the-theme-bridge-forwarding-the-mode-switch), [§8.2](./design.md#82-the-language-bridge)) |
+| `POST` | `/api/broker/preferences` | Forward the user's appearance and/or language choice into the embedded applications, with the per-application identifiers the shell resolved ([`design.md` §4.4](./design.md#44-the-theme-bridge-forwarding-the-mode-switch), [§8.2](./design.md#82-the-language-bridge), D-I6) |
 
 | Ref | Requirement |
 | --- | --- |
 | AR-14 | The broker is same-origin with the shell (`/api/broker/*`) so no CORS relaxation is needed and the OIDC session cookie/token applies directly. |
-| AR-15 | Every broker route is authenticated and authorised per user; there is no unauthenticated route except `/api/broker/health` returning liveness only. |
+| AR-15 | Every broker route is authenticated and authorised per user; there is no unauthenticated route except `/api/broker/health`, which returns liveness and per-application reachability and never any user data (AR-49). |
 | AR-16 | The broker is the only component allowed to write into the FileBrowser source tree on behalf of another application. |
 | AR-17 | Adapters are pure modules with injected transports, so they are unit-testable without a live Mailcow or Zulip. |
-| AR-47 | `POST /api/broker/preferences` acts **only** on the calling user, resolved from the verified token — never on a user named in the request body. It accepts `mode` and `locale`, fans out to the adapters in parallel, and answers with a per-application result so the shell can report a partial failure (`design.md` D-6.1) instead of pretending the switch succeeded. |
-| AR-48 | The preference fan-out is implemented in `services/utils/broker/engine/preferences.js` and uses the existing adapters. An adapter that has no preference surface reports `unsupported`; that is a normal outcome, not an error. |
+| AR-47 | `POST /api/broker/preferences` acts **only** on the calling user, resolved from the verified token — never on a user named in the request body. It accepts `mode` and/or `locale`, plus an optional `adapters` object carrying the per-application identifier the shell's locale registry resolved (for example `{"filebrowser":"ptBR","zulip":"pt"}`); the shell owns that mapping (`design.md` D-I6) and the broker keeps no second copy. It fans out to the adapters in parallel and answers with a per-application result so the shell can report a partial failure (`design.md` D-6.1) instead of pretending the switch succeeded. |
+| AR-48 | The preference fan-out is implemented in `services/utils/broker/engine/preferences.js` and uses the adapters in `services/utils/broker/adapters/preferences.js`. An adapter that has no preference surface, or that was handed no identifier for the requested locale, reports `unsupported`; that is a normal outcome, not an error. |
+| AR-49 | `GET /api/broker/health` is a server-side probe of each configured application address: it reports reachability and whether the response refuses framing (`X-Frame-Options`, CSP `frame-ancestors`), which the shell cannot see from inside an iframe. The probe needs no Docker socket (AR-37). A check that cannot run reports `unknown`, never `unhealthy`. |
 
 ---
 
@@ -574,7 +591,7 @@ CHAT_URL=https://chat.example.com
 TRAEFIK_URL=https://traefik.example.com
 
 # --- Image pins -------------------------------------------------------------
-FILEBROWSER_IMAGE=gtstef/filebrowser:2.0.6-beta
+FILEBROWSER_IMAGE=gtstef/filebrowser:2.0.9-beta
 ZULIP_IMAGE=ghcr.io/zulip/zulip-server:12.2-0
 ONLYOFFICE_IMAGE=onlyoffice/documentserver:8.2
 AUTHENTIK_TAG=2024.12
@@ -612,10 +629,9 @@ pageInfo:
   description: Files, chat and mail in one place
 
 appConfig:
-  defaultTheme: dark
-  defaultLanguage: en
-  baseDomain: example.com          # drives src/utils/apps/urls.js
-  enableMultiTasking: true         # panes stay mounted — the Workcenter default
+  theme: default                   # a theme from the inherited gallery
+  language: en
+  defaultOpeningMethod: newtab
   auth:
     enableOidc: true
     oidc:
@@ -624,34 +640,30 @@ appConfig:
       adminGroup: workspaceadmin
       scope: openid profile email groups
       enableSilentRenew: true
-  applications:                    # mirrors src/utils/apps/registry.js
+  applications:                    # the addresses the shell embeds; registry.js names the rest
     files:
       url: https://filebrowser.example.com
-      accent: blue
-      healthKey: filebrowser
     chat:
       url: https://chat.example.com
-      accent: violet
-      healthKey: zulip
     mail:
       url: https://mail.example.com/SOGo
-      accent: teal
-      healthKey: mailcow
-
-broker:
-  enabled: true
-  transfer:
-    maxSizeMiB: 512
-    timeoutSeconds: 300
-    deduplicate: true
-  audit:
-    enabled: true
-    retentionDays: 30
 ```
+
+The keys above are the whole contract: `ConfigSchema.json` sets `additionalProperties: false` on
+`appConfig` and on each application entry, so an unknown key is a validation failure rather than a
+silently ignored line. Three things deliberately are **not** configuration:
+
+- **The appearance mode.** Dark is the default and the user chooses in the user menu; the choice is
+  remembered per browser (`localStorage` and the `wc_mode` cookie) and, from roadmap Phase 6, in the
+  broker's per-user store (`design.md` D-6.1).
+- **Accent colours.** Each application's accent is a shell token derived from FileBrowser Quantum's
+  palette, so there is one place a Workcenter colour is decided (`design.md` §4.3.1).
+- **The broker's own settings.** Transfer size caps, timeouts and audit retention belong in the
+  broker's `.env` when the transfer engine lands (roadmap Phase 6); they are not shell configuration.
 
 | Ref | Requirement |
 | --- | --- |
-| AR-32 | `appConfig.applications` mirrors `src/utils/apps/registry.js`; a unit test asserts they cannot drift. |
+| AR-32 | `appConfig.applications` and `src/utils/apps/registry.js` describe the same three applications; the registry names the icon, accent token, health key, route and sidebar surface, and the configuration supplies only the address. A unit test asserts the two cannot drift. |
 | AR-33 | Secrets never appear in `conf.yml`; they are read from `.env` by `server.js` and injected at runtime. |
 | AR-34 | `ConfigSchema.json` validates `conf.yml` at startup and on save; an invalid config fails fast with a readable error. |
 
@@ -664,7 +676,7 @@ broker:
 | Container | Built from | Exposure | Network |
 | --- | --- | --- | --- |
 | `workcenter` | `Dockerfile` (Workcenter's multi-stage, extended) | Traefik → `:8080` | `proxy`, `internal` |
-| `filebrowser` | `gtstef/filebrowser:2.0.6-beta` | Traefik → `:80` | `proxy`, `internal` |
+| `filebrowser` | `gtstef/filebrowser:2.0.9-beta` | Traefik → `:80` | `proxy`, `internal` |
 | `onlyoffice` | `onlyoffice/documentserver` | `internal` only (or Traefik if public editing is required) | `internal`, `proxy` |
 | `zulip` `database` `memcached` `rabbitmq` `redis` | docker-zulip images | `zulip` via Traefik → `:80`; the rest internal | `internal` |
 | `postgresql` `redis` `server` `worker` `ldap` (Authentik) | Authentik images | `server` via Traefik → `:9000` | `proxy`, `internal` |
@@ -691,7 +703,7 @@ services:
 | --- | --- |
 | AR-35 | The broker's file source mount and FileBrowser's source mount must resolve to the **same host directory**, asserted at broker startup. |
 | AR-36 | Mailcow and Zulip mounts are **read-only** for the broker; all writes go through the network APIs of those applications. |
-| AR-37 | The Workcenter container never mounts `/var/run/docker.sock`. Health is read through the compose health endpoints, not the Docker API. |
+| AR-37 | The Workcenter container never mounts `/var/run/docker.sock`. Health is read through the broker's server-side probe of each application address (AR-49), not the Docker API. |
 
 ### 7.3 Dockerfile
 
@@ -777,7 +789,7 @@ Workcenter is deliberately closed to arbitrary tiles but open in three controlle
 | AD-7 | Traefik as the only ingress | Single TLS termination point, one ACME resolver, uniform label contract |
 | AD-8 | Authentik as the only IdP, with a unified two-group model | One login, one authorisation model, one place to revoke |
 | AD-9 | Bind mounts, never anonymous volumes, for anything backed up | Operators can see, back up and restore state without Docker archaeology |
-| AD-10 | FileBrowser Quantum pinned to v2.0.6-beta with a recorded digest | The v2 config/API surface is what Workcenter is written against |
+| AD-10 | FileBrowser Quantum pinned to v2.0.9-beta with a recorded digest | The v2 config/API surface is what Workcenter is written against |
 
 ---
 
