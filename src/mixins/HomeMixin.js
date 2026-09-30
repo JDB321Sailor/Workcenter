@@ -3,7 +3,7 @@
  * injection, and the route-to-sub-config resolution the store depends on.
  */
 
-import Defaults, { localStorageKeys, iconCdns } from '@/utils/config/defaults';
+import Defaults, { iconCdns } from '@/utils/config/defaults';
 import Keys from '@/utils/StoreMutations';
 import { resolveRouteIntent, PAGE_STATUS } from '@/utils/config/ConfigHelpers';
 
@@ -66,14 +66,16 @@ const HomeMixin = {
       });
       return isNeeded;
     },
-    /* Checks if any of the icons are Font Awesome glyphs */
+    /* Checks whether the Font Awesome library is needed.
+     *
+     * The shell's own chrome renders font icons — the sidebar rows, the pane's
+     * overflow menu and the preference controls all use `fas fa-*` — so the
+     * library is needed in a workspace-only application too. The inherited check
+     * only looked at tile sections, which Workcenter no longer has, so every one
+     * of those glyphs rendered blank. An operator who does not want the library
+     * sets `enableFontAwesome: false`. */
     checkIfFontAwesomeNeeded() {
-      if (this.appConfig.enableFontAwesome === false) return false;
-      if (this.appConfig.enableFontAwesome) return true;
-      let isNeeded = this.checkIfIconLibraryNeeded('fa-');
-      const currentTheme = localStorage[localStorageKeys.THEME]; // Some themes require FA
-      if (['material', 'material-dark'].includes(currentTheme)) isNeeded = true;
-      return isNeeded;
+      return this.appConfig.enableFontAwesome !== false;
     },
     /* Injects font-awesome's script tag, only if needed */
     initiateFontAwesome() {

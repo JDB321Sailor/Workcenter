@@ -16,7 +16,7 @@ import RemoteConfigLoader from '@/components/Configuration/RemoteConfigLoader.vu
 import { welcomeMsg } from '@/utils/logging/CoolConsole';
 import ErrorHandler from '@/utils/logging/ErrorHandler';
 import { syncPageMeta } from '@/utils/PageMeta';
-import { applyTheme } from '@/utils/Theming';
+import { applyTheme, initModeFromStorage, applyModeToShell, readStoredMode } from '@/utils/Theming';
 import Keys from '@/utils/StoreMutations';
 import { loadLocale } from '@/utils/languages';
 import i18n from '@/utils/i18n';
@@ -57,6 +57,17 @@ export default {
         if (!lang) return;
         this.$i18n.locale = lang;
         document.documentElement.setAttribute('lang', lang);
+      },
+    },
+    /* Once the deployment's addresses are known, the mode cookie can carry the
+       shared domain so every Workcenter host renders in the right mode on its
+       first paint. The stored choice is read here rather than taken from the
+       reactive state, so this is correct whichever hook runs first. */
+    appConfig: {
+      immediate: true,
+      handler(cfg) {
+        if (!cfg || !Object.keys(cfg).length) return;
+        applyModeToShell(readStoredMode(), cfg);
       },
     },
   },
@@ -223,13 +234,23 @@ export default {
     this.hideLoader();
     welcomeMsg();
   },
-};
+  /* Workcenter starts in dark unless the user has chosen otherwise; the
+     attribute is set before the first paint so nothing flashes (design.md
+     D-6.1). */
+  created() {
+    initModeFromStorage();
+  },};
 </script>
 
 <style lang="scss">
 /* Import styles used globally throughout the app */
 @import '@/styles/global-styles.scss';
 @import '@/styles/color-palette.scss';
+/* The semantic shell tokens come after the palette, so the workcenter mode is
+   the default and an operator-selected theme still overrides it. */
+@import '@/styles/workcenter/tokens.scss';
+/* Collapsed-rail chrome: the shell's own presentation rules for a narrow rail. */
+@import '@/styles/workcenter/rail.scss';
 @import '@/styles/dimensions.scss';
 @import '@/styles/color-themes.scss';
 @import '@/styles/typography.scss';
