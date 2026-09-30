@@ -2,7 +2,14 @@
   <nav class="wc-sidebar" :aria-label="$t('sidebar.label', { app: appName })">
     <!-- The active application's own navigator. -->
     <div class="wc-sidebar__body">
-      <component :is="surface" v-if="surface" :app="app" :appConfig="appConfig" />
+      <component
+        :is="surface"
+        v-if="surface"
+        :app="app"
+        :appConfig="appConfig"
+        :query="query"
+        @navigate="$emit('navigate', $event)"
+      />
     </div>
   </nav>
 </template>
@@ -25,7 +32,10 @@ export default {
   props: {
     activeId: { type: String, default: '' },
     appConfig: { type: Object, default: () => ({}) },
+    /* The shell's sidebar filter, forwarded to the active surface. */
+    query: { type: String, default: '' },
   },
+  emits: ['navigate'],
   components: {
     FilesSidebar,
     ChatSidebar,

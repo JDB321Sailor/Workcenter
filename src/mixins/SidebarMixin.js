@@ -14,6 +14,8 @@ export default {
   props: {
     app: { type: Object, required: true },
     appConfig: { type: Object, default: () => ({}) },
+    /* The shell's sidebar filter, from SidebarSearch. Design.md D-3. */
+    query: { type: String, default: '' },
   },
   data() {
     return {
@@ -30,12 +32,36 @@ export default {
     isUnconfigured() {
       return this.baseUrl === '';
     },
-    /** The groups this surface renders. Supplied by the component. */
+    /** The filter, normalised for a case-insensitive comparison. */
+    normalizedQuery() {
+      return this.query.trim().toLowerCase();
+    },
+    /**
+     * The groups this surface renders, each row carrying the URL it points at
+     * and narrowed to the rows that match the filter. A group with no matching
+     * row is dropped, so the body never shows an empty heading.
+     */
     groups() {
-      return this.sidebarGroups || [];
+      const all = this.sidebarGroups || [];
+      const decorated = all.map((group) => ({
+        ...group,
+        items: (group.items || [])
+          .map((item) => ({ ...item, url: this.urlFor(item) }))
+          .filter((item) => this.matchesQuery(item)),
+      }));
+      return decorated.filter((group) => group.items.length > 0);
+    },
+    /** True when a filter is applied and nothing matches it. */
+    hasNoMatches() {
+      return this.normalizedQuery !== '' && this.groups.length === 0;
     },
   },
   methods: {
+    /** True when a row's visible label contains the filter. */
+    matchesQuery(item) {
+      const label = item.labelKey ? this.$t(item.labelKey) : (item.label || '');
+      return String(label).toLowerCase().includes(this.normalizedQuery);
+    },
     /** The absolute URL for a row, or an empty string. */
     urlFor(item) {
       if (!item || !item.path) return this.baseUrl;
@@ -44,18 +70,18 @@ export default {
     /**
      * Open a row.
      *
-     * A sidebar row navigates the pane. Until the panes are driven by their
-     * applications' APIs (roadmap Phase 6), a row opens the application at the
-     * right place in a new tab, which is the honest behaviour: the shell is not
-     * yet able to scroll the embedded application to an arbitrary location.
+     * A row navigates the pane it belongs to, at the path the row names: the
+     * shell is honest about what it can address, and every path here was read
+     * from the application's own router (see each surface). Rows with no
+     * verified path are not rendered at all rather than pointing somewhere
+     * arbitrary.
      */
     select(item) {
       if (!item) return;
       this.activeItemId = item.id || '';
-      const url = this.urlFor(item);
+      const url = item.url || this.urlFor(item);
       if (!url) return;
       this.$emit('navigate', { item, url });
-      window.open(url, '_blank', 'noopener,noreferrer');
     },
     /** Report a problem without breaking the shell. */
     warn(message) {

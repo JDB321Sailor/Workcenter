@@ -1,22 +1,28 @@
 <template>
-  <button
-    type="button"
+  <component
+    :is="href ? 'a' : 'button'"
     class="wc-sidebar-item"
     :class="{ 'is-active': isActive, 'is-child': isChild }"
+    :href="href || undefined"
+    :type="href ? undefined : 'button'"
     :aria-current="isActive ? 'page' : undefined"
     :title="title || label"
-    @click="$emit('select', item)"
+    @click="onClick"
   >
     <i v-if="item.icon" :class="item.icon" class="wc-sidebar-item__icon" aria-hidden="true" />
     <span class="wc-sidebar-item__label">{{ label }}</span>
     <span v-if="item.badge" class="wc-sidebar-item__badge">{{ item.badge }}</span>
-  </button>
+  </component>
 </template>
 
 <script>
 /**
  * One row in a sidebar. Every application's navigator uses this primitive, so
  * the three surfaces share a single visual grammar. Design.md D-4.
+ *
+ * A row that has a destination is a real link, so middle-click and "copy link"
+ * behave as users expect (rule D-4.2); the click still navigates the pane
+ * rather than leaving the page.
  */
 export default {
   name: 'SidebarItem',
@@ -28,6 +34,9 @@ export default {
   },
   emits: ['select'],
   computed: {
+    href() {
+      return this.item.url || '';
+    },
     label() {
       /* Application-defined labels are used as written; anything the shell
        * supplies has a translation key. */
@@ -35,6 +44,12 @@ export default {
     },
     title() {
       return this.item.title || '';
+    },
+  },
+  methods: {
+    onClick(event) {
+      if (this.href) event.preventDefault();
+      this.$emit('select', this.item);
     },
   },
 };
@@ -55,6 +70,7 @@ export default {
   font: inherit;
   font-size: 0.82rem;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 
   &:hover {
@@ -74,7 +90,7 @@ export default {
    * aria-current and a left border. */
   &.is-active {
     background: var(--side-bar-item-background);
-    border-left-color: var(--wc-focus-ring);
+    border-left-color: var(--wc-accent-files-ink);
     font-weight: 600;
   }
 }
