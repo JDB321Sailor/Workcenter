@@ -119,8 +119,10 @@ const defaults = {
     searchBar: true,
     settings: true,
   },
-  /* A list of route names that page furniture (header, footer, etc) should be hidden on */
-  hideFurnitureOn: ['login'],
+  /* A list of route names that page furniture (header, footer, etc) should be hidden on.
+   * Workcenter renders one page: the rail carries the product identity, so the
+   * inherited page header is hidden on every shell route (design.md D-1, D-L1). */
+  hideFurnitureOn: ['login', 'workspace', 'files', 'chat', 'mail', 'not-found'],
   /* Key names for local storage identifiers */
   localStorageKeys: {
     LANGUAGE: 'language',
@@ -129,6 +131,12 @@ const defaults = {
     COLLAPSE_STATE: 'collapseState',
     ICON_SIZE: 'iconSize',
     THEME: 'theme',
+    /* The shell's appearance mode (dark | light) and language, mirrored
+       locally so the first paint after a reload is already correct. */
+    MODE: 'wcMode',
+    WC_LANGUAGE: 'wcLanguage',
+    /* Per-group open/closed state for the shell's sidebar navigators. */
+    SIDEBAR_GROUPS: 'wcSidebarGroups',
     PRIMARY_THEME: 'primaryTheme',
     CUSTOM_COLORS: 'customColors',
     CONF_SECTIONS: 'confSections',
@@ -139,6 +147,10 @@ const defaults = {
     BACKUP_HASH: 'backupHash',
     HIDE_SETTINGS: 'hideSettings',
     USERNAME: 'username',
+    /* Identity claims the user menu shows. Only ever written from the token. */
+    DISPLAY_NAME: 'displayName',
+    EMAIL: 'email',
+    GROUPS: 'userGroups',
     MOST_USED: 'mostUsed',
     LAST_USED: 'lastUsed',
     KEYCLOAK_INFO: 'keycloakInfo',
@@ -149,6 +161,10 @@ const defaults = {
   /* Key names for cookie identifiers */
   cookieKeys: {
     AUTH_TOKEN: 'workcenterAuthToken',
+    /* First-paint hints for the embedded applications. Values carry no identity
+       and nothing may ever be added to them (design.md D-4.4.2, D-I11). */
+    MODE: 'wc_mode',
+    LANGUAGE: 'wc_lang',
   },
   /* Key names for session storage identifiers */
   sessionStorageKeys: {
