@@ -43,6 +43,8 @@ acme.json
 # Broker token store
 user-data/broker/
 user-data/config-backups/
+# Runtime files of the manual verification harness (scripts/e2e.sh)
+user-data/e2e/
 
 # ---------------------------------------------------------------------------
 # Test and tooling artefacts
