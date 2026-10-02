@@ -22,12 +22,15 @@ const credentialsFor = async () => null;
  * Create the broker router for a configuration.
  *
  * `applications` is `appConfig.applications` from `user-data/conf.yml`; a
- * missing address is reported as unknown health, never as a failure.
+ * missing address is reported as unknown health, never as a failure. `baseUrl` is
+ * the shell's own origin, which the framing check needs to read an application's
+ * `frame-ancestors` allow-list (compose.yaml sets it from WORKCENTER_HOST).
  */
-const createBrokerServer = ({ applications = {}, authConfig = {} } = {}) => {
+const createBrokerServer = ({ applications = {}, authConfig = {}, baseUrl = '' } = {}) => {
   const { router } = createBrokerRouter({
     applications,
     authConfig,
+    shellOrigin: baseUrl,
     credentialsFor,
     transportImpl: transport,
   });

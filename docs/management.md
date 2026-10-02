@@ -317,7 +317,7 @@ application, never globally**.
 | --- | --- |
 | Workcenter | The `security-headers` middleware: HSTS, `X-Content-Type-Options`, `Referrer-Policy` and a `frame-ancestors` allow-list naming the Workcenter origin. |
 | FileBrowser Quantum | The `security-headers` middleware. `http.trustProxyHeaders: true`, with `X-Forwarded-Proto` and `X-Forwarded-Host` passed through and the client `Host` preserved. |
-| Zulip | As shipped, its nginx sends `X-Frame-Options: DENY` and Zulip exposes no setting to change it. The Chat pane is framed by a derived image that replaces the header with a `frame-ancestors` allow-list naming the Workcenter origin — never `*`. The long-poll routes need response buffering off and read and idle timeouts beyond 60 seconds. |
+| Zulip | As shipped, its nginx sends `X-Frame-Options: DENY` and Zulip exposes no setting to change it. The Chat pane is framed at the ingress: the `zulip` router carries `security-headers@file`, whose `frame-ancestors` allow-list names the Workcenter origin — never `*` — and a browser that sees `frame-ancestors` ignores Zulip's `X-Frame-Options`. The long-poll routes need response buffering off and read and idle timeouts beyond 60 seconds. |
 | ONLYOFFICE | The `no-frame-block` middleware and `accesscontrolalloworiginlist=*`. It must not share FileBrowser's router middleware. |
 | Mailcow and SOGo | The `security-headers` middleware. The Mailcow UI is an OIDC client, so do not put `mail.<base>` behind forward-auth. |
 | Traefik dashboard | `authentik@file` forward-auth, restricted to `workspaceadmin`. |

@@ -1,0 +1,87 @@
+# Workcenter — the local test profile.
+#
+# Layered on top of the root composition for testing on a machine with no DNS
+# name, no public certificate and nobody signed in yet:
+#
+#   docker compose -f compose.yaml -f compose.test.yaml up -d
+#
+# The ingress rule is not changed here: Traefik's own composition already binds
+# to 127.0.0.1 and serves the certificate in Traefik/certs as the default, so the
+# stack is loopback-only and needs no ACME. A production host widens those
+# bindings from its own gitignored override (Traefik/compose.local.yaml, using
+# Compose's `!override` so the loopback bindings are replaced rather than kept).
+#
+# What this profile adds is what only a local, unauthenticated run needs:
+#
+#   1. The shell is told the address it is served from under test.
+#   2. The shell's outbound calls to the applications trust the local certificate,
+#      which is the only authority for their TLS on this machine.
+#   3. The panes the shell embeds, and the addresses the broker probes for the
+#      switcher's status indicators, are this machine's hostnames rather than the
+#      example.com names the committed `user-data/conf.yml` carries.
+#
+# Nothing here may weaken production: no application gains a published port, no
+# certificate verification is disabled, and no framing header is changed.
+
+services:
+  # The shell probes each application through the ingress, by the same hostname a
+  # browser would use, and verifies the certificate it gets (broker.md §3.4,
+  # §10.2). Docker's resolver knows service names, not `*.workcenter.local`, so on
+  # a machine with no DNS the test hostnames are attached to Traefik as network
+  # aliases: the shell's lookups land on the ingress, which routes by the Host
+  # header exactly as public DNS would. Without this every probe fails to resolve
+  # and the switcher's status indicators report working applications as
+  # unreachable.
+  traefik:
+    networks:
+      proxy:
+        aliases:
+          - workcenter.local
+          - filebrowser.workcenter.local
+          - chat.workcenter.local
+          - mail.workcenter.local
+          - office.workcenter.local
+    volumes:
+      # The framing allow-list — the only thing that makes the Chat pane
+      # embeddable, since Zulip itself ships `X-Frame-Options: DENY` and Workcenter
+      # runs it unmodified (integration.md §8.4, IN-5.8). Traefik *sets* this
+      # header, so it is the one a browser enforces, and it replaces whatever a
+      # backend sends. The committed Traefik/dynamic/middlewares.yml names
+      # https://example.com, which setup.sh rewrites for a deployment
+      # (production.md §5.4); scripts/e2e.sh writes the same copy with the shell's
+      # test origin and this profile mounts it over the original. Long syntax and
+      # `create_host_path: false` for the same reason as the shell's config below:
+      # a missing generated file must fail loudly.
+      - type: bind
+        source: ./Traefik/dynamic/middlewares.test.yml
+        target: /etc/traefik/dynamic/middlewares.yml
+        bind:
+          create_host_path: false
+  workcenter:
+    environment:
+      # The shell's own address, which the broker's health probe and preference
+      # bridge read (broker.md §3.4, §6, §7).
+      WORKCENTER_BASE_URL: https://workcenter.local
+      # Verification is never disabled (broker.md §10.2). The file is inside the
+      # certs directory the base composition already mounts read-only at /certs.
+      NODE_EXTRA_CA_CERTS: /certs/local-ca.crt
+    volumes:
+      # The pane addresses and the broker's health probes both come from
+      # `appConfig.applications` in user-data/conf.yml (src/utils/apps/urls.js,
+      # broker.md §3.4). That file is the *operator's*: it is committed with
+      # example.com defaults and setup.sh rewrites it in place for a deployment
+      # (production.md §5.4). scripts/e2e.sh therefore generates a copy carrying
+      # this run's hostnames, and this profile mounts the copy over the tracked
+      # file — a nested bind mount, so the file on disk is never modified. Without
+      # it the test shell would embed https://filebrowser.example.com and report
+      # every application unreachable while the applications themselves are fine.
+      #
+      # Long syntax, and `create_host_path: false`, on purpose: `scripts/e2e.sh`
+      # generates the file before bringing the stack up, and a missing source must
+      # fail here rather than be created as an empty directory that would leave
+      # the shell with a config it cannot read.
+      - type: bind
+        source: ./user-data/conf.test.yml
+        target: /app/user-data/conf.yml
+        bind:
+          create_host_path: false

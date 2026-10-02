@@ -1,6 +1,8 @@
 import {
   describe, it, expect, vi, beforeEach,
 } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { shallowMount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { reactive } from 'vue';
@@ -150,5 +152,48 @@ describe('Workspace', () => {
     await w.vm.$nextTick();
     expect(w.find('.wc-workspace').classes()).not.toContain('wc-workspace--collapsed');
     expect(localStorage.setItem).toHaveBeenCalledWith(localStorageKeys.COLLAPSE_STATE, 'false');
+  });
+});
+
+/**
+ * The content surface's height contract.
+ *
+ * The pane is absolutely positioned with `height: calc(100% - var(--header-height))`
+ * against its host (design.md D-L1, D-7), so the host needs a **definite** height
+ * to resolve against. `min-height: 100vh` alone does not provide one: the host
+ * resolved to zero, every frame loaded into a zero-height box, and both embedded
+ * applications rendered blank in a real browser while the health checks and DOM
+ * tests all passed. happy-dom has no layout engine, so this asserts the declared
+ * contract — the regression only shows up as a measured box in a browser.
+ */
+describe('the content surface height contract', () => {
+  const readStyle = (rel) => fs.readFileSync(path.resolve(__dirname, '../..', rel), 'utf8');
+
+  const ruleFor = (scss, selector) => {
+    /* Drop comments first: the contract is what the declarations say, and a
+       comment that names the bug being guarded against must not fail the guard. */
+    const declarations = scss.replace(/\/\*[\s\S]*?\*\//g, '');
+    const pattern = new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`, 's');
+    const match = declarations.match(pattern);
+    return match ? match[1] : null;
+  };
+
+  it('gives the workspace a definite viewport height, not only a minimum', () => {
+    const rule = ruleFor(readStyle('src/views/Workspace.vue'), '.wc-workspace');
+    expect(rule).not.toBeNull();
+    expect(rule).toMatch(/height:\s*100vh/);
+    expect(rule).not.toMatch(/min-height:\s*100vh/);
+  });
+
+  it('lets the pane host fill that height', () => {
+    const rule = ruleFor(readStyle('src/components/Panes/PaneHost.vue'), '.wc-pane-host');
+    expect(rule).not.toBeNull();
+    expect(rule).toMatch(/height:\s*100%/);
+  });
+
+  it('makes the frame a block box, so a full-height iframe adds no baseline gap', () => {
+    const rule = ruleFor(readStyle('src/components/Panes/AppPane.vue'), '.wc-pane__frame');
+    expect(rule).not.toBeNull();
+    expect(rule).toMatch(/display:\s*block/);
   });
 });

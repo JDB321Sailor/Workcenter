@@ -290,6 +290,9 @@ const app = express()
   .use(ENDPOINTS.broker, createBrokerServer({
     applications: config?.appConfig?.applications || {},
     authConfig: config?.appConfig?.auth || {},
+    // The shell's own address, so the health check can read an application's
+    // framing allow-list against the origin that will embed it (compose.yaml).
+    baseUrl: process.env.WORKCENTER_BASE_URL || '',
   }))
   // REST API for reading / writing config files (no-op 404 unless ENABLE_API=true)
   .use(ENDPOINTS.api, apiEnabledGate, createApiRouter({

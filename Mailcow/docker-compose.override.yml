@@ -1,0 +1,238 @@
+# ---------------------------------------------------------------------------
+# Workcenter — Mailcow ↔ Traefik integration (roadmap 3.7)
+#
+# Mailcow is never forked, never re-composed and never driven with `-f`
+# (integration.md §6.3, IN-6.1/IN-6.3). This override is Workcenter's only change:
+# Mailcow's own docker-compose.yml and mailcow.conf are untouched, and Mailcow is
+# started from inside this directory so the override auto-merges:
+#
+#   (cd Mailcow && docker compose up -d)        # no -f, ever (production.md §8)
+#
+# Mailcow's own .gitignore already lists docker-compose.override.yml, which is
+# what makes this the sanctioned, update-safe customisation point (IN-6.2). The
+# file is untracked by Mailcow, so `update.sh` cannot revert it.
+#
+# Two things this file cannot do, and says so rather than pretending:
+#   * it cannot unpublish Mailcow's ports — see the note under `expose`;
+#   * it cannot make the Mail pane framable — Mailcow's nginx sets its own
+#     X-Frame-Options, which is fixed in nginx, not in Traefik (IN-6.31).
+# ---------------------------------------------------------------------------
+
+services:
+  nginx-mailcow:
+    # Mailcow's compose already puts nginx-mailcow on `mailcow-network` with the
+    # alias `nginx`; the override only adds the shared proxy network (Compose
+    # merges networks per key, so repeating `mailcow-network` adds nothing — it is
+    # here to keep the alias visible, which is the name Traefik's logs use).
+    # P-18 is the trap: this container is on two networks, so *both*
+    # `traefik.docker.network` (below) and `providers.docker.network` (Traefik's
+    # static config) must be set, or Traefik picks one at random — the most common
+    # cause of a 502 in this stack.
+    networks:
+      mailcow-network:
+        aliases:
+          - nginx
+      proxy: {}
+
+    # The web-facing port, and the only thing the override can do about ports.
+    #
+    # THE RULE (IN-6.4, production.md P-11): an override file cannot remove a
+    # published port. Docker *concatenates* `ports` and `expose` sequences rather
+    # than replacing them, so Mailcow's `"${HTTP_BIND}:${HTTP_PORT}:${HTTP_PORT}"`
+    # and `"${HTTPS_BIND}:${HTTPS_PORT}:${HTTPS_PORT}"` bindings survive this file
+    # no matter what is written here, and adding `127.0.0.1:80:80` would produce
+    # two conflicting bindings rather than a replacement. The supported fix is
+    # Mailcow's own keys in mailcow.conf:
+    #
+    #   HTTP_BIND=127.0.0.1
+    #   HTTPS_BIND=127.0.0.1
+    #
+    # which keep the published sockets on loopback, while Traefik reaches the
+    # container over the `proxy` network on the port below. Both are in
+    # Mailcow/mailcow.conf.example. The published ports are therefore *not*
+    # removed; they are made unreachable from outside, which is the same outcome
+    # by the only mechanism Mailcow supports.
+    #
+    # `${HTTP_PORT}` is read from mailcow.conf through Mailcow's `.env` symlink
+    # (IN-6.3), so the Traefik service port can never drift from the port nginx
+    # actually listens on — including the `HTTP_PORT=8080` variant Mailcow's own
+    # Traefik guide (and integration.md §6.5) uses.
+    expose:
+      - "${HTTP_PORT:-80}"
+
+    # Ports deliberately left published and untouched:
+    #   * 25/465/587 (postfix-mailcow) and 143/993/110/995/4190 (dovecot-mailcow)
+    #     are mail protocols. Traefik does not proxy them, and they must keep
+    #     their host bindings or no mail client can reach the server.
+    #   * 13306 (mysql-mailcow) and 7654 (redis-mailcow) are already bound to
+    #     127.0.0.1 by Mailcow's own defaults; they are Mailcow's internal
+    #     services and stay exactly as Mailcow ships them.
+
+    labels:
+      traefik.enable: "true"
+      # P-18: the per-service half of the network pin.
+      traefik.docker.network: "proxy"
+      # One router covers both the Mailcow UI at / and SOGo at /SOGo: they are the
+      # same host and the same nginx, and SOGo is deliberately reached through the
+      # Mailcow UI rather than around it (IN-6.7, IN-6.13). No second router and
+      # no path rule — a PathPrefix would break the UI's own routes. `/SOGo` needs
+      # no Traefik middleware of its own either; its framing is an nginx concern
+      # (IN-6.31).
+      traefik.http.routers.mailcow.rule: "Host(`${MAILCOW_HOSTNAME:?set MAILCOW_HOSTNAME in mailcow.conf}`)"
+      traefik.http.routers.mailcow.entrypoints: "websecure"
+      # IN-8.2: still required in Traefik v3 with label providers; the certificate
+      # comes from the `le` resolver, which is why Mailcow's own ACME is off.
+      traefik.http.routers.mailcow.tls: "true"
+      traefik.http.routers.mailcow.tls.certresolver: "le"
+      # P-25: every router that names `le` declares the *same* identifier set, so
+      # Traefik orders one certificate covering all six hostnames instead of one
+      # certificate per router — Let's Encrypt allows five per exact set per week.
+      # These five variables plus BASE_DOMAIN are Workcenter's, not Mailcow's, and
+      # reach this file through mailcow.conf (Mailcow's env file), which is why
+      # they are listed there in Mailcow/mailcow.conf.example. They must be the
+      # root composition's values, character for character.
+      traefik.http.routers.mailcow.tls.domains[0].main: "${BASE_DOMAIN:?set BASE_DOMAIN in mailcow.conf}"
+      traefik.http.routers.mailcow.tls.domains[0].sans: "${WORKCENTER_HOST},${FILEBROWSER_HOST},${CHAT_HOST},${MAIL_HOST},${OFFICE_HOST}"
+      # The shared security-headers middleware (IN-8.4). It may not deny framing
+      # (IN-8.5) — but framing is *decided by Mailcow's nginx* for this host, so
+      # this middleware is transport security, not the framing fix: see the note
+      # at the end of this file.
+      traefik.http.routers.mailcow.middlewares: "security-headers@file"
+      # Traefik → nginx-mailcow over the proxy network, plain HTTP inside the
+      # Docker network; TLS is terminated at Traefik.
+      traefik.http.services.mailcow.loadbalancer.server.port: "${HTTP_PORT:-80}"
+
+    # Mailcow's compose defines zero `healthcheck:` blocks (IN-6.5,
+    # production.md §13.1a). These four are the ones Workcenter adds, and they are
+    # deliberately *liveness* checks: P-26 forbids gating a Mailcow service on
+    # `.State.Health`, and the end-to-end "is Mail up" proof is the HTTPS 200
+    # probe that production.md §13.1/§13.1a assigns to the health script (P-28).
+    healthcheck:
+      # No curl in nginx:1.30-alpine, but Mailcow installs python3 for its Jinja2
+      # entrypoint. This asserts that nginx accepts a connection on the very port
+      # Traefik targets — the listener that only exists when HTTP_REDIRECT is not
+      # fighting it (I-MC-4a).
+      test:
+        - CMD-SHELL
+        - |
+          python3 -c "import socket,sys;s=socket.socket();s.settimeout(3);sys.exit(s.connect_ex(('127.0.0.1',int('$${HTTP_PORT:-80}'))))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  sogo-mailcow:
+    volumes:
+      # --- the SOGo appearance hook -----------------------------------------
+      # SOGo 5.12 has no dark mode, no theme preference and one stylesheet, so the
+      # Workcenter palette is *supplied*: this mounts the hook that links the
+      # Workcenter stylesheet and selects on the mode the shell publishes
+      # (I-MC-11, IN-6.22/IN-6.23, broker.md §6.3).
+      #
+      # Docker concatenates `volumes` in an override, which is exactly right here:
+      # this *adds* a mount inside SOGo's web resources beside Mailcow's own
+      # custom-theme.js / custom-sogo.js mounts and replaces nothing. The file is
+      # Workcenter-authored and lives in Mailcow/sogo-custom/, outside Mailcow's
+      # git tree, so `update.sh` cannot touch it. The path is under
+      # WebServerResources because that is what SOGo publishes at /SOGo/, and
+      # `bootstrap-sogo.sh` rsyncs that tree into the nginx volume at container
+      # start — which is why the hook only appears after
+      # `(cd Mailcow && docker compose restart sogo-mailcow)` (IN-6.26, P-32).
+      # `:z` is Mailcow's SELinux convention, copied from its own mounts.
+      #
+      # REGISTRATION (required, and not in this file): `SOGoUIAdditionalJSFiles`
+      # is an SOGo default, so it lives in Mailcow/data/conf/sogo/sogo.conf —
+      # *not* in mailcow.conf, and not in this override. That list already loads
+      # `js/theme.js` and `js/custom-sogo.js`; add the new file to it:
+      #
+      #   SOGoUIAdditionalJSFiles = (js/theme.js, js/custom-sogo.js, js/workcenter-theme.js);
+      #
+      # The alternative the Workcenter docs prefer is to append the same block to
+      # the already-registered data/conf/sogo/custom-sogo.js (IN-6.22) — no
+      # configuration key and no tracked file is edited, at the cost of living
+      # inside a file `update.sh` merges with `-X theirs`. Either way: re-apply
+      # after an upgrade (IN-6.25) and restart sogo-mailcow (P-32).
+      # Mailcow/mailcow.conf.example repeats this where an operator looks.
+      - ./sogo-custom/workcenter-theme.js:/usr/local/lib/GNUstep/SOGo/WebServerResources/js/workcenter-theme.js:z
+    # SOGo is the Mail pane and must be present and healthy (I-MC-8). Upstream
+    # defines no healthcheck (IN-6.5), so Workcenter adds one. This is a real HTTP
+    # check against SOGo's own daemon: curl is in the Debian-based SOGo image,
+    # sogod listens on 20000, and 200/301/302/401 all mean "SOGo answered" — a
+    # redirect to the login view is a healthy daemon, not a failure (IN-6.14: the
+    # pane detects *SOGo's own login form* separately, as its auth-error state).
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          code="$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:20000/SOGo/)"
+          case "$$code" in
+            200|301|302|401) exit 0 ;;
+            *) echo "SOGo answered $${code}"; exit 1 ;;
+          esac
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  mysql-mailcow:
+    # MariaDB has no healthcheck upstream (IN-6.5). `mariadb-admin ping` talks to
+    # the container's own socket, so it needs no TCP grant for root and does not
+    # depend on how Mailcow arranges its grants; the password is the one the
+    # container was started with. The `|| mysqladmin` fallback covers the older
+    # client name, which some 10.11 builds keep instead of a symlink.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mariadb-admin --silent ping -u root -p"$$MYSQL_ROOT_PASSWORD" || mysqladmin --silent ping -u root -p"$$MYSQL_ROOT_PASSWORD"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  redis-mailcow:
+    # Redis has no healthcheck upstream (IN-6.5). This one authenticates for real:
+    # REDISPASS is in the container's environment from mailcow.conf.
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDISPASS\" ping | grep -q PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# --- the shared proxy network ----------------------------------------------
+networks:
+  # Mailcow runs as its own Compose project (started from inside Mailcow/ with no
+  # `-f`, IN-6.3), so it cannot rely on the root project's network declarations;
+  # it joins the network Traefik already created. This is the one place
+  # `external: true` is correct in this repository: for an external network the
+  # key is the literal Docker network name, which is why the service label above
+  # can say `traefik.docker.network: "proxy"` and mean it. The root project and
+  # Traefik/compose.yaml declare the same name without `external`, once each.
+  proxy:
+    external: true
+
+# ---------------------------------------------------------------------------
+# Two facts this override cannot express, stated where an operator will look.
+#
+# 1. mailcow.conf keys. SKIP_LETS_ENCRYPT=y (Traefik owns certificates, I-MC-4),
+#    AUTODISCOVER_SAN=n, HTTP_REDIRECT=n (mandatory — with `y`, Traefik →
+#    http://nginx:80 receives `301 https://mail.example.com` and loops forever,
+#    I-MC-4a/P-9), HTTP_BIND/HTTPS_BIND=127.0.0.1 and TRUSTED_PROXIES=<proxy
+#    subnet>. SKIP_LETS_ENCRYPT and the bind addresses live in mailcow.conf
+#    because that file *is* Mailcow's `.env`; an override cannot set them, and
+#    COMPOSE_FILE must never be set there either (P-12). See
+#    Mailcow/mailcow.conf.example for the value and the reason for each, and
+#    remember that mailcow.conf is written by `generate_config.sh` and maintained
+#    by `update.sh` — Workcenter applies these keys with `setup.sh`
+#    (production.md §5.2), never by hand.
+#
+# 2. The Mail pane's framing. Traefik is not the obstacle: Mailcow's nginx sets
+#    `add_header X-Frame-Options "SAMEORIGIN" always;` at server scope and the
+#    /SOGo location inherits it, so the pane is blocked in the shell's frame until
+#    an nginx snippet under Mailcow/data/conf/nginx/*.custom replaces that header
+#    for /SOGo with a CSP `frame-ancestors 'self' https://<workcenter>`
+#    (IN-6.31). `*.custom` is untracked upstream, so the snippet survives
+#    `update.sh`. That snippet is a separate Phase 3 file and deliberately not
+#    part of this integration override; until it exists, the Mail pane shows its
+#    `blocked` diagnostic card, never a blank frame.
+# ---------------------------------------------------------------------------

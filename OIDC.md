@@ -424,7 +424,7 @@ SOCIAL_AUTH_SYNC_ATTRS_DICT = {
 ```
 
 > **Warning — version requirement.** OpenID Connect group sync was added in **Zulip 13**. Zulip 11
-> added it for **SAML only**. On the currently pinned `12.2-0` image this configuration is accepted
+> added it for **SAML only**. On the currently pinned `12.3-0` image this configuration is accepted
 > but has no effect, and `workspaceadmin` must be propagated out of band (see
 > [§7](#7-sogo-mailcow-and-the-oidc-reality) and roadmap I-ZU-6). Verify your image's version before
 > relying on it:
@@ -597,8 +597,8 @@ services:
 | O-6.7 | **There is no `SOCIAL_AUTH_OIDC_ENABLED`, `SOCIAL_AUTH_OIDC_CLIENT_ID`, `SOCIAL_AUTH_OIDC_SECRET` or `SOCIAL_AUTH_OIDC_URL` setting in Zulip.** The only OIDC settings are `SOCIAL_AUTH_OIDC_ENABLED_IDPS` and `SOCIAL_AUTH_OIDC_FULL_NAME_VALIDATED`. Any documentation that uses the other names is wrong. |
 | O-6.8 | `ZULIP_CUSTOM_SETTINGS` is raw Python appended to `settings.py`. Treat it as code: it is reviewed, and a syntax error prevents Zulip from starting. Keep secrets out of it by reading them from a file in `Zulip/secrets/` if you prefer. |
 | O-6.9 | If your Authentik uses a private CA, set `custom_ca_path` in Zulip's settings so it trusts the issuer. |
-| O-6.10 | **Zulip sends `X-Frame-Options: DENY` and cannot be embedded as shipped.** There is no Django `X_FRAME_OPTIONS` setting and no `XFrameOptionsMiddleware`. Workcenter therefore deploys a thin derived image that overrides the nginx header include via `custom_zulip_files/`, replacing `X-Frame-Options` with a CSP `frame-ancestors` allow-list (see [`integration.md` §5.4](./integration.md#54-the-framing-problem)). There is nothing to configure in Zulip itself for this. |
-| O-6.11 | **OIDC group→role sync requires Zulip 13.** On the currently pinned 12.2 image, group sync exists for **SAML only**; Zulip 12.2's own settings template states *"Sync for other backends is not currently supported."* `workspaceadmin` is therefore propagated out of band via `PATCH /api/v1/users/{user_id}` by `setup.sh`. |
+| O-6.10 | **Zulip sends `X-Frame-Options: DENY` at server scope and cannot be embedded as shipped.** There is no Django `X_FRAME_OPTIONS` setting, no `XFrameOptionsMiddleware`, and Zulip's own CSP never carries `frame-ancestors`, so the policy is written **at the ingress** and Zulip runs the pinned upstream image **unmodified**. The `zulip` router carries `traefik.http.routers.zulip.middlewares: "security-headers@file"` (`Zulip/compose.yaml`), and that middleware's `headers.contentSecurityPolicy: "frame-ancestors https://<the shell's origin>"` in `Traefik/dynamic/middlewares.yml` — never `*` — makes the Chat pane embeddable; a browser that sees a `frame-ancestors` directive ignores `X-Frame-Options` (CSP Level 2 and later). `setup.sh` writes that origin from the base URL ([`integration.md` §5.4](./integration.md#54-the-framing-problem), IN-5.27, `production.md` P-35). |
+| O-6.11 | **OIDC group→role sync requires Zulip 13.** On the currently pinned 12.3 image, group sync exists for **SAML only**; Zulip 12.3's own settings template states *"Sync for other backends is not currently supported."* `workspaceadmin` is therefore propagated out of band via `PATCH /api/v1/users/{user_id}` by `setup.sh`. |
 | O-6.12 | **`CSRF_TRUSTED_ORIGINS` is not a Zulip production setting.** It appears only in Zulip's development settings. Zulip's CSRF protection rests on trusting the proxy: pass the client `Host` through unchanged, set the forwarded proto, and list the proxy's address in `SETTING_LOADBALANCER_IPS`. Fix CSRF by making Traefik trusted — not by inventing a setting. |
 | O-6.13 | Do not set `ALLOWED_HOSTS`. Zulip derives it automatically from `SETTING_EXTERNAL_HOST`. |
 
@@ -1101,7 +1101,7 @@ Work through this after `setup.sh` completes.
 | **Authentik 502 / never loads right after `up -d`** | First-boot migrations | Wait; `docker compose logs -f server` until the startup line appears |
 | **Self-signed Authentik certificate rejected** | A private CA the client does not trust | Use a real certificate, or mount your CA and set `NODE_EXTRA_CA_CERTS` in the Workcenter container |
 | **Zulip: `invalid_client`** | Secret mismatch between the provider and `Zulip/.env` | Recopy the secret; restart the `zulip` service |
-| **Zulip: "refused to connect" in the pane** | `X-Frame-Options` blocks framing | Set `SETTING_X_FRAME_OPTIONS` / CSP `frame-ancestors` for the Workcenter origin |
+| **Zulip: "refused to connect" in the pane** | Zulip's `X-Frame-Options: DENY` is the only framing policy the browser sees | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin, not Zulip's (O-6.10, [`integration.md` §5.4](./integration.md#54-the-framing-problem)) |
 | **Zulip: CSRF error on login** | Missing trusted origin | Set `SETTING_CSRF_TRUSTED_ORIGINS` to include `https://chat.<base>` |
 | **Mailcow: login fails after switching to Generic-OIDC** | No attribute mapping, or the mail domain does not exist | Configure the attribute mapping; ensure the domain exists and has capacity |
 | **Mailcow: "Test Connection" fails** | Wrong endpoints, or `Ignore SSL Errors` masking a real certificate problem | Verify all three endpoints, then fix the certificate rather than enabling the ignore flag |

@@ -1,0 +1,63 @@
+# Workcenter — Traefik dynamic configuration: the middleware contracts (integration.md §8.4).
+#
+# Loaded from /etc/traefik/dynamic with watch: true, so an edit here applies without a restart.
+# Applications reference these entries by `name@file` from their own compose labels; nothing in
+# this file is global — framing and headers are per application (IN-8.5).
+http:
+  middlewares:
+    security-headers:
+      # Workcenter, FileBrowser Quantum, Mailcow/SOGo and Zulip (integration.md §8.4). The same
+      # three headers everywhere; the framing policy below is the part that is per application.
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        referrerPolicy: strict-origin-when-cross-origin
+        # IN-8.5 and management.md ("Headers and framing"): the allow-list names the Workcenter
+        # origin, the only ancestor a Workcenter pane needs (IN-5.8), and it is never `*`; setup.sh
+        # rewrites the host when it writes the base domain (production.md §5.4/P-35), and
+        # scripts/e2e.sh writes it for a test run. frameDeny and customFrameOptionsValue are
+        # deliberately absent. This allow-list is written at the ingress, and a browser that sees
+        # `frame-ancestors` ignores Zulip's shipped `X-Frame-Options: DENY` (CSP Level 2 and
+        # later) — so `security-headers@file` on the `zulip` router is the whole mechanism and the
+        # pinned upstream image stays unmodified (IN-5.7). Mailcow's SOGo fix is nginx-side
+        # (roadmap R14). Traefik *sets* this header rather than merging it, so an application that
+        # must keep a CSP of its own needs a middleware of its own rather than this one (IN-8.5a).
+        contentSecurityPolicy: "frame-ancestors https://example.com"
+    no-frame-block:
+      # ONLYOFFICE only (integration.md §8.4). It must never carry frameDeny and never share
+      # FileBrowser's middleware (IN-4.3, IN-4.4): FileBrowser frames it, so it has to stay
+      # framable, and the `*` origin list is what makes the FileBrowser <-> ONLYOFFICE pair work.
+      # `frame-ancestors *` is also what keeps a `frameDeny`-style X-Frame-Options out of the way,
+      # since browsers honour frame-ancestors over a conflicting X-Frame-Options.
+      headers:
+        accessControlAllowOriginList:
+          - "*"
+        contentSecurityPolicy: "frame-ancestors *"
+    # --- Phase 5 — forward-auth for the dashboard (roadmap.md §5.7) ---------------------------
+    # Not enabled: it needs a deployed Authentik, the `traefik-dashboard` proxy provider
+    # (OIDC.md §5.8) and an outpost reachable over the `proxy` network. setup.sh writes the
+    # outpost's address into this file as the middleware's `address` (OIDC.md §5.8), taking it
+    # from TRAEFIK_FORWARDAUTH_ADDRESS (OIDC.md §9.1); dynamic/dashboard.yml then attaches it to
+    # the dashboard router, together with the second, higher-priority router IN-7.8 requires.
+    #
+    # authentik:
+    #   forwardAuth:
+    #     address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+    #     trustForwardHeader: true
+    #     maxResponseBodySize: 4194304   # P-20
+  # --- Zulip's long-poll (P-22, IN-5.12) ------------------------------------------------------
+  # Traefik has no middleware for this: response buffering and the read/idle timeouts are service
+  # and transport properties, which labels *can* express (unlike TLS options, P-21). Zulip's
+  # compose (Phase 3.6) must therefore set:
+  #   traefik.http.services.zulip.loadbalancer.responseforwarding.flushinterval=-1
+  #       # negative = flush as soon as the backend writes; the 100 ms default buffers the stream
+  #   traefik.http.services.zulip.loadbalancer.serverstransport=zulip-longpoll@file
+  # This is the dynamic-file entry that second label has to reference (IN-5.12).
+  serversTransports:
+    zulip-longpoll:
+      forwardingTimeouts:
+        # 0 is "no timeout" and is also Traefik's default; it is written out because the 60 s
+        # values operators reach for here are exactly what break a Zulip long-poll (its own nginx
+        # allows 1200 s). The entrypoint's readTimeout/idleTimeout are 0 in traefik.yml.
+        responseHeaderTimeout: 0s

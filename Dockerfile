@@ -38,9 +38,29 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-RUN apk upgrade --no-cache \
- && apk add --no-cache tzdata tini \
- && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+# Alpine packages, installed once, with retries.
+#
+# `apk upgrade` and `apk add` each fetch the package index, so the original
+# two-command form resolved and downloaded twice — and a single DNS blip on the
+# second fetch failed the whole build with a misleading "unable to select
+# packages: tzdata (no such package)". The package was always there; the index it
+# is listed in was not. One transaction and three attempts keep a transient
+# resolver or mirror failure from failing an otherwise valid image, which is what
+# a build behind a flaky network needs. A genuine failure still fails: the last
+# attempt's status is the one that counts.
+RUN set -eux; \
+    attempt=1; \
+    while true; do \
+      if apk upgrade --no-cache && apk add --no-cache tzdata tini; then break; fi; \
+      if [ "${attempt}" -ge 3 ]; then \
+        echo "apk failed after ${attempt} attempts; the index fetch is not recovering" >&2; \
+        exit 1; \
+      fi; \
+      echo "apk attempt ${attempt} failed (transient DNS or mirror?); retrying in 5s" >&2; \
+      attempt=$((attempt + 1)); \
+      sleep 5; \
+    done; \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --chown=node:node --from=deps  /app/node_modules ./node_modules
 COPY --chown=node:node --from=build /app/dist ./dist

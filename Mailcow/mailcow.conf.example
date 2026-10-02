@@ -1,0 +1,119 @@
+# ---------------------------------------------------------------------------
+# Mailcow/mailcow.conf.example — the keys Workcenter requires in mailcow.conf
+#
+# This is NOT a replacement for Mailcow's configuration file, and it is not a
+# template to copy over one. Mailcow owns mailcow.conf: `generate_config.sh`
+# writes it (I-MC-1), `update.sh` maintains it, and Mailcow's `.env` is a symlink
+# to it (IN-6.3). Workcenter never edits Mailcow's files; `setup.sh` applies
+# exactly the keys below with its documented sed recipe after running the
+# generator (production.md §5.2), because these are the ones the Traefik
+# integration depends on. Everything else stays at Mailcow's defaults.
+#
+# Never set COMPOSE_FILE here: this file *is* Mailcow's env file, and Mailcow is
+# driven from inside Mailcow/ with no `-f` so docker-compose.override.yml
+# auto-merges (P-12, P-13).
+# ---------------------------------------------------------------------------
+
+# Mailcow's own hostname, and the Traefik router rule for the Mail pane —
+# Mailcow/docker-compose.override.yml uses `Host(`${MAILCOW_HOSTNAME}`)`, read
+# through the .env symlink, so the certificate, the SOGo URL and the router can
+# never disagree. Derive it as `mail.` + the base domain (roadmap §5.1).
+MAILCOW_HOSTNAME=mail.example.com
+
+# Traefik owns TLS for every Workcenter hostname (production.md §7.3), so
+# Mailcow's ACME client must not request certificates for names it will never
+# serve (I-MC-4). There is no ENABLE_SSL variable in current mailcow.conf.
+SKIP_LETS_ENCRYPT=y
+
+# No Mailcow-managed SANs on the autodiscover host: Traefik serves the single
+# name above, so extra SANs would only add certificates nobody uses (I-MC-4).
+AUTODISCOVER_SAN=n
+
+# MANDATORY. `generate_config.sh` writes `y`, and with `y` the only listener on
+# HTTP_PORT is a 301 redirect to HTTPS — so Traefik → http://nginx:80 would
+# receive `301 https://mail.example.com` and loop forever. Mailcow's own Traefik
+# guide omits this step (I-MC-4a, production.md P-9, and test 19 in
+# integration.md §12 asserts it).
+HTTP_REDIRECT=n
+
+# Keep Mailcow's own listeners off the public interface. An override file cannot
+# unpublish Mailcow's ports — Docker concatenates `ports` lists — so the 80/443
+# bindings stay, bound to loopback, while Traefik reaches the container over the
+# `proxy` network (IN-6.4, P-11). Do not "fix" this by adding `127.0.0.1:80:80`
+# to Mailcow/docker-compose.override.yml: that produces two conflicting bindings.
+HTTP_BIND=127.0.0.1
+HTTPS_BIND=127.0.0.1
+
+# Optional: Mailcow's own Traefik guide (and integration.md §6.5's example) uses
+# 8080 instead of 80. Either value works here — the override's `expose` and
+# Traefik's `loadbalancer.server.port` both read this key, so the two cannot
+# drift — but production.md §5.2 leaves the default in place.
+#HTTP_PORT=8080
+
+# The addresses Mailcow trusts to set the real client IP: its nginx runs
+# `set_real_ip_from` once per entry, which is what keeps logs, rate limiting and
+# fail2ban looking at the user rather than at the proxy (I-MC-4). `generate_config.sh`
+# does not emit this key, so it is appended. Find the value with:
+#   docker network inspect <the proxy network> -f '{{(index .IPAM.Config 0).Subnet}}'
+TRUSTED_PROXIES=172.18.0.0/16
+
+# SOGo must be present and healthy: the Mail pane *is* SOGo, reached through
+# Mailcow's own session (I-MC-7a, I-MC-8).
+SKIP_SOGO=n
+
+# The certificate identifier set, for the same reason as TRUSTED_PROXIES: these
+# keys are read by Mailcow/docker-compose.override.yml, and mailcow.conf *is*
+# Mailcow's env file (IN-6.3), so there is nowhere else to put them. Every
+# Traefik router in the repository declares this identical set so the `le`
+# resolver orders one certificate for all six hostnames instead of one per
+# router — Let's Encrypt allows five per exact set per week (P-25). setup.sh
+# writes the same values into the root .env and every application's .env
+# (production.md §5.4); they must match character for character. Mailcow itself
+# ignores all five.
+BASE_DOMAIN=example.com
+WORKCENTER_HOST=example.com
+FILEBROWSER_HOST=filebrowser.example.com
+CHAT_HOST=chat.example.com
+MAIL_HOST=mail.example.com
+OFFICE_HOST=office.example.com
+
+# Workcenter's status probe calls GET /api/v1/get/status/containers with the
+# X-API-Key header, and a read-only key is accepted for status calls
+# (production.md §13.1; the aggregate fallback is `docker compose ps`). Mailcow
+# refuses the call unless API_ALLOW_FROM names the caller, which is the
+# Workcenter shell/broker on the proxy network (I-MC-8). Allowed characters for
+# the key: a-z, A-Z, 0-9, "-". Generate with `openssl rand -hex 24`.
+API_KEY_READ_ONLY=REPLACE_WITH_A_GENERATED_READ_ONLY_KEY
+API_ALLOW_FROM=172.18.0.0/16
+
+# Mailcow's own watchdog silently restarts services after SOGO_THRESHOLD
+# consecutive failures, so without a webhook a Mailcow restart is invisible in
+# Workcenter's monitoring (production.md §13.1a, P-27). Recommended for
+# operations, not required for bring-up; both lines are commented out in
+# Mailcow's generated file.
+#WATCHDOG_NOTIFY_WEBHOOK=https://example.com/api/mailcow/watchdog
+#WATCHDOG_NOTIFY_WEBHOOK_BODY='{"username":"mailcow","content":"**${SUBJECT}**\n${BODY}"}'
+
+# ---------------------------------------------------------------------------
+# The SOGo appearance hook is NOT a mailcow.conf key — this comment is here
+# because this is the file an operator reads before bringing Mailcow up.
+#
+# `SOGoUIAdditionalJSFiles` is an SOGo default, and it lives in
+# Mailcow/data/conf/sogo/sogo.conf. That list already loads `js/theme.js` and
+# `js/custom-sogo.js`, which is why there are two ways to register
+# Mailcow/sogo-custom/workcenter-theme.js:
+#
+#   a) append the Workcenter block to data/conf/sogo/custom-sogo.js, which is
+#      already on the list — no configuration key and no tracked file is edited
+#      (integration.md IN-6.22, roadmap I-MC-11); or
+#   b) add `js/workcenter-theme.js` to the list in sogo.conf, which
+#      docker-compose.override.yml already mounts into SOGo's web resources:
+#        SOGoUIAdditionalJSFiles = (js/theme.js, js/custom-sogo.js, js/workcenter-theme.js);
+#
+# Either way, two consequences are not optional: `sogo-mailcow` must be
+# restarted, because bootstrap-sogo.sh rsyncs SOGo's web resources into the
+# nginx volume at container start (IN-6.26, P-32); and the registration must be
+# re-applied after a Mailcow upgrade, because data/conf/sogo/* is tracked by
+# Mailcow and `update.sh` merges it with `-X theirs` (IN-6.25). `setup.sh --brand`
+# is the idempotent step that does both.
+# ---------------------------------------------------------------------------

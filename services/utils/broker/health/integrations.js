@@ -24,32 +24,44 @@ const HEALTH = Object.freeze({
 /* Short: the indicator row must not wait on a slow application. */
 const PROBE_TIMEOUT_MS = 4000;
 
-/* Cross-origin framing is refused by these values; `sameorigin` blocks every
-   other origin, which is what the shell is. */
-const parseFraming = (headers) => {
-  const xfo = String(headers.get('x-frame-options') || '').toLowerCase();
-  if (xfo.includes('deny') || xfo.includes('sameorigin')) return true;
+/* Whether the application refuses to be framed by the shell.
+ *
+ * `frame-ancestors` is read first, and it decides on its own: a browser that sees
+ * that directive **ignores `X-Frame-Options`** (CSP Level 2 and later), which is
+ * how a Zulip that still sends `X-Frame-Options: DENY` — as the pinned upstream
+ * image does — is framed by the ingress (integration.md §5.4, IN-5.8). Checking
+ * XFO first would report the specified configuration as blocked.
+ *
+ * `shellOrigin` is the shell's own origin, which the health route takes from
+ * WORKCENTER_BASE_URL: IN-8.5 requires every application to name that origin and
+ * *never* `*`, so a check that only accepted `*` would do the same. `'self'` is
+ * the *application's* origin, a different host from the shell's here, so it does
+ * not cover the shell on its own. */
+const parseFraming = (headers, shellOrigin = '') => {
   const csp = String(headers.get('content-security-policy') || '').toLowerCase();
   if (csp.includes('frame-ancestors')) {
-    /* A directive that allows nobody, or does not allow any host, blocks the
-       shell. `frame-ancestors *` is the only permissive form we can judge
-       without knowing the shell's origin. */
-    const directive = csp.split('frame-ancestors')[1] || '';
-    const value = directive.split(';')[0].trim();
-    if (!value || value === "'none'" || value === "'self'") return true;
-    if (!value.includes('*')) return true;
+    /* A directive that allows nobody, or that lists no source covering the shell,
+       blocks it. */
+    const value = (csp.split('frame-ancestors')[1] || '').split(';')[0].trim();
+    if (!value) return true;
+    const sources = value.split(/\s+/).filter(Boolean);
+    if (sources.includes('*')) return false;
+    if (shellOrigin && sources.includes(shellOrigin.toLowerCase())) return false;
+    return true;
   }
-  return false;
+  /* No `frame-ancestors`: X-Frame-Options is the only policy there is. */
+  const xfo = String(headers.get('x-frame-options') || '').toLowerCase();
+  return xfo.includes('deny') || xfo.includes('sameorigin');
 };
 
 /** Probe one application. */
-const probe = async ({ id, url, transport, fetchImpl }) => {
+const probe = async ({ id, url, transport, fetchImpl, shellOrigin = '' }) => {
   if (!url) {
     return { id, state: HEALTH.UNKNOWN, check: 'no address configured', endpoint: url || '' };
   }
   try {
     const headers = await transport.head(url, { timeoutMs: PROBE_TIMEOUT_MS, fetchImpl });
-    const frameBlocked = parseFraming(headers);
+    const frameBlocked = parseFraming(headers, shellOrigin);
     return {
       id,
       state: frameBlocked ? HEALTH.DEGRADED : HEALTH.HEALTHY,
@@ -80,14 +92,16 @@ const addressOf = (configured) => {
  * The application id is the shell's identifier (`files`, `chat`, `mail`), which
  * is what `HealthService` keys on.
  */
-const composeHealth = async ({ applications = {}, transport, fetchImpl, now = () => new Date() }) => {
+const composeHealth = async ({
+  applications = {}, transport, fetchImpl, now = () => new Date(), shellOrigin = '',
+}) => {
   const targets = [
     { id: 'files', url: addressOf(applications.files) },
     { id: 'chat', url: addressOf(applications.chat) },
     { id: 'mail', url: addressOf(applications.mail) },
   ];
   const probed = await Promise.all(
-    targets.map((target) => probe({ ...target, transport, fetchImpl })),
+    targets.map((target) => probe({ ...target, transport, fetchImpl, shellOrigin })),
   );
   const since = now().toISOString();
   const apps = {};

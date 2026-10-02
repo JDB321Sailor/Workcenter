@@ -6,7 +6,6 @@ vi.mock('@/utils/request', () => ({
   default: { get: vi.fn() },
 }));
 
-// eslint-disable-next-line import/first
 import request from '@/utils/request';
 
 /**
@@ -79,10 +78,27 @@ describe('HealthService', () => {
     }
   });
 
-  it('takes the application map out of a wrapped payload', async () => {
-    request.get.mockResolvedValueOnce({ apps: { chat: { state: HEALTH.HEALTHY } } });
+  it('unwraps the response envelope the request helper resolves to', async () => {
+    /* `request.get` resolves to `{ data, status, statusText, headers }`, so the
+       health payload is `data`. Reading `res.apps` found nothing and left every
+       indicator grey for applications that were answering normally. */
+    request.get.mockResolvedValueOnce({
+      data: { status: 'ok', apps: { chat: { state: HEALTH.HEALTHY, check: 'reachable' } } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+    });
     await HealthService.check();
     expect(HealthService.forApp('chat').state).toBe(HEALTH.HEALTHY);
+    expect(HealthService.forApp('chat').check).toBe('reachable');
+    // An application the payload does not mention stays unknown.
+    expect(HealthService.forApp('files').state).toBe(HEALTH.UNKNOWN);
+  });
+
+  it('accepts a payload that is not wrapped', async () => {
+    request.get.mockResolvedValueOnce({ apps: { files: { state: HEALTH.HEALTHY } } });
+    await HealthService.check();
+    expect(HealthService.forApp('files').state).toBe(HEALTH.HEALTHY);
   });
 
   it('reads the endpoint from the service map', async () => {

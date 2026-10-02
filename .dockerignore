@@ -7,6 +7,41 @@ dist
 .git
 .github
 
+# Application runtime state.
+#
+# These directories are the bind-mount targets the stack fills at run time, and
+# their contents belong to the *containers'* own uids — which the process sending
+# the build context is not. A run leaves them behind, so without these lines the
+# next build fails with
+#
+#   ERROR: error from sender: open .../OnlyOffice/db: permission denied
+#
+# for every user who is not root, and even when it succeeds (root can read them)
+# every build uploads the whole database, cache and log tree to the builder.
+# Neither is acceptable: none of this is an input to this image.
+Zulip/data
+Zulip/database
+Zulip/rabbitmq
+Zulip/redis
+Filebrowser/data
+Filebrowser/office-cache
+OnlyOffice/data
+OnlyOffice/db
+OnlyOffice/lib
+OnlyOffice/logs
+Mailcow/data
+Traefik/certs
+Traefik/logs
+Traefik/acme.json
+
+# Generated secrets and harness state, for the same reason: written per run, never
+# an input to this image. `user-data/conf.yml`, which the image *does* carry, is
+# deliberately not listed here.
+Zulip/secrets
+user-data/e2e
+user-data/broker
+user-data/config-backups
+
 # The only things needed to build the Dockerfile are:
 # Depens: package.json, yarn.lock
 # Setup:  tsconfig.json, vite.config.mjs

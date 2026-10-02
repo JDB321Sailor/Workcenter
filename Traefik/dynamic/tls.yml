@@ -1,0 +1,71 @@
+# Workcenter — Traefik dynamic configuration: TLS (P-21 — TLS options cannot be expressed as
+# Docker labels, so they belong here; architecture.md §5.6 gives this file "TLS options, internal
+# CA trust").
+tls:
+  options:
+    # `default` is the reserved name Traefik uses for any router that does not name its own options
+    # (and it never takes a provider namespace). VersionTLS12 is Traefik's own floor, stated here so
+    # the floor stays a decision rather than an inherited default.
+    default:
+      minVersion: VersionTLS12
+  stores:
+    default:
+      # The local/test certificate (Testing.md §6.3: "the test profile serves the local self-signed
+      # certificate from Traefik/certs/ as the default", because ACME needs DNS a test host does not
+      # have). Without it Traefik has nothing to present for a hostname no resolver has issued for
+      # and the handshake fails; in production it is the fallback until the first ACME certificate
+      # exists, after which that certificate is served for its own SNI and this store is only the
+      # fallback.
+      #
+      # The files are runtime state and gitignored, like the internal CA (production.md §12 P-23).
+      # `scripts/e2e.sh` generates them for the test profile. To write them by hand, write **an
+      # authority and a leaf it signs** — never one self-signed certificate: `openssl req -x509`
+      # marks what it produces `CA:TRUE`, and Firefox's verifier (mozillapkix) refuses a CA
+      # certificate used as a server certificate
+      # (`MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY`), while curl, Chrome and `certutil -V`
+      # accept it — so the shell shows "untrusted certificate" and every pane is blank however the
+      # trust stores are configured.
+      #   openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+      #     -keyout Traefik/certs/local-ca.key -out Traefik/certs/local-ca.crt \
+      #     -subj "/CN=workcenter-local CA" \
+      #     -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign"
+      #   openssl req -newkey rsa:2048 -nodes -keyout Traefik/certs/local.key \
+      #     -out /tmp/local.csr -subj "/CN=workcenter-local" \
+      #     -addext "subjectAltName=DNS:example.com,DNS:*.example.com"
+      #   openssl x509 -req -in /tmp/local.csr -CA Traefik/certs/local-ca.crt \
+      #     -CAkey Traefik/certs/local-ca.key -CAcreateserial -days 30 \
+      #     -out Traefik/certs/local.crt \
+      #     -extfile <(printf 'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:example.com,DNS:*.example.com\n')
+      # Replace the SANs with the base domain in use; the Playwright profile resolves *.wc.test and
+      # needs those names in the same list (Testing.md §6.2). The authority is what goes into a trust
+      # store (`local-ca.crt`), and `local.crt` is what Traefik serves. A missing certFile is a
+      # dynamic configuration error in Traefik's log rather than a crash, but TLS cannot complete
+      # until the files exist.
+      defaultCertificate:
+        certFile: /certs/local.crt
+        keyFile: /certs/local.key
+# P-25 — one certificate for the whole hostname set — cannot be stated here. Traefik's dynamic TLS
+# root accepts only `certificates`, `options` and `stores`; the identifier set belongs to each
+# *router's* `tls.domains`, so every router that names the `le` resolver has to declare the same
+# set or Traefik asks for one certificate per `Host()` rule. The app composes (Phases 3.4-3.7) carry
+# the routers, so they need the label form of the set used by dynamic/dashboard.yml (upstream's
+# label syntax, with the SANs comma-separated):
+#   traefik.http.routers.<name>.tls.domains[0].main=example.com
+#   traefik.http.routers.<name>.tls.domains[0].sans=filebrowser.example.com,auth.example.com,...
+# The set is the six hostnames of production.md §2.3 and OIDC.md §8.3; setup.sh rewrites them when
+# it writes the base domain (production.md §5.4). A wildcard would be one identifier instead of six
+# but needs DNS-01 (production.md §7.3).
+http:
+  serversTransports:
+    internal-ca:
+      # production.md §12 (ENABLE_INTERNAL_TLS=true): setup.sh generates an internal CA and a leaf
+      # certificate per service into Traefik/certs/ and points the affected routers at this
+      # transport. §12's own P-24 is explicit that verification is never disabled — the CA is what
+      # makes internal TLS meaningful, so there is no insecureSkipVerify here. (integration.md
+      # IN-4.5 suggests insecureSkipVerify for ONLYOFFICE over self-signed HTTPS; production.md §12
+      # is the deployment specification and supersedes it.)
+      #
+      # Unused while ENABLE_INTERNAL_TLS=false (architecture.md §6.1), so the CA file need not
+      # exist yet. Its name is the contract Phase 4's setup.sh has to satisfy.
+      rootCAs:
+        - /certs/internal-ca.pem

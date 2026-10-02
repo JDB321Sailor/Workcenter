@@ -83,7 +83,7 @@ appConfig:
 | --- | --- |
 | C-1 | A value must be `http` or `https`. Anything else is rejected and the pane reports unavailable. |
 | C-2 | The address is the one the **browser** reaches, not an internal Docker hostname. The pane is an iframe in the user's browser. |
-| C-3 | The host must permit Workcenter as a frame ancestor. Zulip sends `X-Frame-Options: DENY` by default, which is why `integration.md` deploys a derived image for it. |
+| C-3 | The host must permit Workcenter as a frame ancestor. Zulip sends `X-Frame-Options: DENY` at server scope and exposes no setting to change it, so framing is set at the ingress: the Traefik middleware attached to the `zulip` router carries a `frame-ancestors` allow-list for the shell's origin, never `*` (`integration.md` IN-5.7/IN-5.8/IN-5.27). |
 | C-4 | `setup.sh` writes this block from the base domain you give it. Hand-edit it only if you deploy the applications elsewhere. |
 
 ### Appearance — set directly on `appConfig`

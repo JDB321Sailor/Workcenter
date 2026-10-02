@@ -1,0 +1,371 @@
+# ---------------------------------------------------------------------------
+# Workcenter — Zulip (the Chat pane)
+#
+# The full docker-zulip service set, pinned. All five services are deployed and
+# none may be removed: roadmap.md I-ZU-1 ("Deploy the full docker-zulip stack …
+# Trimming services is not permitted") — `database`, `memcached`, `rabbitmq` and
+# `redis` are part of Zulip's production architecture, not optional extras.
+#
+# Shape taken from docker-zulip's compose.yaml at the pinned tag
+# (https://github.com/zulip/docker-zulip/blob/12.3-0/compose.yaml). What
+# Workcenter changes, and why:
+#   * named volumes become bind mounts inside this folder (IN-5.4, I-ZU-2);
+#   * secrets come from files in ./secrets/ rather than the environment
+#     (I-ZU-3, IN-5.3) — docker-zulip supports both, and files keep secrets out
+#     of `.env`;
+#   * the 25/80/443 publications are dropped: Traefik reaches `zulip:80` over the
+#     shared `proxy` network, and Mailcow's postfix owns host port 25
+#     (IN-5.14a; see the note on `ports` below);
+#   * the four support services get healthchecks, which upstream ships only for
+#     `zulip` itself (integration.md §10, IN-10.1), so `depends_on` can gate;
+#   * Traefik labels, per IN-5.12/IN-8.4 and production.md P-18/P-22.
+#
+# Running it: Zulip is started by the *root* composition — `docker compose up -d`
+# at the repository root, which includes this file. There is no override file: the
+# `zulip` service runs the pinned upstream image unmodified, and the framing header
+# that lets Workcenter embed it is supplied by Traefik, not by a patched image
+# (integration.md §8.4, IN-5.8).
+#
+# This file does not declare the `proxy` network: exactly one file in the merged
+# project declares each network, and Traefik/compose.yaml owns `proxy`. Starting
+# this directory on its own therefore fails with an undefined network — that is
+# deliberate, and the reason is written at the bottom of this file.
+#
+# There is also deliberately no top-level `name:`: the root compose owns the
+# project name.
+# ---------------------------------------------------------------------------
+
+# Log rotation (production.md §13.2): Zulip is chatty, and an unbounded json-file
+# log is a disk-filling bug waiting to happen. Defined once, applied to all five.
+x-logging: &workcenter-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # --- PostgreSQL ----------------------------------------------------------
+  # `zulip/zulip-postgresql:14` is the image docker-zulip pins; it carries the
+  # extensions the pinned server expects, so the tag is not interchangeable with
+  # a plain `postgres` image (integration.md §5.3).
+  database:
+    image: ${ZULIP_POSTGRES_IMAGE}
+    restart: unless-stopped
+    secrets:
+      - zulip__postgres_password
+    environment:
+      POSTGRES_DB: "zulip"
+      POSTGRES_USER: "zulip"
+      POSTGRES_PASSWORD_FILE: /run/secrets/zulip__postgres_password
+    volumes:
+      # All state lives under Zulip/ (I-ZU-2, IN-5.4). Paths are relative to this
+      # file, so /data, the database, RabbitMQ and Redis resolve to
+      # Zulip/data, Zulip/database, Zulip/rabbitmq and Zulip/redis.
+      - ./database:/var/lib/postgresql/data:rw
+    networks:
+      - internal
+    healthcheck:
+      # Upstream ships none (integration.md §10: "None upstream"), and IN-10.1
+      # says "no healthcheck upstream" means "Workcenter adds one". `pg_isready`
+      # is part of the postgres image lineage this tag is built on.
+      test: ["CMD-SHELL", "pg_isready -U zulip -d zulip -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    logging: *workcenter-logging
+
+  # --- memcached -----------------------------------------------------------
+  # SASL-protected: the password is a file secret, and the container builds its
+  # own SASL database from it at start (upstream command, unchanged).
+  memcached:
+    image: ${MEMCACHED_IMAGE}
+    restart: unless-stopped
+    # The SASL database is built by a committed script, not an inline command:
+    # Compose interpolates `$NAME`/`${NAME}` in this file, and its `$$` escape did
+    # not cover every form — a rendered configuration was seen replacing
+    # `$$HOSTNAME` with the *host* hostname and `$$MEMCACHED_PASSWORD_FILE` with
+    # nothing, which leaves every client with "Auth failure" while both containers
+    # hold the same secret. The script is mounted read-only and also refuses to
+    # start on a missing, unreadable or empty secret.
+    command: ["sh", "-euc", "/usr/local/bin/memcached-entrypoint.sh"]
+    volumes:
+      - ./memcached-entrypoint.sh:/usr/local/bin/memcached-entrypoint.sh:ro
+    secrets:
+      - zulip__memcached_password
+    environment:
+      SASL_CONF_PATH: "/home/memcache/memcached.conf"
+      MEMCACHED_SASL_PWDB: "/home/memcache/memcached-sasl-db"
+      MEMCACHED_PASSWORD_FILE: /run/secrets/zulip__memcached_password
+    networks:
+      - internal
+    healthcheck:
+      # Upstream ships none (IN-10.1). The image carries no SASL-capable client,
+      # so this asserts the listening socket rather than authenticating against
+      # it: 11211 is 0x2BCB in /proc/net/tcp, and busybox grep is always present
+      # (`netstat` is not guaranteed in this image, `nc` cannot speak SASL).
+      # A wrong password is not a silent failure — the `zulip` container proves
+      # the credentials on every start and refuses to run without them.
+      test: ["CMD-SHELL", "{ grep -qi ':2bcb' /proc/net/tcp || grep -qi ':2bcb' /proc/net/tcp6; } && [ -s /home/memcache/memcached-sasl-db ]"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    logging: *workcenter-logging
+
+  # --- RabbitMQ ------------------------------------------------------------
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE}
+    restart: unless-stopped
+    command:
+      - "sh"
+      - "-euc"
+      - |
+        export RABBITMQ_DEFAULT_PASS="$$(cat $$RABBITMQ_PASSWORD_FILE)"
+        echo 'default_user = $$(RABBITMQ_DEFAULT_USER)' >> /etc/rabbitmq/rabbitmq.conf
+        echo 'default_pass = $$(RABBITMQ_DEFAULT_PASS)' >> /etc/rabbitmq/rabbitmq.conf
+        exec docker-entrypoint.sh rabbitmq-server
+    secrets:
+      - zulip__rabbitmq_password
+    environment:
+      RABBITMQ_DEFAULT_USER: "zulip"
+      RABBITMQ_PASSWORD_FILE: /run/secrets/zulip__rabbitmq_password
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq:rw
+    networks:
+      - internal
+    healthcheck:
+      # Upstream ships none (IN-10.1). `rabbitmq-diagnostics ping` is the
+      # image's own liveness probe and needs no credentials.
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+    logging: *workcenter-logging
+
+  # --- Redis ---------------------------------------------------------------
+  redis:
+    image: ${REDIS_IMAGE}
+    restart: unless-stopped
+    command:
+      - "sh"
+      - "-euc"
+      - '/usr/local/bin/docker-entrypoint.sh --requirepass "$$(cat $$REDIS_PASSWORD_FILE)"'
+    secrets:
+      - zulip__redis_password
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/zulip__redis_password
+    volumes:
+      - ./redis:/data:rw
+    networks:
+      - internal
+    healthcheck:
+      # Upstream ships none (IN-10.1). This one authenticates for real: the
+      # password file is mounted into this container as well.
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$(cat $$REDIS_PASSWORD_FILE)\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    logging: *workcenter-logging
+
+  # --- Zulip (nginx + Django + Tornado + supervisor) -----------------------
+  zulip:
+    # The pinned *upstream* image, unmodified (Zulip/.env: `ZULIP_IMAGE`, currently
+    # ghcr.io/zulip/zulip-server:12.3-0). Workcenter adds nothing to it: the
+    # `frame-ancestors` allow-list that lets the Chat pane embed Zulip is applied by
+    # Traefik on the router below (integration.md §8.4, IN-5.8), which is also why a
+    # Zulip release is adopted by moving one tag.
+    image: ${ZULIP_IMAGE}
+    restart: unless-stopped
+    secrets:
+      - zulip__postgres_password
+      - zulip__memcached_password
+      - zulip__rabbitmq_password
+      - zulip__redis_password
+      - zulip__secret_key
+      - zulip__email_password
+    environment:
+      # In-network addresses: structural, not deployment-specific. docker-zulip
+      # defaults all four to 127.0.0.1 (entrypoint.sh), which would point Zulip
+      # at itself, so they are set to the service names above.
+      SETTING_REMOTE_POSTGRES_HOST: "database"
+      SETTING_MEMCACHED_LOCATION: "memcached:11211"
+      SETTING_RABBITMQ_HOST: "rabbitmq"
+      SETTING_REDIS_HOST: "redis"
+      # The two settings docker-zulip requires; the image has no defaults for
+      # them and would otherwise fall back to the template's placeholder host.
+      # The administrator address comes from the root .env's ZULIP_EMAIL
+      # (architecture.md §6.1), which is the one place it is written.
+      SETTING_EXTERNAL_HOST: ${SETTING_EXTERNAL_HOST:?set it in Zulip/.env}
+      SETTING_ZULIP_ADMINISTRATOR: ${ZULIP_EMAIL:?set ZULIP_EMAIL in .env}
+      # Outbound mail (invitations, notifications, password resets). The SMTP
+      # password is not here: it is the file secret zulip__email_password, read
+      # by Zulip as `email_password` (I-ZU-3).
+      SETTING_EMAIL_HOST: ${SETTING_EMAIL_HOST}
+      SETTING_EMAIL_PORT: ${SETTING_EMAIL_PORT}
+      SETTING_EMAIL_HOST_USER: ${SETTING_EMAIL_HOST_USER}
+      SETTING_EMAIL_USE_TLS: ${SETTING_EMAIL_USE_TLS}
+      SETTING_NOREPLY_EMAIL_ADDRESS: ${SETTING_NOREPLY_EMAIL_ADDRESS}
+      # Traefik passes the client Host header through unchanged — that is the
+      # primary mechanism (IN-5.13) — and this is the belt-and-braces setting
+      # roadmap I-ZU-7 asks for, in case anything in front ever rewrites Host.
+      SETTING_USE_X_FORWARDED_HOST: ${SETTING_USE_X_FORWARDED_HOST}
+      # NOTE: SETTING_CSRF_TRUSTED_ORIGINS is deliberately absent.
+      # CSRF_TRUSTED_ORIGINS is not a Zulip production setting — it exists only
+      # in Zulip's development settings (IN-5.13, OIDC.md O-6.12), so writing it
+      # would add an unused Python variable and give false comfort. CSRF is
+      # satisfied by trusting the proxy (LOADBALANCER_IPS below) and by the
+      # untouched Host header.
+      # Bare backend class names; docker-zulip prepends "zproject.backends."
+      # (I-ZU-5).
+      ZULIP_AUTH_BACKENDS: ${ZULIP_AUTH_BACKENDS}
+      # Dict-valued settings cannot be expressed as SETTING_*, so this is raw
+      # Python appended to settings.py (I-ZU-4, IN-5.5). A syntax error here
+      # stops Zulip from starting: it is reviewed code, not configuration.
+      ZULIP_CUSTOM_SETTINGS: ${ZULIP_CUSTOM_SETTINGS}
+      # Comma-separated IPs/CIDRs of the proxy in front of Zulip. It is what
+      # makes Zulip believe X-Forwarded-Proto and what lets a probe of /health
+      # from Traefik succeed (IN-5.13, IN-5.14). The variable name matters: the
+      # entrypoint writes LOADBALANCER_IPS to zulip.conf [loadbalancer] ips, and
+      # there is no LOADBALANCER_IPS setting in settings.py — so
+      # SETTING_LOADBALANCER_IPS (as some Workcenter prose spells it) would be
+      # silently ignored.
+      LOADBALANCER_IPS: ${LOADBALANCER_IPS}
+    volumes:
+      - ./data:/data:rw
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1048576
+    networks:
+      # `proxy` so Traefik can reach it (integration.md §11.1) — the network is
+      # declared once, in Traefik/compose.yaml; this file only joins it. `internal`
+      # carries service-to-service traffic that must not be routable from the
+      # proxy, and is declared at the bottom of this file.
+      - proxy
+      - internal
+    # No `ports:` at all, by design:
+    #   * 80/443 are not published — Traefik terminates TLS and reaches
+    #     `zulip:80` over the `proxy` network (IN-5.14a). `expose` below
+    #     documents the container port instead.
+    #   * 25 is not published either, although IN-5.14a says to keep "what mail
+    #     needs": Mailcow's postfix-mailcow publishes ${SMTP_PORT:-25}:25 on the
+    #     host in this same deployment, and two containers cannot bind one host
+    #     port. Zulip's inbound email gateway is not a Workcenter feature, so
+    #     the port stays closed. If it is ever wanted, publish a non-conflicting
+    #     host port (`2525:25`) and remember that Docker *concatenates*
+    #     `ports`/`expose` sequences — replacing the list requires
+    #     `ports: !override` (IN-5.14a).
+    #   * If a loopback publication is wanted for debugging (to compare the framed
+    #     and unframed response headers, for example), it belongs in the operator's
+    #     own override as `ports: !override` with `- "127.0.0.1:8081:80"` — the
+    #     `!override` matters because Compose *appends* a `ports` sequence, which is
+    #     harmless only while this file publishes nothing (IN-5.14a). The same page
+    #     is reachable through Traefik at https://chat.<domain>/ without it.
+    expose:
+      - "80"
+    labels:
+      # P-18: this label *and* providers.docker.network in Traefik's static
+      # config must both be set, or Traefik guesses which of a container's
+      # networks to use.
+      traefik.enable: "true"
+      traefik.docker.network: "proxy"
+      traefik.http.routers.zulip.rule: "Host(`${SETTING_EXTERNAL_HOST}`)"
+      traefik.http.routers.zulip.entrypoints: "websecure"
+      # IN-8.2: `tls=true` is still required in Traefik v3 with label providers;
+      # the certificate comes from the `le` resolver (P-25).
+      traefik.http.routers.zulip.tls: "true"
+      traefik.http.routers.zulip.tls.certresolver: "le"
+      # P-25: Let's Encrypt allows five certificates per exact identifier set per
+      # week, so every router that names `le` declares the *same* set and Traefik
+      # orders one certificate covering all six hostnames instead of one per host.
+      # These values are the root composition's, written into every .env by
+      # setup.sh (production.md §5.4); if they ever drift from another router's
+      # set, the certificates silently multiply.
+      traefik.http.routers.zulip.tls.domains[0].main: "${BASE_DOMAIN:?set BASE_DOMAIN in Zulip/.env}"
+      traefik.http.routers.zulip.tls.domains[0].sans: "${WORKCENTER_HOST},${FILEBROWSER_HOST},${CHAT_HOST},${MAIL_HOST},${OFFICE_HOST}"
+      # IN-8.4/IN-8.5 — **this label is what makes the Chat pane embeddable.**
+      # Zulip ships `X-Frame-Options: DENY`, which cannot express an allow-list,
+      # and exposes no setting that changes it. The `security-headers@file`
+      # middleware sets a CSP `frame-ancestors` allow-list naming the Workcenter
+      # origin, and a browser that sees a `frame-ancestors` directive **ignores**
+      # `X-Frame-Options` (integration.md §8.4). It is applied at the ingress, so
+      # the Zulip image stays upstream and unmodified. The allow-list itself is one
+      # line in Traefik/dynamic/middlewares.yml, which `setup.sh` rewrites to the
+      # deployment's own origin (production.md §5.4); it must never be `*`
+      # (IN-5.8). Removing this label makes every Zulip page refuse framing again.
+      traefik.http.routers.zulip.middlewares: "security-headers@file"
+      traefik.http.services.zulip.loadbalancer.server.port: "80"
+      # Zulip has no websockets: real-time events are HTTP long-polls to
+      # /json/events and /api/v1/events (IN-5.11). Response buffering must be
+      # off — a negative flushInterval flushes after every write, and Traefik's
+      # default is 100ms. (0 is *not* "off": in Go's reverse proxy it means no
+      # periodic flush at all, the opposite of what a long-poll needs.)
+      traefik.http.services.zulip.loadbalancer.responseforwarding.flushinterval: "-1s"
+      # A custom ServersTransport cannot be expressed as a label (P-21), so this
+      # names one defined in Traefik's dynamic file provider. It must keep the
+      # response-header and idle timeouts wide enough for a 1200s poll — the
+      # value Zulip's own nginx uses (`proxy_read_timeout 1200`) — and the
+      # websecure entry point sets readTimeout/idleTimeout to 0 (IN-8.3, P-22).
+      traefik.http.services.zulip.loadbalancer.serverstransport: "zulip-longpoll@file"
+    # The image ships its own healthcheck and it is deliberately not restated
+    # here:
+    #   HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=300s
+    #       CMD ["curl", "-isfL", "--insecure", "http://localhost/health"]
+    # Overriding it would drop the 300s start period, and the first start of a
+    # cold deployment legitimately takes minutes (migrations), so
+    # `depends_on: condition: service_healthy` would flap. `/health` is
+    # IP-restricted (`allow 127.0.0.1; allow <LOADBALANCER_IPS>; deny all`), so
+    # this local probe always works, while a probe from Traefik or from Workcenter
+    # needs its address in LOADBALANCER_IPS — otherwise it receives 403, which is
+    # easy to mistake for an application failure (IN-5.14).
+    depends_on:
+      # Upstream uses a plain list; Workcenter gates on health because it adds
+      # the four healthchecks above (IN-10.1). `zulip` still waits for its own
+      # database migrations, so this only removes avoidable crash loops.
+      database:
+        condition: service_healthy
+      memcached:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *workcenter-logging
+
+# Secrets are files, generated by setup.sh into ./secrets/ and never committed
+# (I-ZU-3, IN-5.3, production.md §5.2). Committed placeholders live beside them
+# as ./secrets/zulip__*.example. The files must contain a single line with **no
+# trailing newline**: the entrypoint rejects a secret containing one.
+secrets:
+  zulip__postgres_password:
+    file: ./secrets/zulip__postgres_password
+  zulip__memcached_password:
+    file: ./secrets/zulip__memcached_password
+  zulip__rabbitmq_password:
+    file: ./secrets/zulip__rabbitmq_password
+  zulip__redis_password:
+    file: ./secrets/zulip__redis_password
+  zulip__secret_key:
+    file: ./secrets/zulip__secret_key
+  zulip__email_password:
+    file: ./secrets/zulip__email_password
+
+networks:
+  # `proxy` is used by the services above but deliberately *not* declared here.
+  # One network gets one declaration in the merged project, and Traefik/compose.yaml
+  # owns `proxy: { name: proxy }`; a second declaration in this file would make
+  # Compose refuse the merged project (`networks.proxy conflicts with imported
+  # resource`) as soon as any attribute differed. The service-level
+  # `traefik.docker.network: "proxy"` label and Traefik's static
+  # `providers.docker.network: proxy` are matched against that literal name.
+  #
+  # `internal` is declared here because production.md §7.1 makes the root compose
+  # its owner and this file must agree with it exactly: the same literal name and
+  # no other attributes. compose-go skips an included resource whose definition is
+  # deep-equal to the one already in the project (loader/include.go), so identical
+  # declarations merge silently while any attribute difference is a conflict.
+  internal:
+    name: internal

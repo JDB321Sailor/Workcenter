@@ -355,6 +355,11 @@ export default {
 }
 
 .wc-pane__frame {
+  /* Block, not the inline default: an inline replaced element sits on a text
+     baseline, so a full-height iframe added the line box's descender space below
+     itself and overflowed the pane by a few pixels — a scrollbar on the shell and
+     a content area that no longer fit its frame. */
+  display: block;
   width: 100%;
   height: 100%;
   border: none;

@@ -1,0 +1,52 @@
+# Workcenter — Traefik dynamic configuration: the dashboard router (P-20, architecture.md §5.6).
+#
+# The dashboard is reachable *only* through this router: traefik.yml sets api.insecure=false and
+# compose.yaml publishes nothing on :8080. The rule matches the dashboard and the API both, and
+# the service is Traefik's own api@internal (P-20).
+#
+# Phase 5 (roadmap.md §5.7) puts Authentik forward-auth in front of it. Until then this router is
+# unauthenticated, which is exactly why the committed compose.yaml binds :80/:443 to the loopback
+# interface only (Testing.md §6.3). Do not publish the proxy beyond loopback before Phase 5 lands.
+http:
+  routers:
+    dashboard:
+      rule: "Host(`traefik.example.com`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      entryPoints:
+        - websecure
+      service: api@internal
+      # IN-8.2: `tls` is still required in v3 for a file-provider router.
+      tls:
+        # Naming `le` is what places an ACME order, so the local/test profile drops this line — a
+        # test host has no DNS for the HTTP-01 challenge and falls back to the default certificate
+        # store in tls.yml. setup.sh rewrites the host in the rule when it writes the base domain
+        # (production.md §5.4).
+        certResolver: le
+        # P-25: Let's Encrypt allows 5 certificates per exact identifier set per 7 days, so the six
+        # public hostnames of production.md §2.3 / OIDC.md §8.3 are declared as one set here and
+        # asked for as a single certificate. This is the file-provider form of what every other
+        # router naming `le` must declare identically — the label form is written out in tls.yml,
+        # because Traefik's dynamic TLS root has no `domains` key. A router that declares nothing
+        # asks for a certificate for its own Host() name instead. The trade-off is shared fate: one
+        # hostname failing its challenge fails the whole request, so every name listed here needs an
+        # A record pointing at this host before setup.sh runs (production.md §2.3).
+        domains:
+          - main: example.com
+            sans:
+              - filebrowser.example.com
+              - auth.example.com
+              - mail.example.com
+              - chat.example.com
+              - traefik.example.com
+      # middlewares:
+      #   - authentik@file   # Phase 5 — see the placeholder at the end of this file.
+
+# --- Phase 5 — the forward-auth chain (roadmap.md §5.7, OIDC.md §5.8, P-20) ---------------------
+# Three things have to land together, and none of them work before Authentik exists:
+#   1. `authentik@file` in middlewares.yml, with maxResponseBodySize: 4194304 — the commented
+#      placeholder there shows the shape, and setup.sh writes the outpost address into it.
+#   2. A second router on the same host for `/outpost.goauthentik.io/`, at a *higher* priority than
+#      `dashboard` and forwarding to Authentik's outpost. Without it the outpost's own callback is
+#      itself caught by the forward-auth check and the login loops (IN-7.8).
+#   3. `middlewares: [authentik@file]` on the dashboard router above.
+# Authentik also has to trust the proxy: Traefik already sends X-Forwarded-Proto: https, and
+# AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS must name the `proxy` network (IN-7.4, OIDC.md §5.8).

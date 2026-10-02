@@ -13,7 +13,6 @@ vi.mock('@/broker/preferences', () => ({
   OUTCOME: { OK: 'ok', UNSUPPORTED: 'unsupported', UNAVAILABLE: 'unavailable', FAILED: 'failed' },
 }));
 
-// eslint-disable-next-line import/first
 import { applyPreferences } from '@/broker/preferences';
 
 /**

@@ -19,6 +19,16 @@ browser tab, behind a single sign-in:
 | 🗂 | **[FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser)** | Your files, with search and **[ONLYOFFICE](https://github.com/ONLYOFFICE/DocumentServer)** document editing built in |
 | 💬 | **[Zulip](https://github.com/zulip/docker-zulip)** | Organised team chat, running as the full docker-zulip stack |
 | ✉ | **SOGo on [Mailcow](https://github.com/mailcow/mailcow-dockerized)** | Mail, calendars and contacts, deployed alongside the whole Mailcow stack |
+> **Pinned Zulip release.** Workcenter runs the pinned upstream image
+> `ghcr.io/zulip/zulip-server:12.3-0` — upstream commit `b31982251ff82d0b02e59f63ad21f19204e37aea`,
+> recorded in [`Zulip/.env.example`](./Zulip/.env.example) — **unmodified**: no `Zulip/Dockerfile`,
+> no `custom_zulip_files/`, no derived image and no `workcenter-zulip` tag. Zulip 12.3 is the
+> release Workcenter is built against during the construction phase. Framing is the ingress's job:
+> the `zulip` router carries `security-headers@file`, whose `frame-ancestors` names the shell's
+> origin, and a browser that sees `frame-ancestors` ignores Zulip's `X-Frame-Options: DENY`
+> (`integration.md` IN-5.7/IN-5.8/IN-5.27, §5.4). Later releases are adopted deliberately by moving
+> the tag with `./scripts/e2e.sh --bump-zulip-pin`, which updates the deployment's pins and never
+> the specification documents — the Markdown specification set is the historical record.
 
 and then adds the thing none of them can do alone: **you can move a file from one to another without
 leaving the page.**
@@ -238,13 +248,28 @@ Mail additionally needs correct `MX`, `SPF`, `DKIM` and `DMARC` records; see the
 git clone https://github.com/<your-org>/workcenter.git
 cd workcenter
 
-# 2. Bootstrap: folders, application files, Traefik, hostnames, OIDC, then bring the stack up
-chmod +x setup.sh
-./setup.sh
+# 2. Configure the deployment: hostnames, secrets, and the image tag
+cp .env.example .env && $EDITOR .env
 
-# 3. Watch the stack come up
-docker compose ps
+# 3. Bring the stack up: Traefik, Filebrowser, ONLYOFFICE, Zulip and Workcenter
+docker compose up -d --wait
+docker compose ps          # every service should read "healthy"
+
+# Mailcow runs from its own folder, with no -f, so its override merges
+(cd Mailcow && docker compose up -d)
 ```
+
+On a machine with no DNS name — a laptop, or CI — use the local profile instead. It serves a
+locally generated certificate authority for that TLS, binds Traefik to `127.0.0.1` only, and needs no identity provider:
+
+```bash
+docker compose -f compose.yaml -f compose.test.yaml up -d --wait
+./scripts/e2e.sh --hosts     # same stack, plus the checks and the hostnames a browser needs
+```
+
+`setup.sh` (Phase 4) automates the same steps from a bare host: it provisions each application folder,
+derives the six hostnames from your base URL, generates the secrets, walks you through the one step that
+needs you — creating the OIDC applications in Authentik — and brings the stack up.
 
 `setup.sh` will:
 
@@ -325,7 +350,7 @@ the deployment guide in [`production.md`](./production.md). Per-application sett
 | --- | --- | --- | --- |
 | **[FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser)** | Pinned to **`2.0.9-beta`** | Workcenter `compose.yaml` | `Filebrowser/` |
 | **[ONLYOFFICE Docs](https://github.com/ONLYOFFICE/DocumentServer)** | Pinned tag | Workcenter `compose.yaml` | `OnlyOffice/` |
-| **[Zulip](https://github.com/zulip/docker-zulip)** | `ghcr.io/zulip/zulip-server:<version>-0` | `Zulip/compose.yaml` | `Zulip/` |
+| **[Zulip](https://github.com/zulip/docker-zulip)** | `ghcr.io/zulip/zulip-server:12.3-0` | `Zulip/compose.yaml` | `Zulip/` |
 | **[Mailcow Dockerized](https://github.com/mailcow/mailcow-dockerized)** | Upstream `master`, updated by `update.sh` | Mailcow's own compose + Workcenter override | `Mailcow/` |
 | **SOGo** | Ships inside Mailcow | Mailcow | `Mailcow/` |
 | **[Authentik](https://github.com/goauthentik/authentik)** | Pinned tag | `Authentik/compose.yaml` | `Authentik/` |

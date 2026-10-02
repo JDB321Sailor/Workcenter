@@ -182,8 +182,8 @@ Options:
      Mailcow is downloaded, not templated, because its installer owns `mailcow.conf`.
    * **FileBrowser Quantum** — write `Filebrowser/config.yaml` from the repository template and
      `.env` with generated secrets. The image is pulled; no source build.
-   * **Zulip** — write `Zulip/compose.yaml`, `Zulip/compose.override.yaml`, `Zulip/.env` and the five
-     secret files. The image is pulled; no source build.
+   * **Zulip** — write `Zulip/compose.yaml`, `Zulip/.env` and the five secret files. The image is
+     pulled; nothing is built, for Zulip or from it.
 3. **Detect Traefik.** If it is already running, adopt it (join `proxy`, do not deploy a second proxy).
    If not, create `Traefik/` and add it to the stack.
 4. **Ask for the base URL** and derive the six hostnames; write them into every `.env`.
@@ -262,21 +262,54 @@ sed -i 's/^HTTPS_BIND=.*/HTTPS_BIND=127.0.0.1/'               mailcow.conf
 **FileBrowser Quantum** (templated, image pulled):
 
 * Write `Filebrowser/config.yaml` from the repository template.
-* Write `Filebrowser/.env` with `FILEBROWSER_JWT_TOKEN_SECRET` and `FILEBROWSER_ONLYOFFICE_SECRET`
-  generated with `openssl rand -base64 32`, and the OIDC client ID/secret once known.
+* Write `Filebrowser/.env` with `FILEBROWSER_JWT_TOKEN_SECRET`, `FILEBROWSER_ONLYOFFICE_SECRET` and
+  `FILEBROWSER_ADMIN_PASSWORD` generated with `openssl rand -base64 32`, and the OIDC client ID/secret
+  once known. The admin password is for FileBrowser's built-in `admin` account; leaving it empty leaves
+  the pinned version's own default, which is also `admin`, so the Files host would accept a
+  publicly-known login (IN-3.26).
 * Create `Filebrowser/data/` and `Filebrowser/office-cache/`.
 * `chown 1000:1000` the data directory (the image runs as uid 1000).
 
-**Zulip** (templated, image pulled):
+**Zulip** (templated, image pulled, **not built**):
 
-* Write `Zulip/compose.yaml` pinned to `ghcr.io/zulip/zulip-server:<version>-0`.
-* Write `Zulip/compose.override.yaml` with bind-mounted state, healthchecks for all five services,
-  and Traefik labels.
-* Generate the five `Zulip/secrets/zulip__*` files and the `zuliprc` bot credentials placeholder.
-* Write `Zulip/.env` with `SETTING_*` scalars and a `ZULIP_CUSTOM_SETTINGS` block.
+* Write `Zulip/compose.yaml` pinned to the upstream image Workcenter is currently built against —
+  `ghcr.io/zulip/zulip-server:12.3-0` (the release this construction phase is tested at; the tag lives
+  in `Zulip/.env` as `ZULIP_IMAGE`, and there is no derived image and no override file to write).
+  Bind-mounted state, healthchecks for all five services and the Traefik labels all live in that one
+  file.
+* Generate the five `Zulip/secrets/zulip__*` files and the `zuliprc` bot credentials placeholder, and
+  give each of the two below to the uid that reads it inside its container — `chown 11211:11211` for
+  `zulip__memcached_password`, `chown 1000:1000` for `zuliprc` — keeping both at `0600`. A file
+  secret is a **bind mount** under Compose: it arrives inside the container with the host's ownership
+  and mode, and the `uid`/`gid`/`mode` keys of the long syntax do nothing outside Swarm (Compose
+  warns, on every `up`, that they "are not supported, they will be ignored"). Two of these files are
+  read by a container that is not root: `memcached:alpine` is `USER memcache` (uid 11211) and builds
+  its SASL database from the secret before it execs memcached, and the Workcenter image is `USER
+  node` (uid 1000) and mounts `zuliprc` as the broker's bot credentials (IN-5.17). A root-owned
+  `0600` file is unreadable to both: the memcached container exits 1 with "the password secret at
+  /run/secrets/zulip__memcached_password is not readable by uid 11211", which Compose's dependency
+  gate then reports as `container workcenter-memcached-1 is unhealthy`.
+* Write `Zulip/.env` with `SETTING_*` scalars, a `ZULIP_CUSTOM_SETTINGS` block, and the
+  `LOADBALANCER_IPS` that makes Zulip trust the proxy.
+* **Ask whether Workcenter should create the Zulip organization, and what to call it**, and write the
+  answer as `ZULIP_ORGANIZATION_NAME` in `Zulip/.env` (an empty value means "deploy none"). Zulip has
+  no organization until one is created, and without one every page on the Chat host answers 404 "There
+  is no Zulip organization at <host>" — so the Chat pane has nothing to render and the broker's chat
+  integration has nothing to talk to. The prompt defaults to yes with the name **Workcenter**, is
+  skipped when `ZULIP_ORGANIZATION_NAME` is already set and non-empty (`--reconfigure` asks again), and
+  the creation itself happens in [Stage F](#56-stage-f--bring-up-and-health) because the container is
+  not running yet (P-36). **The Chat pane's framing is not configured
+  here, because Zulip cannot express it** — it ships `X-Frame-Options: DENY` with no setting to change
+  it. Stage C writes the `frame-ancestors` allow-list into Traefik instead, and the `zulip` router
+  already carries the middleware that applies it; both are specified in
+  [`integration.md` §5.4](./integration.md#54-the-framing-problem) and [§8.4](./integration.md#84-middleware-contracts).
 
 **OnlyOffice** (templated, image pulled): write `.env`, `compose.yaml` with the JWT secret matching
 FileBrowser's `integrations.office.secret`, and the four bind-mounted directories.
+
+| Ref | Requirement |
+| --- | --- |
+| P-36 | **The Zulip organization is part of provisioning, not a step the operator discovers later.** `setup.sh` asks whether to create one and what to call it, records the answer as `ZULIP_ORGANIZATION_NAME`, and creates it after health with `manage.py create_realm` inside the container — the owner is the deployment's administrator, the owner's password is disabled (Zulip's production path generates none, and none is written anywhere), and an organization that already exists is left alone, so a re-run is idempotent and never creates a second realm. `scripts/e2e.sh` performs the same step for a test run (`Testing.md` §6.5; `integration.md` IN-5.30). |
 
 ### 5.2a Stage B1 — Branding the embedded applications
 
@@ -334,6 +367,21 @@ fi
 Adoption means: joining the existing proxy network and **not** deploying a second proxy. The network
 name is detected, not assumed.
 
+**Traefik also carries the one header that makes the Chat pane embeddable.** Zulip ships
+`X-Frame-Options: DENY` and exposes no setting to change it, so Stage C writes the policy at the ingress
+([`integration.md` §5.4](./integration.md#54-the-framing-problem)):
+
+* `Traefik/dynamic/middlewares.yml` — the `security-headers` middleware's
+  `headers.contentSecurityPolicy` is written as `frame-ancestors <base URL>`: the **shell's** origin
+  and nothing else, never `*` (P-35, IN-5.8). Stage D supplies the base URL.
+* `Zulip/compose.yaml` already carries the label that applies it to Zulip's router
+  (`traefik.http.routers.zulip.middlewares: "security-headers@file"`, IN-5.27). Nothing touches Zulip
+  itself: the image is the pinned upstream image, and every browser that sees a `frame-ancestors`
+  directive ignores Zulip's `X-Frame-Options` header.
+* A deployment that adopts an existing Traefik it does not own must get this file loaded by that
+  Traefik's **file provider** — P-21 means it cannot be expressed as a label. If it cannot be, the Chat
+  pane falls back to a launch surface (IN-5.9).
+
 ### 5.4 Stage D — Base URL
 
 ```text
@@ -346,6 +394,10 @@ Then derived, printed, and confirmed. The derivation rule: the prefixes `filebro
 
 At the end of this stage every configuration file and compose file is complete. The only thing left is
 OIDC.
+
+The base URL is also the value written into the ingress framing allow-list in Stage C — `frame-ancestors
+https://<base domain>` — so a later change of hostname means rewriting `Traefik/dynamic/middlewares.yml`
+as well as the `.env` files (P-35).
 
 ### 5.5 Stage E — OIDC resolution
 
@@ -374,6 +426,22 @@ docker compose up -d
 `healthy`, or the timeout expires. On timeout it prints the failing services' last 50 log lines and
 exits non-zero.
 
+Then the deployment creates the Zulip organization if it has not already been asked for (P-36):
+
+```bash
+# Idempotent: `/` on the Chat host answers 302 (or 200) once an organization exists,
+# and 404 while there is none.
+if [ "$(curl -sk -o /dev/null -w '%{http_code}' "https://${CHAT_HOST}/")" = "404" ]; then
+  docker compose exec -T zulip \
+    bash -lc 'sudo -u zulip /home/zulip/deployments/current/manage.py create_realm \
+      "$1" "$SETTING_ZULIP_ADMINISTRATOR" "$1 Administrator" --automated' \
+    -- "${ZULIP_ORGANIZATION_NAME}"
+fi
+```
+
+Zulip reports "User will be created with a disabled password." for the owner account: signing in is
+OIDC (Stage E, Phase 5) or a password reset. Nothing is generated, printed or stored.
+
 ---
 
 ## 6. The deployment layout
@@ -389,7 +457,7 @@ workcenter/                          # the repository root == the deployment roo
 ├── user-data/                       # Workcenter config + broker token store
 ├── Filebrowser/   .env  config.yaml  data/  office-cache/  compose.yaml
 ├── OnlyOffice/    .env  compose.yaml  data/  logs/  lib/  db/
-├── Zulip/         .env  compose.yaml  compose.override.yaml  secrets/  data/  database/  rabbitmq/  redis/
+├── Zulip/         .env  compose.yaml  secrets/  data/  database/  rabbitmq/  redis/
 ├── Mailcow/       mailcow.conf  docker-compose.yml  docker-compose.override.yml  data/
 ├── Authentik/     .env  compose.yaml  data/{postgres,media,certs,templates}
 └── Traefik/       .env  compose.yaml  traefik.yml  dynamic/  acme.json  certs/  logs/
@@ -445,6 +513,7 @@ certificatesResolvers:
 | P-25 | Let's Encrypt allows **5 certificates per exact identifier set per 7 days**. Set `tls.domains[0].main` and `.sans` so that several `Host()` rules collapse into one certificate instead of one certificate each. Wildcard certificates require the **DNS-01** challenge (for Cloudflare, the minimal credential is `CF_DNS_API_TOKEN` alone). |
 | P-26 | A **404 from Traefik does not mean Traefik is absent.** Since Traefik v3.7.3 a malformed `$$` escape in a basic-auth label returns 404 rather than 401, so `setup.sh`'s detection must not rely on a 404. Use `docker ps` plus the `/ping` endpoint instead. |
 | P-27 | Traefik's default `log.level` is **ERROR**, so an empty log is normal. Raise it deliberately when debugging, and pin the Traefik tag: `traefik.docker.allownonrunning` requires **v3.6+**. |
+| P-35 | **Framing is written at the ingress, not into an application.** `setup.sh` sets `Traefik/dynamic/middlewares.yml`'s `frame-ancestors` to the shell's origin (`https://<base domain>`, never `*`) and relies on the `zulip` router's `security-headers@file` label to apply it. No application image is built, patched or retagged to make a pane embeddable, and a deployment that changes its hostname rewrites this value with the rest of the hostnames (IN-5.8, IN-5.27). |
 
 ### 7.3 TLS
 
@@ -552,7 +621,7 @@ pane looks wrong.
 | Application | How |
 | --- | --- |
 | FileBrowser Quantum | Change `FILEBROWSER_IMAGE` in `.env` to the new pinned tag (`gtstef/filebrowser:2.0.9-beta`), then `docker compose up -d filebrowser`. Review the upstream changelog for config-schema changes — v2 decoding is strict, so a new required key breaks startup loudly |
-| Zulip | Change the Zulip image tag, rebuild the derived image, `docker compose up -d`. Follow docker-zulip's upgrade notes; secrets stay stable |
+| Zulip | Change `ZULIP_IMAGE` in `Zulip/.env`, `docker compose up -d`. Nothing is built, so there is no image to rebuild; follow docker-zulip's upgrade notes and keep the secrets |
 | OnlyOffice | Change `ONLYOFFICE_IMAGE`, then `docker compose up -d onlyoffice` |
 | Authentik | Change `AUTHENTIK_TAG`, then `docker compose up -d`. Migrations run automatically on first start; watch the `server` logs |
 | Traefik | Change `TRAEFIK_TAG`, then `docker compose up -d traefik` |
@@ -764,7 +833,7 @@ Full table: [`OIDC.md` §12](./OIDC.md#12-troubleshooting).
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| "Refused to connect" on the Chat pane | Zulip's `X-Frame-Options: DENY` | Confirm you are running the derived Zulip image, not the upstream one |
+| "Refused to connect" on the Chat pane | Zulip's `X-Frame-Options: DENY` is the only framing policy the browser can see | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin, not Zulip's (`production.md` §5.3, `integration.md` §5.4) |
 | A pane shows a login page | The application's session expired | **Sign in again**; for Mail, this must go through the Mailcow UI |
 | Chat pane loads but never updates | Traefik buffering or timing out the long-poll | Disable response buffering on the event route and extend read/idle timeouts |
 | Files pane is empty for a new user | `config.defaultEnabled` is false on the source | Set it to `true` and restart FileBrowser |

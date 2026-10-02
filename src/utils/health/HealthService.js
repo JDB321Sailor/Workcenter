@@ -122,7 +122,12 @@ const HealthService = {
   async check() {
     try {
       const res = await request.get(serviceEndpoints.brokerHealth);
-      this.apply(res?.apps || res || {});
+      /* `request.get` resolves to the axios-style envelope (`{ data, status,
+         statusText, headers }`), so the payload is `res.data`. Reading `res.apps`
+         found nothing, which left every application `unknown` — a grey indicator
+         for an application that was answering perfectly well. */
+      const body = res?.data ?? res;
+      this.apply(body?.apps || body || {});
       return this.state.apps;
     } catch (e) {
       // The check itself did not run, so every application is unknown rather
