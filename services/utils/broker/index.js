@@ -59,6 +59,10 @@ const validatePreferences = (body) => {
 const createBrokerRouter = ({
   applications = {},
   authConfig = {},
+  /* The shell's own origin, used to judge an application's framing allow-list
+     (WORKCENTER_BASE_URL). Empty means "cannot judge", and the check then accepts
+     only `frame-ancestors *`. */
+  shellOrigin = '',
   adapters = [],
   credentialsFor = async () => null,
   transportImpl = transport,
@@ -87,6 +91,7 @@ const createBrokerRouter = ({
         transport: transportImpl,
         fetchImpl,
         now,
+        shellOrigin,
       });
       res.set('Cache-Control', 'no-store');
       return res.json({ status: 'ok', apps: payload.apps });

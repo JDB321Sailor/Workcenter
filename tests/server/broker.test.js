@@ -201,6 +201,40 @@ describe('framing detection', () => {
     expect(parseFraming(headers({ 'content-security-policy': "frame-ancestors 'self' https://example.com" }))).toBe(true);
     expect(parseFraming(headers({ 'content-security-policy': 'frame-ancestors *' }))).toBe(false);
   });
+
+  it('accepts an allow-list that names the shell own origin', () => {
+    const shell = 'https://workcenter.local';
+    const csp = (v) => headers({ 'content-security-policy': v });
+    /* What the deployment is required to send (IN-5.8): the shell's origin, never
+       `*`. */
+    expect(parseFraming(csp(`frame-ancestors ${shell}`), shell)).toBe(false);
+    expect(parseFraming(csp(`frame-ancestors 'self' ${shell}`), shell)).toBe(false);
+    /* An origin that is not the shell's still blocks it. */
+    expect(parseFraming(csp('frame-ancestors https://example.com'), shell)).toBe(true);
+    expect(parseFraming(csp("frame-ancestors 'self'"), shell)).toBe(true);
+    /* `'self'` is the application's own origin, which is a different host here. */
+    expect(parseFraming(csp("frame-ancestors 'none'"), shell)).toBe(true);
+    expect(parseFraming(csp('frame-ancestors *'), shell)).toBe(false);
+    /* Without the shell's origin the check cannot judge an allow-list, so it keeps
+       the conservative answer. */
+    expect(parseFraming(csp(`frame-ancestors ${shell}`))).toBe(true);
+  });
+
+  it('lets frame-ancestors decide when X-Frame-Options is also present', () => {
+    /* Zulip ships `X-Frame-Options: DENY` and the ingress adds the allow-list; a
+       browser ignores the first when it sees the second (integration.md §5.4). */
+    const shell = 'https://workcenter.local';
+    const both = (csp) => headers({
+      'x-frame-options': 'DENY',
+      'content-security-policy': csp,
+    });
+    expect(parseFraming(both(`frame-ancestors ${shell}`), shell)).toBe(false);
+    /* An allow-list that does not cover the shell still blocks it, XFO or not. */
+    expect(parseFraming(both('frame-ancestors https://example.com'), shell)).toBe(true);
+    /* With no frame-ancestors, XFO is the only policy there is. */
+    expect(parseFraming(headers({ 'x-frame-options': 'DENY' }), shell)).toBe(true);
+    expect(parseFraming(headers({ 'x-frame-options': 'SAMEORIGIN' }), shell)).toBe(true);
+  });
 });
 
 describe('composeHealth', () => {
