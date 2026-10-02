@@ -13,7 +13,6 @@ vi.mock('@/broker/preferences', () => ({
   },
 }));
 
-// eslint-disable-next-line import/first
 import { applyPreferences } from '@/broker/preferences';
 
 /**
