@@ -205,7 +205,14 @@ export default {
 .wc-workspace {
   position: relative;
   display: flex;
-  min-height: 100vh;
+  /* A definite height, not `min-height`. The pane is absolutely positioned at
+     `height: calc(100% - var(--header-height))` against `PaneHost` (design.md
+     D-L1, D-7), and a percentage height needs a definite containing block:
+     `min-height: 100vh` left the workspace `height: auto`, so the pane host
+     resolved to zero and every frame loaded into nothing. `100vh` here is the
+     workspace's share of the viewport; the pane still subtracts
+     `--header-height` itself, which is why that token stays honoured. */
+  height: 100vh;
 }
 
 /* Collapsing the rail changes the layout token every region derives from, so
