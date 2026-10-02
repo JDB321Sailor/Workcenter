@@ -1,0 +1,90 @@
+# Workcenter — Traefik static (install) configuration (roadmap.md Phase 3.3, production.md §7.2).
+#
+# Traefik reads this inside the container at /etc/traefik/traefik.yml; compose.yaml mounts it
+# read-only and passes the same entrypoints, providers, API and log level as CLI flags.
+# Traefik does not template this file: a `${...}` here stays literal. Upstream documents the file,
+# the CLI flags and the TRAEFIK_* environment as alternative sources rather than layers, but the CLI
+# loads the file and then applies flags and environment on top — which is what lets compose.yaml
+# supply the one value that has to come from .env (the ACME block at the bottom) and lets an
+# operator raise the log level without editing a mounted file.
+#
+# The docs' own snippets this file follows: production.md §7.2 and integration.md §8.3.
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      # One redirect for the whole stack, so no application needs a redirect middleware of its
+      # own. IN-8.2: this is the v3 replacement for the removed sslRedirect/sslForceHost options.
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    transport:
+      respondingTimeouts:
+        # 0 disables the timeout. IN-5.12: the defaults — 60 s for readTimeout, 180 s for
+        # idleTimeout — are what actually kill Zulip's long-poll, and no middleware or
+        # serversTransport can undo it.
+        readTimeout: 0
+        idleTimeout: 0
+  traefik:
+    address: ":8080"
+    # The dashboard/API and /ping live here. Never published to the host: the dashboard is reached
+    # through the router in dynamic/dashboard.yml (P-20) and /ping is called from inside the
+    # container by compose.yaml's healthcheck (P-19).
+
+api:
+  dashboard: true
+  # P-20. With insecure=false the API has no listener of its own and is reachable only through a
+  # router that names the api@internal service.
+  insecure: false
+
+ping:
+  entryPoint: traefik   # /ping on :8080 (integration.md §8.3, IN-8.1)
+
+providers:
+  docker:
+    # P-18/IN-8.3: with either of these missing, Traefik guesses which of a container's networks
+    # to use — the most common cause of a 502, and guaranteed wrong for nginx-mailcow, which joins
+    # both mailcow-network and proxy. exposedByDefault=false means every service opts in with
+    # traefik.enable=true plus a traefik.docker.network=proxy label.
+    exposedByDefault: false
+    network: proxy
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+log:
+  # P-27: Traefik's default is ERROR, so an empty log is normal rather than a symptom. INFO is
+  # the deliberate floor; compose.yaml can raise it with TRAEFIK_LOG_LEVEL without touching this
+  # file.
+  level: INFO
+
+accessLog:
+  # production.md §13.2 asks for bounded logs: container stdout is capped by the compose logging
+  # options, and this file — the one Traefik/logs is mounted for — is not, so rotate it on the host.
+  filePath: /var/log/traefik/access.log
+
+certificatesResolvers:
+  le:
+    acme:
+      # The docs write this value as "${ACME_EMAIL}" (production.md §7.2, integration.md §8.3) and
+      # architecture.md §6.1 keeps ACME_EMAIL in the root .env. Traefik does not expand variables
+      # in the static file, so compose.yaml always passes
+      # --certificatesresolvers.le.acme.email=<value>; that flag, not this line, is what takes
+      # effect. The line stays because it is the documented shape of the block.
+      #
+      # The local/test profile has no ACME, and it needs no switch to be disabled: a certificate
+      # is only ever requested when a router names the resolver, and the test profile's routers do
+      # not. TLS then falls back to the default certificate store in dynamic/tls.yml, which serves
+      # a host with no DNS. Set ACME_EMAIL to a monitored address on a production host.
+      email: "${ACME_EMAIL}"
+      storage: /acme.json
+      # production.md §7.3: HTTP-01 needs ports 80/443 reachable *before* setup.sh runs. Wildcards
+      # (P-25) require DNS-01 instead — replace this with a dnsChallenge block plus the provider's
+      # credentials, and test against staging first with acme.caServer (ACME_CASERVER in
+      # architecture.md §6.1).
+      httpChallenge:
+        entryPoint: web

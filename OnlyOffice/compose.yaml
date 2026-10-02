@@ -1,0 +1,78 @@
+# Workcenter — ONLYOFFICE Docs, the editor inside the Files pane.
+#
+# DocumentServer renders and co-edits the documents FileBrowser serves. It never
+# publishes a port: Traefik is its only ingress and the only place TLS is decided
+# (production.md §7). Its state lives in four bind mounts inside this folder
+# (I-OO-1, P-15).
+#
+# Every variable this file reads is declared in `.env.example` beside it.
+
+services:
+  onlyoffice:
+    # A concrete patch release under the `8.2` minor the docs pin
+    # (architecture.md §6.1 pins `onlyoffice/documentserver:8.2`) and the value
+    # the root `.env.example` carries. Verified upstream: 8.2.2 exists, published
+    # 2024-11-28, index digest
+    # sha256:3489a54c581414055dd9bfa3890435e5e6fc8c4ce0ffdd65cf3c7869f680cf81.
+    # `latest` is never used (S-CF-6).
+    image: ${ONLYOFFICE_IMAGE:-onlyoffice/documentserver:8.2.2}
+    restart: unless-stopped
+    # Nothing is published: Traefik reaches this port over the `proxy` network.
+    expose:
+      - '80'
+    environment:
+      # JWT is the only authorisation between FileBrowser and DocumentServer, and
+      # the shared secret must be byte-identical on both sides (IN-4.2, I-OO-2).
+      # It comes from .env, never inline (A-6.12), and it is required: a JWT with
+      # an empty secret is not a working deployment.
+      JWT_ENABLED: 'true'
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      # The header FileBrowser and DocumentsServer sign and verify
+      # (integration.md §4.3).
+      JWT_HEADER: 'Authorization'
+      # Traefik terminates TLS and owns HSTS for the public host; DocumentServer
+      # answers plain HTTP on the internal network and must not add a second
+      # policy of its own (integration.md §4.3).
+      ONLYOFFICE_HTTPS_HSTS_ENABLED: 'false'
+      # FileBrowser and the broker call back over the private Docker network, and
+      # DocumentServer refuses private addresses unless this is set
+      # (integration.md §4.3).
+      ALLOW_PRIVATE_IP_ADDRESS: 'true'
+    volumes:
+      # The four directories production.md §6 assigns to this folder (I-OO-1):
+      # data is the document store and WOPI keys, logs and lib are its runtime
+      # state, and db is where the enterprise image keeps PostgreSQL.
+      - ./data:/var/www/onlyoffice/Data
+      - ./logs:/var/log/onlyoffice
+      - ./lib:/var/lib/onlyoffice
+      - ./db:/var/lib/postgresql
+    networks:
+      - proxy
+      - internal
+    healthcheck:
+      # The documented probe (IN-4.6, I-OO-4). A cold start initialises the
+      # document server's own services, which takes minutes on a small host, so
+      # the start period is generous: the retries cover a slow first boot rather
+      # than a crash, and FileBrowser's depends_on waits on this check.
+      test: ['CMD', 'curl', '-f', 'http://localhost/healthcheck']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    labels:
+      - traefik.enable=true
+      # P-18: without this label Traefik picks one of the container's two
+      # networks at random, which is the usual cause of a 502.
+      - traefik.docker.network=proxy
+      - traefik.http.routers.onlyoffice.rule=Host(`${OFFICE_HOST:?set OFFICE_HOST in .env}`)
+      - traefik.http.routers.onlyoffice.entrypoints=websecure
+      - traefik.http.routers.onlyoffice.tls=true
+      - traefik.http.routers.onlyoffice.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}
+      # P-23, IN-4.3/IN-4.4: this router must stay framable and must answer the
+      # FileBrowser origin, so it takes the ONLYOFFICE middleware — which sets
+      # accesscontrolalloworiginlist=* — and never FileBrowser's
+      # security-headers middleware. The middleware itself is authored in
+      # Traefik/dynamic/middlewares.yml.
+      - traefik.http.routers.onlyoffice.middlewares=no-frame-block@file
+      - traefik.http.services.onlyoffice.loadbalancer.server.port=80
+

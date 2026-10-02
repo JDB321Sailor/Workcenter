@@ -1,0 +1,106 @@
+# Workcenter — FileBrowser Quantum, the Files pane and the source the broker
+# reads and writes by path.
+#
+# Everything this service persists is bind-mounted inside this folder (P-14,
+# P-15), and nothing is published to the host: Traefik is the only ingress and
+# the only place TLS is decided (production.md §7).
+#
+# Every variable this file reads is declared in `.env.example` beside it. The
+# root composition `include:`s this file, and Compose loads an included file with
+# its own project directory, so relative paths below resolve against
+# `Filebrowser/` — which is why the shared source path must be absolute.
+
+services:
+  filebrowser:
+    # The v2 line only: v2 changed the configuration schema, the database engine
+    # and the sidebar model, and Workcenter's integration is written against v2
+    # (I-FB-1, IN-3.1). ghcr.io/gtsteffaniak/filebrowser is an equivalent
+    # registry for the same tag, and the beta line has no `latest` tag, so the
+    # pin is mandatory. Verified upstream 2.0.9-beta: index digest
+    # sha256:66969254ed56c62e83d729168fe50e965ada030602d6fc2cec1a0b83a0357040.
+    image: ${FILEBROWSER_IMAGE:-gtstef/filebrowser:2.0.9-beta}
+    restart: unless-stopped
+    # Nothing is published: Traefik reaches this port over the `proxy` network.
+    expose:
+      - '80'
+    # The image runs as uid/gid 1000 (IN-3.3); the data, cache and source mounts
+    # are chowned to it by setup.sh (production.md §5.2). The process needs no
+    # privilege escalation.
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      # The v2 configuration file, mounted read-only below. This is the path the
+      # image documents (integration.md §3.3).
+      FILEBROWSER_CONFIG: /home/filebrowser/data/config.yaml
+      # Secrets arrive through the environment and never through config.yaml
+      # (AR-19, S-CF-5). The OIDC pair is inert while config.yaml leaves
+      # `auth.methods.oidc` out; Phase 5 enables that block and supplies both
+      # values, and from then on an empty pair is a fatal startup error because
+      # provider discovery runs at startup (IN-3.6).
+      FILEBROWSER_OIDC_CLIENT_ID: ${FILEBROWSER_OIDC_CLIENT_ID:-}
+      FILEBROWSER_OIDC_CLIENT_SECRET: ${FILEBROWSER_OIDC_CLIENT_SECRET:-}
+      # HMAC key for the session token. Left unset, the application generates one
+      # and stores it in its database, which is acceptable for a test run and
+      # never for a deployment.
+      FILEBROWSER_JWT_TOKEN_SECRET: ${FILEBROWSER_JWT_TOKEN_SECRET:-}
+      # The built-in `admin` account's password. The username is always `admin`
+      # and has no environment variable of its own; this is the only admin
+      # setting FileBrowser reads from the environment (IN-3.26). Empty leaves
+      # FileBrowser's own default (`admin`), so no value is committed here
+      # (A-6.12) — a deployment sets it, and `scripts/e2e.sh` sets it for a test
+      # run so the test login is known and printed.
+      FILEBROWSER_ADMIN_PASSWORD: ${FILEBROWSER_ADMIN_PASSWORD:-}
+      # The OnlyOffice shared secret, byte-identical to the OnlyOffice
+      # JWT_SECRET (IN-4.2). It is required: `integrations.office.secret` is
+      # validated at startup once `integrations.office.url` is set, so an empty
+      # value stops the container instead of silently disabling JWT.
+      FILEBROWSER_ONLYOFFICE_SECRET: ${FILEBROWSER_ONLYOFFICE_SECRET:?set FILEBROWSER_ONLYOFFICE_SECRET in .env}
+      # FILEBROWSER_DATABASE_PATH is deliberately not set: `server.database.path`
+      # in config.yaml wins over it, and IN-3.2 requires the path in exactly one
+      # place. The image's own default is the same path anyway.
+    volumes:
+      # SQLite database, generated index and cached previews, all persistent
+      # (I-FB-3). uid/gid 1000 owns this tree.
+      - ./data:/home/filebrowser/data
+      # The committed v2 template. Read-only: the application never rewrites it,
+      # and setup.sh edits it before bring-up (production.md §5.2, §5.2a).
+      - ./config.yaml:/home/filebrowser/data/config.yaml:ro
+      # The office cache the docs name (I-FB-3, integration.md §11.2), which is
+      # also server.cacheDir in config.yaml.
+      - ./office-cache:/home/filebrowser/data/cache
+      # The shared user file tree: the same host directory the Workcenter
+      # container mounts as /srv/files, asserted at broker startup (IN-9.6,
+      # AR-35, broker.md §5.3). It must be an absolute path — a relative value
+      # resolves against this folder here but against the repository root in the
+      # root composition, which is precisely the silent mis-mount the broker
+      # refuses with `root-mismatch` (production.md §14.3).
+      - ${FILEBROWSER_SOURCE_PATH:?set FILEBROWSER_SOURCE_PATH in .env}:/srv/files
+    networks:
+      - proxy
+      - internal
+    healthcheck:
+      # The image's own probe: /health answers {"message":"ok"} on the port
+      # http.port names, and it is kept explicit because every service owns a
+      # healthcheck (I-FB-9, IN-10.1). Override it only if the container port or
+      # http.baseURL changes; curl is installed in the image.
+      test: ['CMD', 'curl', '-f', 'http://localhost:80/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - traefik.enable=true
+      # P-18: without this label Traefik picks one of the container's two
+      # networks at random, which is the usual cause of a 502.
+      - traefik.docker.network=proxy
+      - traefik.http.routers.filebrowser.rule=Host(`${FILEBROWSER_HOST:?set FILEBROWSER_HOST in .env}`)
+      - traefik.http.routers.filebrowser.entrypoints=websecure
+      - traefik.http.routers.filebrowser.tls=true
+      - traefik.http.routers.filebrowser.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}
+      # P-23, IN-4.4: FileBrowser keeps the security headers, including the
+      # shell's frame-ancestors allow-list. The middleware is authored in
+      # Traefik/dynamic/middlewares.yml; OnlyOffice must never share this router's
+      # middleware, because it has to stay framable.
+      - traefik.http.routers.filebrowser.middlewares=security-headers@file
+      - traefik.http.services.filebrowser.loadbalancer.server.port=80
+

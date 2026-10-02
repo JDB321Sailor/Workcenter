@@ -1,0 +1,113 @@
+# FileBrowser Quantum 2.0.9-beta — the v2 configuration schema.
+#
+# v2 has EXACTLY six top-level keys — `server`, `http`, `auth`, `frontend`,
+# `userDefaults`, `integrations` — and decoding is strict: an unknown key inside
+# one of them is a fatal startup error, while an unknown top-level key is
+# silently dropped, so a misspelled section looks accepted (I-FB-2, IN-3.22).
+# Every key below is accepted by the pinned version; nothing here is invented.
+#
+# Secrets are never written in this file (AR-19, S-CF-5): the client credentials,
+# the session key and the OnlyOffice secret are injected through the environment
+# and override the empty values below. `setup.sh` rewrites the example.com
+# hostnames at setup time (production.md §5.2, §5.4); the file itself is mounted
+# read-only, because the application never edits it.
+
+server:
+  # SQLite database. IN-3.2: `server.database.path` wins over
+  # FILEBROWSER_DATABASE_PATH, so the path is set here and nowhere else.
+  database:
+    path: "/home/filebrowser/data/database.sqlite"
+  # The user file tree, mounted read-write at /srv/files. It is the same host
+  # directory the Workcenter container mounts, and the broker asserts that at
+  # startup before it offers the by-path flows (IN-9.6, AR-35, BR-5.3).
+  sources:
+    - path: "/srv/files"
+      name: "Files"
+      config:
+        # REQUIRED. Without it a user created through OIDC has no source enabled
+        # and sees an empty tree (IN-3.4, I-FB-4).
+        defaultEnabled: true
+        defaultPermissions:
+          view: true
+          download: true
+          modify: true
+          create: true
+          delete: true
+  # Thumbnails and other generated files: a separate bind mount, so the office
+  # cache survives the database being rebuilt (I-FB-3).
+  cacheDir: "/home/filebrowser/data/cache"
+
+http:
+  # The container port Traefik targets and the healthcheck probes.
+  port: 80
+  # Served at the subdomain root. The OIDC redirect URI is derived from the
+  # incoming request — https://<host><baseURL>api/auth/oidc/callback — and not
+  # from externalUrl, so it is the request host, with no subpath, that must be
+  # registered in Authentik (IN-3.5).
+  baseURL: "/"
+  # Used for share links. setup.sh writes the deployment's own host here.
+  externalUrl: "https://filebrowser.example.com"
+  # OnlyOffice and the broker call back here, bypassing Traefik, so this is the
+  # compose service name and the container port (integration.md §4.3).
+  internalUrl: "http://filebrowser:80"
+  # REQUIRED behind Traefik: the redirect URI, the session cookie and every
+  # generated URL are built from X-Forwarded-Proto/-Host (IN-3.5, I-FB-6).
+  trustProxyHeaders: true
+  # WebDAV is a documented FileBrowser surface the broker does not use — it
+  # reaches files over /api/ — so it stays available rather than disabled here.
+  disableWebDAV: false
+
+auth:
+  methods:
+    # Phase 5: setup.sh adds `oidc` here — enabled, issuerUrl, clientId,
+    # clientSecret (from FILEBROWSER_OIDC_CLIENT_ID/_SECRET), scopes,
+    # groupsClaim, userIdentifier, adminGroup, userGroups and
+    # logoutRedirectUrl (I-FB-5, IN-3.5) — and turns local password login off.
+    # It is absent until then because provider discovery runs at startup and a
+    # failure there stops the application (IN-3.6); with no method configured,
+    # the pinned version falls back to password auth, so the container starts on
+    # a host where Authentik does not exist yet. That fallback is a development
+    # and first-boot state, never the deployed one.
+    password:
+      enabled: false
+
+frontend:
+  name: "Files"
+  # Branding (U-22). setup.sh writes the Workcenter icons and stylesheet here;
+  # empty values fall back to the image's embedded defaults, so an unbranded
+  # checkout still starts (IN-3.17).
+  favicon: ""
+  loginIcon: ""
+  disableDefaultLinks: false
+  styling:
+    # FileBrowser Quantum is Workcenter's palette source, so the instance
+    # background and the accent are its own values — --background light and dark
+    # in design.md §4.3.1 — and never a second palette.
+    lightBackground: "#f5f5f5"
+    darkBackground: "#141D24"
+    # setup.sh points this at the Workcenter stylesheet that also makes room for
+    # the shell's switcher, so branding adds no second injection point
+    # (IN-3.9, IN-3.17).
+    customCSS: ""
+
+userDefaults:
+  ui:
+    # Workcenter defaults to dark. This applies to users created afterwards and
+    # is never re-imposed on an existing user (IN-3.18, I-FB-15).
+    darkMode: true
+    # The Files accent: FileBrowser's own --primaryColor (design.md D-T4).
+    themeColor: "#2196f3"
+    # FileBrowser's own locale keys, not BCP-47 (IN-3.21); setup.sh writes the
+    # deployment's default language.
+    locale: "en"
+
+integrations:
+  office:
+    # Browser -> OnlyOffice: must be reachable from the user's browser
+    # (integration.md §4.3).
+    url: "https://office.example.com"
+    # FileBrowser -> OnlyOffice: over the internal network, bypassing Traefik.
+    internalUrl: "http://onlyoffice:80"
+    # Supplied by FILEBROWSER_ONLYOFFICE_SECRET and byte-identical to the
+    # OnlyOffice JWT_SECRET. Never inline (IN-4.2, AR-19).
+    secret: ""

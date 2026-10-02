@@ -1,0 +1,130 @@
+# Workcenter — Traefik, the single ingress (roadmap.md Phase 3.3, production.md §7).
+#
+# The committed defaults are the local/test profile: the proxy binds to the loopback interface
+# only and terminates TLS with the self-signed default certificate from dynamic/tls.yml, so the
+# stack comes up on a host with no public DNS and no ACME (Testing.md §6.3, "the ingress rule").
+# A production host widens the bindings from an override file — see the `ports:` note below.
+#
+# This file is part of the root composition (architecture.md §5.7 includes it) and is also
+# runnable on its own:   docker compose -f Traefik/compose.yaml up -d
+#
+# Runtime state, not repository content (P-16, P-24): create it on a fresh clone before the first
+# `up`, because Docker creates a missing bind-mount source as a root-owned *directory*.
+#   install -m 600 /dev/null Traefik/acme.json     # must be a *file*, mode 600
+#   mkdir -p Traefik/certs Traefik/logs            # certs/: local default + optional internal CA
+# `Traefik/logs/` and `acme.json` are already covered by .gitignore; `Traefik/certs/` is not, and
+# it holds a private key as soon as internal TLS is on — the parent task must add it (P-16 lists
+# acme.json but not certs/, while production.md §12 P-23 calls the CA key gitignored).
+services:
+  traefik:
+    # The docs pin `traefik:v3` (integration.md §2, architecture.md §7.1). P-27 needs at least
+    # v3.6 (`traefik.docker.allownonrunning`) and P-26 describes v3.7.3 behaviour, so the pin
+    # here is the newest v3 minor — v3.7, the minor under active support upstream. Patch releases
+    # still arrive within the minor; set TRAEFIK_TAG only to move the pin deliberately.
+    image: "traefik:${TRAEFIK_TAG:-v3.7}"
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    command:
+      # The static configuration is the mounted traefik.yml. These flags restate its load-bearing
+      # values so an operator can override one without editing a mounted file — P-27's "raise the
+      # log level deliberately when debugging" is the everyday case. Traefik applies the file
+      # first, then flags, then TRAEFIK_* environment variables, so a flag wins over the file.
+      - "--configFile=/etc/traefik/traefik.yml"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.traefik.address=:8080"
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--ping=true"
+      - "--ping.entrypoint=traefik"
+      # traefik.yml writes the ACME contact the way the docs write it — `email: "${ACME_EMAIL}"`
+      # (production.md §7.2, integration.md §8.3) — but Traefik does not expand variables in its
+      # static file, so without this flag the literal string "${ACME_EMAIL}" would be registered
+      # with Let's Encrypt. The value is required to be non-empty upstream (`acme.email`,
+      # "Required: Yes"), hence a syntactically valid default that matches architecture.md §6.1;
+      # no order is placed for it because no router in the local/test profile names the `le`
+      # resolver, and production sets ACME_EMAIL to a monitored address.
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:-admin@example.com}"
+      - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
+    ports:
+      # Local/test profile: the loopback interface and nothing else (Testing.md §6.3), which is
+      # what makes the unauthenticated phase safe to run before identity exists (Phase 5).
+      #
+      # A production host removes the restriction through an override file, never by editing this
+      # one — P-16 keeps host-specific files as gitignored *.local.yaml:
+      #     # Traefik/compose.local.yaml
+      #     services:
+      #       traefik:
+      #         ports: !override
+      #           - "80:80"
+      #           - "443:443"
+      # `!override` is required, not stylistic: Compose *appends* sequences, so a plain `ports:`
+      # key would keep the loopback bindings as well and the 0.0.0.0 bind would then fail with
+      # EADDRINUSE (production.md P-11, integration.md IN-5.14a; needs Compose v2.24.4+).
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+      # :8080 is deliberately absent. The dashboard and API are reached through the router in
+      # dynamic/dashboard.yml (P-20), and /ping is only ever called from inside this container.
+    healthcheck:
+      # The image ships no HEALTHCHECK (P-19, IN-8.1), so Workcenter defines one against /ping on
+      # the `traefik` entrypoint (traefik.yml, integration.md §8.3). The CLI sub-command exits 0
+      # when /ping answers and 1 otherwise, and needs neither a shell nor curl in the image.
+      # The docs give no timings; these are short because every other service waits on this one.
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      # P-15: every mount is a bind mount under this application's own folder. The paths are
+      # relative to this file, which Compose resolves against the file's directory even when the
+      # file is pulled in by the root composition's `include:`.
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+      # ACME storage. It has to be a *file* before the first `up`: Docker creates a missing
+      # bind-mount source as a directory, and Traefik cannot use a directory as ACME storage.
+      # Mode 600 and exactly one Traefik instance own it (P-24); production.md §11.1 backs it up
+      # encrypted.
+      - ./acme.json:/acme.json
+      # Certificate material: certs/local.{crt,key} for the local-test default store in
+      # dynamic/tls.yml, plus the internal CA when ENABLE_INTERNAL_TLS=true (production.md §12).
+      # Traefik only reads it — setup.sh writes it on the host — so it is mounted read-only.
+      - ./certs:/certs:ro
+      # Access log target (/var/log/traefik/access.log, traefik.yml). Traefik/logs is gitignored;
+      # unlike container stdout this file is not rotated by the Docker logging driver, so it needs
+      # host-side rotation.
+      - ./logs:/var/log/traefik
+      # The Docker provider discovers every other service. Upstream's documented requirement for
+      # providers.docker; read-only because Traefik only ever reads container metadata.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      # `proxy` only. The docs put Traefik on the Traefik-facing network and keep `internal` for
+      # service-to-service traffic (integration.md §11.1, architecture.md §7.1); adding Traefik to
+      # `internal` would also give P-18's network guessing a second wrong answer.
+      - proxy
+    logging:
+      # production.md §13.2: unbounded Docker logs are not acceptable.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  # Traefik owns the network it exists for (production.md §7.1, "Created by Traefik"; Testing.md
+  # §6.3 brings it up first), and `proxy` is an external bridge (integration.md §11.1).
+  #
+  # It has to be declared in exactly one file of the merged project — here — because Compose
+  # treats a second declaration with any different attribute (another `name`, a `driver:`,
+  # `external: true`) as a conflict: "networks.proxy conflicts with imported resource"
+  # (verified with Compose v2.32.4). Files included alongside this one therefore only list `proxy`
+  # under their services' `networks:`. Mailcow, started as its own project from Mailcow/, is the
+  # one place `external: true` is correct — and only once this network exists.
+  proxy:
+    name: proxy
+    driver: bridge

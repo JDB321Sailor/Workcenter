@@ -1,4 +1,40 @@
 # ---------------------------------------------------------------------------
+# Deployment state (production.md P-16)
+#
+# Everything an application writes at runtime lives inside its own folder and is
+# never committed: the environment files hold secrets, the data directories hold
+# user content, and the certificate store must be root-only.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+compose.override.yaml
+# ...except Zulip's, which carries the derived-image build and is part of the
+# deployment: `include` loads it explicitly from compose.yaml.
+!Zulip/compose.override.yaml
+*.local.yaml
+# Secrets are ignored by file, not by directory: excluding the directory makes a
+# per-file negation impossible, and the *.example placeholders must be committed
+# (they are the deployment's template for each secret).
+**/secrets/*
+!**/secrets/*.example
+**/data/
+**/logs/
+acme.json
+# Mailcow's own checkout, once its tooling has cloned it into Mailcow/. Its
+# nested .git would otherwise make this repository treat Mailcow/ as an embedded
+# repository. Workcenter's own files there stay tracked.
+/Mailcow/.git/
+/Mailcow/docker-compose.yml
+/Mailcow/mailcow.conf
+# Application runtime state that the deployment folders bind-mount.
+OnlyOffice/lib/
+OnlyOffice/db/
+Filebrowser/office-cache/
+# The local certificate and any internal CA: private keys, never committed.
+Traefik/certs/
+
+# ---------------------------------------------------------------------------
 # Workcenter
 # Never commit generated artefacts, secrets or runtime data.
 # ---------------------------------------------------------------------------
@@ -20,7 +56,11 @@ node_modules
 **/.env.*
 !**/.env.example
 !**/.env.*.example
-**/secrets/
+# Secrets are ignored by file, not by directory: excluding the directory itself
+# makes a per-file negation impossible, and the *.example placeholders must be
+# committed — they are the deployment template for each secret.
+**/secrets/*
+!**/secrets/*.example
 **/*.local.yaml
 **/*.local.yml
 acme.json
@@ -45,6 +85,11 @@ user-data/broker/
 user-data/config-backups/
 # Runtime files of the manual verification harness (scripts/e2e.sh)
 user-data/e2e/
+# The shell configuration the harness generates for a run, mounted over
+# user-data/conf.yml and Traefik/dynamic/middlewares.yml by compose.test.yaml.
+# The tracked files are the operator's.
+user-data/conf.test.yml
+Traefik/dynamic/middlewares.test.yml
 
 # ---------------------------------------------------------------------------
 # Test and tooling artefacts

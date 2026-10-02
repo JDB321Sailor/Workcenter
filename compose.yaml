@@ -1,0 +1,142 @@
+# Workcenter — the root composition.
+#
+# This is the entry point for the whole stack. It builds the Workcenter image
+# from this repository and joins it to the applications, all of them reachable
+# only through Traefik: no application publishes a port to the host, so the
+# reverse proxy is the single ingress and the single place TLS is decided
+# (production.md §7).
+#
+#   docker compose up -d                      # the whole stack
+#   docker compose -f compose.yaml -f compose.test.yaml up -d   # local, no DNS
+#   (cd Mailcow && docker compose up -d)      # Mailcow runs from its own folder
+#
+# Mailcow is deliberately not a service here. It ships its own compose file and
+# must be driven from inside its own directory with no `-f` flag, so that Docker
+# auto-merges Workcenter's override (integration.md IN-6.3, production.md §8).
+# Its services still join the `proxy` network, so Traefik routes to them exactly
+# as it does to everything else.
+#
+# Every variable this file reads is declared in `.env.example`.
+
+name: workcenter
+
+include:
+  # Traefik owns the network, the entrypoints and the certificates. It is
+  # first in the list because the `proxy` network it creates must exist before
+  # the applications try to join it.
+  - path: Traefik/compose.yaml
+  # The applications that are cheap to compose inline. Zulip ships its own
+  # compose file upstream and Workcenter keeps it that way, so a version bump is a
+  # one-file change: the pinned tag in Zulip/.env.
+  - path: Filebrowser/compose.yaml
+  - path: OnlyOffice/compose.yaml
+  # Zulip runs the pinned upstream image **unmodified**. What makes the Chat pane
+  # embeddable is not a patched Zulip but Traefik: the `zulip` router carries the
+  # `security-headers@file` middleware, whose CSP `frame-ancestors` allow-list
+  # supersedes the `X-Frame-Options: DENY` Zulip ships (integration.md §8.4,
+  # IN-5.8). One file, one image, no derived tag to build or track.
+  - path: Zulip/compose.yaml
+
+services:
+  # ---------------------------------------------------------------------------
+  # Workcenter: the shell and the broker, in one process (architecture.md §4.1).
+  # ---------------------------------------------------------------------------
+  workcenter:
+    container_name: workcenter
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${WORKCENTER_VERSION:-dev}
+        REVISION: ${WORKCENTER_REVISION:-unknown}
+        CREATED: ${WORKCENTER_CREATED:-unknown}
+    image: ${WORKCENTER_IMAGE:-workcenter:dev}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - '8080'
+    environment:
+      NODE_ENV: production
+      IS_DOCKER: 'true'
+      PORT: '8080'
+      HOST: 0.0.0.0
+      # The base URL the shell serves from, and the three applications' own
+      # addresses. These are read by the health probe and by the preference
+      # bridge (broker.md §3.4, §6, §7); the shell reads the same values from
+      # user-data/conf.yml, which the operator writes with setup.sh (Phase 4).
+      WORKCENTER_BASE_URL: https://${WORKCENTER_HOST:?set WORKCENTER_HOST in .env}
+      # The broker reaches the FileBrowser source directory by path, and asserts
+      # at startup that it is the same directory FileBrowser serves
+      # (broker.md §5.3, integration.md IN-9.6). Both containers mount the same
+      # host path, read-write here because F1 and F3 write into it.
+      BROKER_FILES_ROOT: /srv/files
+      # NODE_EXTRA_CA_CERTS lets the broker trust the deployment's own
+      # certificate authority instead of disabling verification
+      # (architecture.md AR-40, broker.md §10.2).
+      NODE_EXTRA_CA_CERTS: /certs/internal-ca.pem
+    volumes:
+      # Operator configuration and the broker's own state (vault, audit log).
+      - ./user-data:/app/user-data
+      # The shared source directory: the same host path FileBrowser serves, so
+      # the broker can move bytes by path (AR-35, IN-9.6). Read-write here
+      # because F1 and F3 write into it.
+      - ${FILEBROWSER_SOURCE_PATH:?set FILEBROWSER_SOURCE_PATH in .env}:/srv/files
+      # FileBrowser's own data directory, for the same reason: the broker reads
+      # the configuration it validates against (AR-35).
+      - ./Filebrowser/data:/srv/filebrowser-data
+      # Mailcow and Zulip are mounted READ-ONLY. Nothing writes to them on disk:
+      # every change goes through IMAP or the Zulip API (AR-36, IN-9.7).
+      - ./Mailcow/data:/srv/mailcow:ro
+      - ./Zulip/data:/srv/zulip:ro
+      # The deployment's certificate, mounted read-only, so outbound TLS to the
+      # applications is verified rather than skipped.
+      - ./Traefik/certs:/certs:ro
+      # The broker's Zulip bot credentials (IN-5.17): read-only, because the bot
+      # is an API client and the file is one of the six secrets docker-zulip
+      # expects. setup.sh generates it from Zulip/secrets/zuliprc.example.
+      - ./Zulip/secrets/zuliprc:/app/secrets/zuliprc:ro
+    healthcheck:
+      # The app's own check: it reports status, uptime and version.
+      test: ['CMD', 'node', '/app/services/healthcheck.js']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      # Traefik routes to the shell on the bare base domain. P-18: both this
+      # label and providers.docker.network in Traefik/traefik.yml are required,
+      # or Traefik picks one of the container's networks at random.
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.workcenter.rule=Host(`${WORKCENTER_HOST:?set WORKCENTER_HOST in .env`}`)
+      - traefik.http.routers.workcenter.entrypoints=websecure
+      - traefik.http.routers.workcenter.tls=true
+      - traefik.http.routers.workcenter.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}
+      # One certificate for all six names rather than one per router (P-25):
+      # Let's Encrypt allows five per distinct identifier set per week.
+      - traefik.http.routers.workcenter.tls.domains[0].main=${BASE_DOMAIN:?set BASE_DOMAIN in .env}
+      - traefik.http.routers.workcenter.tls.domains[0].sans=${WORKCENTER_HOST},${FILEBROWSER_HOST},${CHAT_HOST},${MAIL_HOST},${OFFICE_HOST}
+      - traefik.http.routers.workcenter.service=workcenter
+      - traefik.http.services.workcenter.loadbalancer.server.port=8080
+      # The shell is the one surface that must never be framed by another site.
+      - traefik.http.routers.workcenter.middlewares=security-headers@file
+    networks:
+      # AR-28, architecture.md §7.1: `proxy` so Traefik can reach the shell on
+      # `:8080` (the label above names it, and the label is only meaningful when
+      # the service is actually attached to that network), and `internal` so the
+      # broker reaches the applications by service name. Both are declared at the
+      # bottom of this file — `proxy` in Traefik/compose.yaml — and a service only
+      # ever lists them.
+      - proxy
+      - internal
+# Networks: `proxy` is declared by Traefik/compose.yaml (production.md §7.1, P-18),
+# and `internal` here. Both are declared exactly once in the merged project and
+# with nothing but a name: Compose refuses to merge two declarations that differ in
+# any attribute (`networks.proxy conflicts with imported resource`) and an
+# `external: true` in an included file stops it creating the network at all. The
+# names are literal because `traefik.docker.network=proxy` and
+# `providers.docker.network: proxy` are matched against the real network name.
+networks:
+  internal:
+    name: internal
