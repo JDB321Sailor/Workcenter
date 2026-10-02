@@ -220,7 +220,7 @@ no error card. The browser console names the offending header.
 
 | Cause | Fix |
 | --- | --- |
-| `X-Frame-Options` is `DENY`, or `SAMEORIGIN` and Workcenter is on another host. Zulip sends `DENY` by default, which is why [`integration.md`](../integration.md) deploys a derived image for it | Allow Workcenter as a frame ancestor there, then reload: `Content-Security-Policy: frame-ancestors 'self' https://workcenter.example.com` |
+| `X-Frame-Options` is `DENY`, or `SAMEORIGIN` and Workcenter is on another host. Zulip sends `DENY` at server scope and cannot be configured inside itself, which is why [`integration.md`](../integration.md) sets the policy at the ingress instead | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin (`https://workcenter.example.com`), never `*`, then reload. For another application, set its own `frame-ancestors` to `'self' https://workcenter.example.com` |
 | An untrusted certificate on the application's hostname, which the browser will not render inside a frame | Open the host in a new tab, and use a trusted certificate |
 | An expired session in the application itself | The pane shows that application's login page; the shell cannot tell it apart from a working session |
 

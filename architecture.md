@@ -453,8 +453,8 @@ Filebrowser/
 ```
 Zulip/
 ├── .env.example              # image tag, EXTERNAL_HOST, admin email, SMTP settings
-├── compose.yaml              # database, memcached, rabbitmq, redis, zulip (docker-zulip)
-├── compose.override.yaml     # Workcenter-specific: volumes, Traefik labels, healthchecks
+├── compose.yaml              # database, memcached, rabbitmq, redis, zulip (pinned upstream image);
+│                             # bind mounts, Traefik labels, healthchecks
 ├── secrets/                  # zulip__* secret files + zuliprc for the broker bot (gitignored)
 ├── data/                     # -> /data                (Zulip application state + uploads)
 ├── database/                 # -> /var/lib/postgresql/data
@@ -466,7 +466,7 @@ Zulip/
 | Ref | Requirement |
 | --- | --- |
 | AR-21 | The **full** docker-zulip service set is deployed; no service is removed to save resources. |
-| AR-22 | All five services receive explicit healthchecks in `compose.override.yaml`, since upstream relies on image defaults. |
+| AR-22 | All five services carry healthchecks in `Zulip/compose.yaml`; upstream ships one only for `zulip` itself, so Workcenter adds the other four. |
 | AR-23 | Uploaded files live on the bind-mounted `./Zulip/data`, which the broker reads for F3 and writes to for F4 — subject to Zulip's own storage layout. |
 
 ### 5.3 `Mailcow/`
@@ -592,7 +592,7 @@ TRAEFIK_URL=https://traefik.example.com
 
 # --- Image pins -------------------------------------------------------------
 FILEBROWSER_IMAGE=gtstef/filebrowser:2.0.9-beta
-ZULIP_IMAGE=ghcr.io/zulip/zulip-server:12.2-0
+ZULIP_IMAGE=ghcr.io/zulip/zulip-server:12.3-0
 ONLYOFFICE_IMAGE=onlyoffice/documentserver:8.2
 AUTHENTIK_TAG=2024.12
 TRAEFIK_TAG=v3.1

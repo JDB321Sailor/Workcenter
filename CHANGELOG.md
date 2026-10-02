@@ -149,6 +149,36 @@ as described in [`contributions.md`](./contributions.md).
 
 ## [Unreleased]
 ### New Features
+ - **The Zulip organization is provisioned with the deployment.** A Zulip server has no organization
+   until one is created, and with none every page on the Chat host answers 404 "There is no Zulip
+   organization at <host>" — the Chat pane rendered a Zulip error page and the broker's chat
+   integration had no realm to talk to, however healthy everything else was. The pinned image creates
+   none of its own, so the deployment does: `setup.sh` asks whether to create one and what to call it
+   and records the answer as `ZULIP_ORGANIZATION_NAME` (`Zulip/.env`), then creates it after health
+   with `manage.py create_realm` inside the container — owner: the deployment's administrator,
+   password disabled (Zulip's production path generates none, and none is written, printed or
+   stored), and an existing organization left alone so a re-run is idempotent. `scripts/e2e.sh` runs
+   the same step for a test run, so the pane is testable out of the box, and an empty
+   `ZULIP_ORGANIZATION_NAME` means "deploy none" deliberately (`integration.md` IN-5.30,
+   `production.md` P-36, `Testing.md` §6.5).
+ - **Phase 3: the deployment skeleton.** The repository now deploys what it specifies. The root
+   `compose.yaml` is the single entry point: it builds the Workcenter image, includes the Traefik,
+   Filebrowser, ONLYOFFICE and Zulip compositions, and joins them on the shared `proxy` network, with
+   `depends_on: condition: service_healthy` so the shell starts only once the applications it embeds are
+   up (roadmap 3.2, 3.8). Mailcow deliberately stays out of it: it ships its own compose file and is
+   driven from its own folder with no `-f`, so Docker merges Workcenter's override (integration.md
+   IN-6.3). Every application is reachable **only** through Traefik — nothing but the proxy publishes a
+   port — and the Workcenter container mounts the shared FileBrowser source read-write plus the Mailcow
+   and Zulip trees read-only, which is the contract the broker's by-path flows depend on
+   (architecture.md §7.2, AR-35/AR-36).
+ - **The Traefik, Filebrowser, ONLYOFFICE, Zulip and Mailcow deployment folders** (roadmap 3.1, 3.3–3.7):
+   per-application `.env.example` files, the FileBrowser v2 `config.yaml` with its office integration, the
+   Zulip composition with the ingress framing settings the Chat pane needs, and Mailcow's override with Traefik labels,
+   `expose` instead of published ports, trusted proxies and the four healthchecks upstream does not ship.
+   Every pin and every key is traceable to `integration.md`; nothing was invented.
+ - **`compose.test.yaml`**, the local profile: Traefik binds to `127.0.0.1` only and serves the generated
+   local certificate instead of using ACME, because a test host has no DNS name for Let's Encrypt to
+   validate. That is what makes an unauthenticated stack safe to run before identity exists (Phase 5).
  - The Workcenter shell (roadmap Phase 2). The rail now carries a brand header, the three-button
    application switcher with one status indicator beneath each button and a centred `STATUS` label, a
    filter row, the active application's own navigator and the user menu, in that order
@@ -197,6 +227,23 @@ as described in [`contributions.md`](./contributions.md).
    the manual checklist for the current phase gate (`Testing.md`).
 
 ### Improvements
+ - **`scripts/e2e.sh` now tests the real deployment.** It validates its dependencies (docker, the compose
+   v2 plugin at 2.20+ because the stack uses `include:`, and a reachable daemon, each failure naming what
+   to install), generates `.env` and the local certificate when they are absent, **pulls only the images
+   that are not already present**, builds the Workcenter image with the build log captured and the last 25
+   lines printed on failure, deploys the stack with `up -d --wait`, polls every service to `healthy`, and
+   then checks what a machine can check: the shell and broker through Traefik, each application on its own
+   hostname, the framing policy of each pane, and the shared source directory compared by device and inode
+   inside the Workcenter and Filebrowser containers. `--shell-only` keeps the Phase 2 path for a quick look
+   at the UI without Docker, `--dry-run` prints the plan, and `--hosts` maps the six hostnames to
+   `127.0.0.1` for a browser (removing the block again on teardown).
+ - **Teardown leaves nothing but the images.** `--down` stops the compose project and Mailcow, stops any
+   shell server of this checkout, removes the marked `/etc/hosts` block, and deletes exactly what the run
+   created — recorded in a manifest as it is created, plus the applications' runtime directories — then
+   *verifies* that no container, network, volume or generated file remains. It runs even when the Docker
+   daemon is unavailable, because that is one of the reasons a stack needs clearing.
+ - **Every run is logged** under `user-data/e2e/logs/<run>/`: the stage narrative, every command issued,
+   the build output, and one file per stage, so a failure is read where it happened rather than guessed at.
  - **Two rail-layout corrections.** The user row's right-hand group is now spaced by one property
    used twice — the gap between the mode toggle and the language button, and the inset from the
    language button to the rail edge — with the gap reduced by the sun/moon glyph's centring slack, so
@@ -245,8 +292,45 @@ as described in [`contributions.md`](./contributions.md).
    (`design.md` D-2S).
  - The rail's collapsed state is read before the first render, so a user who collapsed the rail never
    sees it flash open (`design.md` D-1).
+ - **The test run has a known Files admin login, and the harness prints it.** FileBrowser Quantum
+   creates its built-in `admin` account on first start, but its password came from nowhere in this
+   deployment: `FILEBROWSER_ADMIN_PASSWORD` — the only admin setting the application reads from the
+   environment — was not passed through `Filebrowser/compose.yaml`, so every run silently used the
+   pinned version's own default. The variable is now wired through, `scripts/e2e.sh` sets it to
+   `admin` for a test run (five characters, exactly the application's `minLength`), asserts the login
+   it produces, and prints the credentials in a **Test accounts** block. The same block now carries a
+   usable Zulip administrator as well: docker-zulip exposes no environment variable that creates an
+   account, so `scripts/e2e.sh` creates one with Zulip's own management commands inside the container.
+   Zulip authenticates by email and refuses anything shorter than eight characters, so the login is
+   `admin@<shell host>` with the password `admin1234` (IN-3.26, IN-5.31, `Testing.md` §6.5).
+
+### Removals
+ - **The derived Zulip image.** Zulip now runs the pinned upstream image unmodified. `Zulip/Dockerfile`,
+   `Zulip/custom_zulip_files/`, `Zulip/compose.override.yaml` and `Zulip/.dockerignore` are gone, along
+   with the `workcenter-zulip:<version>-0` tag, the `ZULIP_UPSTREAM_IMAGE` variable, the
+   `WORKCENTER_ORIGIN` build argument and the harness's build, overlay-verification and retagging
+   stages. The Chat pane is framed by the ingress instead (see `Notes`), so there is no second image to
+   build, pin, retag, cache or rebuild on an upgrade — and no deviation from upstream to track.
 
 ### Notes
+ - **Framing is an ingress concern, and that is now the documented mechanism.** Zulip ships
+   `X-Frame-Options: DENY` at server scope, exposes no Django setting or middleware to change it, and
+   its own CSP never carries `frame-ancestors`. A browser that sees a `frame-ancestors` directive
+   **ignores `X-Frame-Options`** (CSP Level 2 and later), so the allow-list is written where it can name
+   an origin: the `zulip` router's `traefik.http.routers.zulip.middlewares: "security-headers@file"`
+   label (`Zulip/compose.yaml`) and that middleware's `frame-ancestors <shell origin>` value
+   (`Traefik/dynamic/middlewares.yml`). `integration.md` §5.4 and §8.4 now specify both settings for a
+   manual deployment (**IN-5.27**), `production.md` **P-35** makes `setup.sh` responsible for writing the
+   origin from the base URL, and **IN-1** no longer sanctions patching an application at all.
+   **Upgrading an existing host:** it keeps a now-unused `workcenter-zulip:<version>-0` image (about
+   4 GB) — `docker image rm workcenter-zulip:12.3-0` reclaims it, and `./scripts/e2e.sh --clean` removes
+   it with the rest.
+ - **The release Workcenter is built against is recorded where it is deployed.** **Zulip 12.3**,
+   `ghcr.io/zulip/zulip-server:12.3-0`, upstream commit `b3198225…`, stated in `Zulip/.env.example`,
+   `.env.example`, `Zulip/compose.yaml`, `Readme.md` and `integration.md`. A later release is adopted
+   deliberately — tested against this deployment — by moving the tag:
+   `./scripts/e2e.sh --bump-zulip-pin --zulip-version X.Y --zulip-commit <sha>` for the committed files,
+   or automatically in the generated `.env` files on the next run unless `--pin` was given.
  - The FileBrowser Quantum pin moves to the newest 2.x beta, **`2.0.9-beta`**
    (`sha256:66969254ed56c62e83d729168fe50e965ada030602d6fc2cec1a0b83a0357040`). The beta line has no
    `latest` tag: `latest` on both registries resolves to the 1.x line, so the pin stays explicit in
@@ -368,8 +452,205 @@ as described in [`contributions.md`](./contributions.md).
    awaited (`design.md` D-7.1).
  - A pane reported a framing refusal or an expired session only if the health state changed after
    mount; it now checks what is already known when it starts loading (`design.md` D-7.1).
+ - **Zulip's `memcached` container never became healthy, and its health gate aborted every
+   deployment.** Under Compose a `file:` secret is a **bind mount**: the container sees the host's
+   ownership and mode, and the long syntax's `uid`/`gid`/`mode` keys are ignored outside Swarm —
+   `docker compose` says so on every `up` ("secrets `uid`, `gid` and `mode` are not supported, they
+   will be ignored"). The harness generated every Zulip secret `0600` owned by whoever ran it (root
+   under `sudo`), but `memcached:alpine` is `USER memcache` (uid 11211) and builds its SASL database
+   from `zulip__memcached_password` *before* it execs memcached, so it exited 1 with "the password
+   secret at /run/secrets/zulip__memcached_password is not readable by uid 11211"; Compose then
+   reported `dependency failed to start: container workcenter-memcached-1 is unhealthy`, and the run
+   tore the stack down before any other service was ever judged. `scripts/e2e.sh` now hands each
+   generated file to the uid that reads it inside its container — `zulip__memcached_password` to
+   11211, `zuliprc` to the Workcenter image's uid 1000 — and keeps both at `0600`, so the owner is
+   the consumer rather than the world. A harness that is not root cannot hand a file to another uid,
+   so it leaves the file readable and says so, the same trade-off the mount-point ownership step
+   already makes. `setup.sh` has the same obligation for a real deployment, which `production.md`
+   §5.2 now states.
+ - **The shell was unreachable through Traefik.** The `workcenter` service in `compose.yaml`
+   declared the labels that route to it and name the `proxy` network
+   (`traefik.docker.network=proxy`) but never joined that network, so Docker attached it to the
+   project's default network only. Traefik had a router whose backend it could not resolve: every
+   request to the shell's hostname hung until the client timed out — a `000`, not a 502 — while
+   `docker compose ps` reported the container healthy, and Files, Chat and ONLYOFFICE, which do join
+   `proxy`, answered normally. The service now joins `proxy` and `internal`, as `architecture.md`
+   §7.1 (AR-28) requires.
+ - **The test run left Zulip on the wrong hostname, distrusting the proxy, and unable to be
+   framed.** Three settings have to follow the addresses the harness actually serves under test, and
+   none of them did. (1) `SETTING_EXTERNAL_HOST` — Zulip's own address: its nginx `server_name` and
+   the host its Traefik router rule matches — stayed at the `chat.example.com` its generated `.env`
+   was copied from, so `chat.workcenter.local` fell through to Traefik's no-router 404. (2)
+   `LOADBALANCER_IPS` listed only `127.0.0.1`, so Zulip answered HTTP 500 "Reverse proxy
+   misconfiguration … this request did not come from a matching IP address — it came from
+   172.19.0.3" to *every* request that arrived through Traefik, while `/health` on loopback answered
+   200. (3) `WORKCENTER_ORIGIN`, which is substituted into the derived Zulip image's CSP
+   `frame-ancestors` at build time, stayed `https://example.com`, so the Chat pane would have been
+   blocked from framing at the shell's real origin in a browser. The harness now derives the first
+   from `CHAT_HOST` (`production.md` §5.4 keeps the two equal), sets the third to the shell's base
+   URL, and for the second brings Traefik up on its own first — the address it presents on `proxy`
+   is assigned by Docker when the network is created, so it cannot be written into an `.env` in
+   advance — reads that address, and starts the rest of the stack with it (`Zulip/.env.example`,
+   `integration.md` IN-5.14).
+ - **`scripts/e2e.sh` invoked `main` twice.** The script ended with two `main "$@"` calls, so a run
+   that reached the end of the first pass built, deployed, waited for health and checked the whole
+   stack a second time; only a failure inside the first pass, which exits, kept it hidden.
+ - **`--down` did not remove what earlier runs created.** A standalone `./scripts/e2e.sh --down`
+   creates nothing itself and read only the current run's manifest, so the generated `.env` files,
+   the four application `.env` files and the local certificate survived a teardown that then
+   reported nothing left behind — and the next run inherited them ("exists: leaving it alone")
+   instead of regenerating them from the templates. It now reads every `created-*.manifest` in the
+   run directory, which is the only record of what previous runs created: `--down` deletes that
+   directory when it finishes.
+ - **The Chat check asked Zulip for a page that cannot exist yet.** `run_checks` asserted that
+   `chat.<domain>/` returns 200, but Zulip answers 404 there until an organization exists at that
+   host and says so itself ("There is no Zulip organization at chat.<domain>"); creating one is
+   application provisioning, which belongs with the administrator account and the realm-wide
+   branding that `setup.sh` applies (`integration.md` IN-5.19, `production.md` §5.4). The check now
+   asserts the portico login page (`/login/`), which Zulip serves as soon as it is up, so it still
+   proves that the Chat host is routed and that Zulip answers on it.
+ - **A second run could not build, because the stack's own runtime state was inside the build
+   context.** `.dockerignore` excluded `node_modules`, `docs`, `tests`, `dist`, `.git` and `.github`
+   but none of the bind-mount targets the stack fills at run time, and those directories belong to the
+   **containers'** uids — postgres, rabbitmq, redis, ONLYOFFICE and FileBrowser all write as
+   themselves. The next build therefore failed in the context sender with
+   `ERROR: error from sender: open …/OnlyOffice/db: permission denied` for any user who is not root
+   (`root`, and so `sudo ./scripts/e2e.sh`, can read them, which is why it stayed hidden), and even
+   when it succeeded every build uploaded the whole database, cache and log tree to the builder. The
+   root `.dockerignore` now excludes the Zulip, FileBrowser, ONLYOFFICE, Mailcow and Traefik runtime
+   directories along with the generated secrets and harness state, and `Zulip/.dockerignore` does the
+   same for the derived image's own context, which had the identical problem
+   (`open …/Zulip/database: permission denied`). Neither image takes any of that as input:
+   `user-data/conf.yml`, which the Workcenter image does carry, is deliberately kept.
+ - **The shell reported every application unreachable in a test run, although every one of them
+   answered.** The switcher's status indicators come from `GET /api/broker/health`, which probes each
+   application through Traefik by the address in `conf.yml` and **verifies** the certificate it is
+   given (`broker.md` §3.4, §10.2, `NODE_EXTRA_CA_CERTS`). Two things were missing on a machine with
+   no DNS. (1) The local certificate the test profile serves named only `workcenter.local`,
+   `localhost` and `127.0.0.1`, so a probe of `filebrowser.workcenter.local`,
+   `chat.workcenter.local` or `mail.workcenter.local` failed hostname verification — and a browser
+   got a hostname mismatch where the honest warning is only an untrusted issuer. (2) Docker's
+   resolver knows service names, not `*.workcenter.local`, so the shell could not resolve them at
+   all (`EAI_AGAIN`, reported as a timed-out check). `scripts/e2e.sh` now issues one certificate
+   naming every hostname the run serves, and warns with the remedy when a certificate an operator
+   put there already exists and does not cover them (it is not regenerated — an operator may have
+   installed one they trust on purpose); `compose.test.yaml` attaches the test hostnames to Traefik
+   as network aliases, so a lookup lands on the ingress and is routed by the `Host` header exactly as
+   public DNS would. The same run also had to move the **framing allow-list**: Traefik *sets*
+   `Content-Security-Policy` from `Traefik/dynamic/middlewares.yml` and overwrites whatever a backend
+   sends, and that file names
+   `https://example.com`, which `setup.sh` rewrites per deployment (`production.md` §5.4). The shell
+   is served from `https://workcenter.local` in a test run, so every pane was blocked from being
+   framed and the broker reported each application as `refusing to be framed`; the harness writes the
+   same copy with this run's origin and `compose.test.yaml` mounts it over the original, exactly as it
+   does for `conf.yml`.
+ - **The switcher reported every pane as refusing to be framed, so the Files and Chat panes could not
+   be opened.** `GET /api/broker/health` reads each application's response headers and sets
+   `frameBlocked` when the application refuses to be framed; `AppPane` turns that flag into the
+   `blocked` card instead of loading the frame. The check accepted only `frame-ancestors *` — the one
+   value `production.md` P-23 and `integration.md` IN-8.5 **forbid** — so the mandated configuration,
+   an allow-list naming the shell's origin, was itself reported as a refusal. `parseFraming` now takes
+   the shell's own origin and accepts a directive that names it: `*` still passes, an unrelated
+   origin and `'self'` still block (the latter is the *application's* origin, a different host here),
+   and with no origin available the check keeps its previous, conservative answer. The broker reads
+   that origin from `WORKCENTER_BASE_URL`, which `compose.yaml` declares for exactly this purpose and
+   which nothing read until now. It also now reads `frame-ancestors` **before** `X-Frame-Options`, so a
+   response carrying both is judged by the directive a browser actually honours — which is what lets
+   the pane be framed by a Zulip that still sends `X-Frame-Options: DENY`, exactly as
+   `integration.md` §5.4 specifies. `scripts/e2e.sh`'s framing check was reordered the same way, so it
+   no longer reports the specified deployment as a pane that "cannot be embedded".
+ - **The harness built and re-tagged a Zulip image it no longer needs.** `scripts/e2e.sh`'s "derived
+   Zulip image" stage is replaced by a "Zulip release" stage: it reports the pinned tag, asks GitHub
+   whether a newer release exists, and moves the pin in the generated `.env` files when one does
+   (unless `--pin`) — it builds nothing, and it runs before the image step so a moved pin is what gets
+   pulled. `--bump-zulip-pin` no longer rewrites a Dockerfile's build argument or a derived tag, and
+   the overlay verification and tag-reconciliation steps are gone with the build.
+
+ - **Every status indicator was grey, whatever the applications were doing.** `GET
+   /api/broker/health` was answering correctly, but `HealthService.check()` read the payload from
+   `res.apps` while `request.get` resolves to the axios-style envelope `{ data, status, statusText,
+   headers }`. Nothing was read, `apply()` was handed the envelope, and every application stayed in
+   the `unknown` state it starts in — a grey dot, tooltip "never checked", for an application that was
+   healthy and answering. The payload is now read from `res.data` (a bare payload is still accepted),
+   and the unit test that covered this mocks the real envelope shape instead of the unwrapped one that
+   hid the bug.
+ - **The Files and Chat panes were blank in Firefox — and the local certificate was the reason twice
+   over.** Both defects were in the certificate the test profile serves, and either one alone was
+   enough to leave a person with a warning page and two empty panes.
+   - **It was a CA certificate used as a server certificate.** `openssl req -x509` writes
+     `Basic Constraints: critical CA:TRUE` into the certificate it produces, and that certificate was
+     then served as the TLS certificate. OpenSSL, curl, Chrome and NSS's own `certutil -V` all accept
+     that, so every check the harness made passed. **Firefox verifies with mozillapkix, which refuses
+     it** — `MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY` — and refuses the connection outright: no
+     trust store can make it load, which is why installing the certificate into the profile's
+     `cert9.db` with trust `C,,`, into the system store, and into Chromium's NSS database all changed
+     nothing. The harness now generates **a local certificate authority and a leaf it signs**
+     (`Traefik/certs/local-ca.{crt,key}` and `local.{crt,key}`): the authority is long-lived and is the
+     only thing a trust store receives, and the leaf carries `CA:FALSE`, `keyUsage` and
+     `extendedKeyUsage=serverAuth` with every hostname in its SAN. The broker's `NODE_EXTRA_CA_CERTS`
+     points at the authority, the manual recipe in `Traefik/dynamic/tls.yml` was corrected too, and the
+     harness now **asserts the shape of what Traefik serves** and that it chains to the local
+     authority — the check that would have caught this on the day it was written, since it fails on a
+     `CA:TRUE` server certificate regardless of how trusted it is.
+   - **The browser certificate stores were never written.** Installing the authority into the system
+     store is not enough for Firefox, which keeps its own database per profile and does not read the
+     system store by default: on a machine where `trust list` showed the authority, the consolidated
+     bundle contained it and `curl` verified every hostname, the profile's own database listed none of
+     it. The harness now writes **every NSS database belonging to the invoking user** with `certutil` —
+     Firefox profiles under `~/.config/mozilla/firefox/` (Firefox 129 and later, which is where
+     Firefox 157 keeps them) and `~/.mozilla/firefox/` (older), the Snap and Flatpak trees, and
+     Chromium's shared `~/.pki/nssdb` — as that user, taken from `SUDO_USER` when running under `sudo`
+     because `$HOME` is then root's. The system store is still written, and is **detected, never
+     assumed**: `/usr/local/share/ca-certificates` with `update-ca-certificates` on Debian and Ubuntu,
+     `/etc/ca-certificates/trust-source/anchors` with `update-ca-trust` on Arch (CachyOS, Manjaro,
+     EndeavourOS), `/etc/pki/ca-trust/source/anchors` on Fedora and RHEL, `/etc/pki/trust/anchors` on
+     openSUSE, or p11-kit's `trust anchor --store` when none of those exists — never creating a store
+     that is not there, which is how the first version of this step could have reported success while
+     writing a file nothing reads. A running browser is named, because it does not re-read the database
+     until it restarts, and `security.enterprise_roots.enabled` is documented as the alternative.
+     **`--trust-cert`** does the certificate half on its own and exits, touching no container. `--down`
+     removes what was installed, from every store it might be in (`Testing.md` §6.5, `production.md`
+     P-36).
+ - **`--down` aborted halfway through its own teardown.** Removing the certificate from the system
+   store needs root and fails for a certificate that is not there, and removing a nickname that a
+   profile does not have makes `certutil` exit non-zero; both ran unguarded under `set -e`, so an
+   ordinary unprivileged `--down` stopped mid-teardown with a trust-store error instead of finishing.
+   The removal is now failure-tolerant and reports what it actually removed.
+ - **The credential-state guard treated an empty mount directory as state holding credentials.** It
+   judged `Zulip/database`, `Zulip/rabbitmq` and `Zulip/redis` by existence, so a run that created the
+   mount points and then failed — or whose contents an operator cleared — made every later run refuse
+   to start with "that state still holds the previous credentials" when there was nothing in it. An
+   empty directory has no password to disagree with, so the guard now requires content.
+ - **The embedded FileBrowser Quantum and Zulip panes rendered blank.** The pane is positioned
+   absolutely with `height: calc(100% - var(--header-height))` against `PaneHost`, and a percentage
+   height needs a **definite** containing block — but the shell's workspace was `min-height: 100vh`,
+   so its height stayed `auto`, the pane host's `height: 100%` resolved to zero, and every frame
+   loaded into a zero-height box. The panes were not blocked or unreachable (the browser ran
+   FileBrowser's and Zulip's own scripts), which is why no error card appeared and the health
+   indicators stayed green: the content region was simply empty. The workspace now declares a
+   definite `height: 100vh`, and the pane keeps subtracting `--header-height` itself, so that token
+   is still honoured (design.md D-L1, D-7). The frame is also `display: block` now: as an inline
+   replaced element it carried the line box's descender space below itself, which overflowed the
+   pane by a few pixels once it had a real height. Measured in a browser: the pane host and frame
+   fill the viewport, both applications render inside the shell, and the shell has no scrollbar; a
+   regression guard in `tests/components/workspace.test.js` asserts both declarations.
+ - **`--down` printed `basename: unrecognized option '--import'`.** `our_server_pids` sweeps the
+   process table for this checkout's `node server.js` and read each process's arguments with
+   `basename`, which GNU coreutils treats as an option when the value begins with `-`. A Node process
+   launched as `node --import …` therefore made the search itself noisy on every teardown — and it was
+   already a false negative for that process, because `basename` failed instead of returning the name.
+   Both calls now pass `--` before the value, so an option-shaped argument is read as the path it is.
+ - **A run could abort before it created the Zulip test admin.** The organization check reads `GET /`
+   on the Chat host, and that request can answer 404 at a moment when the organization already exists;
+   the step then ran `manage.py create_realm`, which answered "Subdomain is already in use." and ended
+   the run before the admin account that follows it was made. That answer is now treated as the
+   idempotent case the check was trying to detect, so the admin step always runs.
 
 ### Documentation
+ - `Testing.md` §6.5 rewritten for the Docker harness: the option table, the stage-by-stage behaviour, the
+   ingress rule that keeps the unauthenticated phase on the loopback interface, the automated checks and
+   what each one proves, the teardown contract, and the run artefacts. The phase table now records Phase 3
+   as the current one and keeps `--shell-only` documented as the Phase 2 path.
  - **New: [`broker.md`](./broker.md) — the definitive document for the broker, and the completion of the
    file-movement specification.** Earlier revisions of the documentation described **four** transfer flows;
    the complete set is the **six ordered pairs** of the three applications (Mail → Files, Mail → Chat,
@@ -521,6 +802,33 @@ as described in [`contributions.md`](./contributions.md).
    community and sponsor sections. The set loses 4,315 lines and gains 2,186 (#4).
  - `docs/api.md` rewritten around the routes that remain: enabling the API, the two credential
    paths, the five routes, the backup, schema and size rules, and worked `curl` examples (#4).
+ - `production.md` §5.2 now records the ownership every generated Zulip secret needs. Compose mounts
+   a `file:` secret as a bind mount and ignores the long syntax's `uid`/`gid`/`mode` outside Swarm,
+   so the two secrets a non-root container reads have to be handed to that container's uid:
+   `zulip__memcached_password` to the memcached image's uid 11211 and `zuliprc` to the Workcenter
+   image's uid 1000. The failure it prevents is written down with it — a memcached container that
+   exits with "the password secret … is not readable by uid 11211", which Compose's dependency gate
+   reports as an unhealthy service.
+ - `Testing.md` §6.5's stage table now describes what the harness actually does: the application
+   `.env` step and what it exports, the shell-configuration step and the file it writes, the Zulip
+   secret step with the ownership rule above, and a Deploy stage that brings the proxy up first in
+   order to learn the address Zulip has to trust.
+ - **The framing specification now documents the ingress settings a manual deployment needs.**
+   `integration.md` §5.4 is rewritten around the mechanism instead of the derived image: the `zulip`
+   router's `traefik.http.routers.zulip.middlewares: "security-headers@file"` label, the
+   `contentSecurityPolicy: "frame-ancestors <shell origin>"` value it names, why a browser ignores
+   Zulip's `X-Frame-Options: DENY` once `frame-ancestors` is present, and that both settings are
+   required (IN-5.27). §8.4 states the same as a middleware contract, with IN-8.5a recording that
+   Traefik *sets* rather than merges the header, so an application that must keep its own CSP needs a
+   middleware of its own. `production.md` §5.3/§5.4 and the new **P-35** make `setup.sh` write the
+   origin from the base URL, `Testing.md` §6.5 describes the Zulip release stage, and `roadmap.md`
+   (I-ZU-9, R1), `architecture.md`, `OIDC.md`, `Readme.md`, `Agents.md`, `broker.md`, `design.md` and
+   `docs/*` no longer describe a patched Zulip.
+ - `integration.md` gains **IN-5.30** (the Zulip organization is provisioned, with the exact command
+   and the idempotency rule), `production.md` gains **P-36** and the Stage F creation step, and
+   `roadmap.md` gains **I-ZU-17**; `Zulip/.env.example` documents `ZULIP_ORGANIZATION_NAME`. `Testing.md`
+   §6.5 documents the new harness stage, the framing check's precedence rule, and what `--hosts` now
+   installs.
 
 ### Deployment
  - `.editorconfig` and `.gitignore` covering every secret, runtime volume and generated artefact   the integrated applications produce, including `**/.env`, `**/secrets/`, `**/data/` and `acme.json`.
@@ -533,6 +841,20 @@ as described in [`contributions.md`](./contributions.md).
    `Dev` (`contributions.md` C-3.9). A promotion pull request is left alone.
  - `.github/ISSUE_TEMPLATE/` and `.github/pull_request_template.md`, covering the requirement-ID,
    changelog and test-evidence obligations.
+ - **The test profile now gives the shell this machine's addresses.** Every pane address, and every
+   address the broker probes for the switcher's status indicators, comes from
+   `appConfig.applications` in `user-data/conf.yml` (`src/utils/apps/urls.js`, `broker.md` §3.4).
+   That file is the operator's — committed with `example.com` defaults and rewritten in place by
+   `setup.sh` (`production.md` §5.4) — so in a test run the shell embedded
+   `https://filebrowser.example.com`, `https://chat.example.com` and `https://mail.example.com/SOGo`,
+   which do not resolve on a test host: all three panes reported themselves unavailable and the
+   status indicators showed every application unhealthy while the applications themselves answered
+   normally through Traefik. `scripts/e2e.sh` now writes `user-data/conf.test.yml` (the committed
+   file with the three addresses mapped to `FILEBROWSER_HOST`, `CHAT_HOST` and `MAIL_HOST`, and
+   everything else carried through unchanged, gitignored and recorded in the run manifest) and
+   `compose.test.yaml` mounts it over the tracked file with the long-syntax form and
+   `create_host_path: false`, so the operator's file is never modified and a missing generated file
+   fails loudly instead of becoming an empty directory.
 
 ## Release history
 

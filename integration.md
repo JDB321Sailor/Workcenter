@@ -41,14 +41,15 @@ There are exactly four integration mechanisms:
 | **M3** | **REST API calls from the broker** | Zulip upload/download; FileBrowser file operations |
 | **M4** | **Protocol access from the broker** | IMAP/SMTP to Dovecot/Postfix for mail attachments |
 
-And exactly one deliberate deviation:
-
-| Deviation | Scope | Why |
-| --- | --- | --- |
-| **D-1: a derived Zulip image** | One nginx header include file in `custom_zulip_files/` | Zulip ships `X-Frame-Options: DENY` with no supported way to change it (see [§5.4](#54-the-framing-problem)). The derived image pins the same upstream version and changes one static header. No application code is patched |
+And **no deviation from upstream**: no application is patched, forked or rebuilt, and every application
+image is the pinned upstream image. Where an application cannot do something Workcenter needs — Zulip's
+inability to be framed is the only case — the answer is configuration the application already supports,
+applied at the layer that can express it, not a modified application
+([§5.4](#54-the-framing-problem), [§8.4](#84-middleware-contracts)).
 
 > **Rule IN-1:** if an integration appears to require patching an upstream application's source, stop
-> and escalate. The only sanctioned exception is D-1, and any second exception requires a roadmap change.
+> and escalate. Workcenter's answer is a supported configuration — a reverse-proxy header, an
+> environment variable, an API call — or a roadmap change that records why none of those will do.
 
 ---
 
@@ -59,7 +60,7 @@ And exactly one deliberate deviation:
 | **Workcenter shell + broker** | built from this repo | `example.com` | — | OIDC client | — | `/healthz` |
 | **FileBrowser Quantum** | `2.0.9-beta` | `filebrowser.example.com` | pane (iframe) | OIDC client | REST `/api/` + shared bind mount | image `HEALTHCHECK` → `/health` |
 | **ONLYOFFICE Docs** | pinned tag | `office.example.com` (or internal) | inside the Files pane | none (JWT) | JWT-signed callbacks | `/healthcheck` |
-| **Zulip** (5 services) | `ghcr.io/zulip/zulip-server:<ver>-0` | `chat.example.com` | pane (iframe, **derived image**) | OIDC client | REST `/api/v1/` | `/health` (IP-restricted) |
+| **Zulip** (5 services) | `ghcr.io/zulip/zulip-server:12.3-0` | `chat.example.com` | pane (iframe, framed by the ingress) | OIDC client | REST `/api/v1/` | `/health` (IP-restricted) |
 | **Mailcow** (18 services) | upstream `master` | `mail.example.com` | pane (iframe, SOGo) | **Generic-OIDC IdP** | IMAP/SMTP from the broker | override healthchecks + Mailcow API |
 | **Authentik** | pinned tag | `auth.example.com` | — | the IdP | JWKS / discovery | `/-/health/live/`, `/-/health/ready/` |
 | **Traefik** | `v3` | `traefik.example.com` | — | forward-auth (proxy provider) | — | `/ping` |
@@ -172,6 +173,7 @@ integrations:
 | IN-3.6 | Provider discovery runs **at startup**, and failure is fatal. If Authentik is unreachable when FileBrowser starts, FileBrowser will not start. Order the stack accordingly. |
 | IN-3.7 | Valid v2 keys are `http.disableWebDAV` (not `server.disableWebDAV` — the latter fails startup), and `integrations.office` (not a root `office:`). There is **no** `disableVerifyTLS` for OnlyOffice; it exists only for auth methods. |
 | IN-3.8 | `userGroups` blocks sign-in for anyone outside `workspaceusers` (HTTP 403). Remove it to allow any Authentik user. |
+| IN-3.26 | **The built-in admin's username is always `admin`; its password is `FILEBROWSER_ADMIN_PASSWORD`** — the only admin setting FileBrowser Quantum reads from the environment (`auth.methods.password.adminPassword`; verified against `2.0.9-beta`). There is no username environment variable, and `config.yaml` sets no `adminPassword`, so an empty value leaves the pinned version's own default, which is also `admin`. With `auth.methods.password.enabled` false and no other method configured, the pinned version still reports `Auth Methods: [password]` and creates the admin account, which is what keeps a first boot without Authentik usable. Workcenter never commits a value: a deployment sets its own (`Filebrowser/.env`), and `scripts/e2e.sh` sets `admin` for a test run and prints the resulting login (`Testing.md` §6.5). |
 
 **Traefik labels**
 
@@ -322,7 +324,7 @@ Workcenter deploys the **full docker-zulip stack** — the five services from
 | `memcached` | `memcached:alpine` | Cache (SASL-protected) |
 | `rabbitmq` | `rabbitmq:4.2` | Queue |
 | `redis` | `redis:alpine` | Cache/rate limiting |
-| `zulip` | `ghcr.io/zulip/zulip-server:<version>-0` | The application (nginx + Django + Tornado + supervisor) |
+| `zulip` | `ghcr.io/zulip/zulip-server:12.3-0` | The application (nginx + Django + Tornado + supervisor), pinned and run unmodified |
 
 | Ref | Note |
 | --- | --- |
@@ -330,6 +332,8 @@ Workcenter deploys the **full docker-zulip stack** — the five services from
 | IN-5.2 | `DISABLE_HTTPS` and `SSL_CERTIFICATE_GENERATION` are legacy and now cause a **hard startup failure**. Do not set them. |
 | IN-5.3 | Secrets are file-based (`/run/secrets/zulip__*`). `setup.sh` generates them into `Zulip/secrets/`. |
 | IN-5.4 | All persistent state is bind-mounted under `Zulip/`: `/data`, the PostgreSQL data directory, RabbitMQ and Redis. |
+| IN-5.30 | **A Zulip server has no organization until one is created, and Workcenter creates it.** With none, every page on the Chat host answers 404 "There is no Zulip organization at <host>" — the pane renders nothing and the broker's chat integration has no realm to talk to, however healthy everything else is. The pinned image creates none of its own, so the deployment does: `setup.sh` asks whether to create one and what to call it, writes `ZULIP_ORGANIZATION_NAME` into `Zulip/.env`, and runs `manage.py create_realm <name> "$SETTING_ZULIP_ADMINISTRATOR" ... --automated` inside the container after health (P-36); `scripts/e2e.sh` runs the same command for a test run (`Testing.md` §6.5). The owner is the deployment's administrator, its password is **disabled** — Zulip's production create path generates none and none is written down, so signing in is OIDC (Phase 5) or a password reset — and an existing organization is left alone, which is what makes a re-run idempotent. An empty `ZULIP_ORGANIZATION_NAME` means "deploy none" deliberately. |
+| IN-5.31 | **A Zulip test administrator exists for the harness, and only the harness creates it.** Docker-zulip exposes no environment variable that creates an account — `SETTING_*` maps to `settings.py`, `CONFIG_*` to `zulip.conf`, `SECRET_*` to secrets, and `SETTING_ZULIP_ADMINISTRATOR` only names the realm owner's address — so `scripts/e2e.sh` uses Zulip's own management commands inside the container: `manage.py create_user <email> "<full name>" -r <realm> --password-file <file> --automated`, then `manage.py change_user_role <email> owner -r <realm> --automated`. The password is fed to `--password-file` on stdin, so it never reaches the container's command line or the run log, and `User already exists.` / `User already has this role.` are treated as the idempotent case rather than failures. Two Zulip facts shape the credentials. It authenticates by **email**, so there is no username and the login is `admin@<shell host>`. And `UserProfile.set_password` enforces `PASSWORD_MIN_LENGTH = 8` with `PASSWORD_MIN_GUESSES = 10000` (`zproject/default_settings.py`, `zproject.backends.check_password_strength`), so `admin` is refused with `PasswordTooWeakError` however it is set; `admin1234` is the shortest obvious extension that passes. This account is separate from the organization owner IN-5.30 describes, whose password stays disabled, and `setup.sh` creates none: it exists for the testing walk only (`Testing.md` §6.5). |
 
 **Configuration mechanism**
 
@@ -353,29 +357,59 @@ puppet/zulip/files/nginx/zulip-include-common/headers
     → add_header X-Frame-Options DENY always;
 ```
 
-That include is applied at server scope. Zulip exposes **no Django `X_FRAME_OPTIONS` setting** and has
-**no `XFrameOptionsMiddleware`**. Its CSP, where it sets one, never includes `frame-ancestors` — so
-there is nothing to relax there either.
+That include is applied at server scope. Zulip exposes **no Django `X_FRAME_OPTIONS` setting**, has **no
+`XFrameOptionsMiddleware`**, and its own CSP never includes `frame-ancestors` — so there is nothing to
+relax *inside* Zulip, and Workcenter does not try. The `zulip` service runs the pinned upstream image
+**unmodified**: there is no derived image, no patch and no `custom_zulip_files/` overlay.
 
-**Workcenter's answer (deviation D-1):** build a thin derived image from the pinned
-`ghcr.io/zulip/zulip-server` image, using docker-zulip's supported customisation hook. The upstream
-Dockerfile performs `cp -rf /root/custom_zulip/* /root/zulip`, so a `custom_zulip_files/` directory in
-the build context can override the nginx header include — changing `DENY` to the equivalent of
-`frame-ancestors 'self' https://example.com`.
+**The ingress sets the policy instead.** `X-Frame-Options` cannot name an origin — `ALLOW-FROM` is not
+implemented by any current browser — so an allow-list has to be written as a CSP `frame-ancestors`
+directive. A browser that sees `frame-ancestors` **ignores `X-Frame-Options` entirely** (CSP Level 2 and
+later; [the directive's relation to `X-Frame-Options`](https://www.w3.org/TR/CSP2/#frame-ancestors-and-frame-options)).
+Traefik is already in front of every Zulip request, so that is where the directive belongs, and the
+Zulip image stays upstream.
 
+Two pieces of configuration do it. Both are in this repository, and `setup.sh` supplies the origin from
+the base URL, so a manual deployment only has to make them agree with its own hostname.
+
+**1. The `zulip` router carries the framing middleware** — `Zulip/compose.yaml`:
+
+```yaml
+labels:
+  traefik.enable: "true"
+  traefik.docker.network: "proxy"                                   # P-18
+  traefik.http.routers.zulip.rule: "Host(`${SETTING_EXTERNAL_HOST}`)"
+  traefik.http.routers.zulip.entrypoints: "websecure"
+  traefik.http.routers.zulip.tls: "true"                            # IN-8.2
+  traefik.http.routers.zulip.tls.certresolver: "le"
+  traefik.http.routers.zulip.middlewares: "security-headers@file"   # ← framing (IN-5.27)
+  traefik.http.services.zulip.loadbalancer.server.port: "80"
 ```
-Zulip/
-├── Dockerfile               # FROM ghcr.io/zulip/zulip-server:<pinned> ; COPY custom_zulip_files/ /root/custom_zulip/
-└── custom_zulip_files/
-    └── puppet/zulip/files/nginx/zulip-include-common/headers   # DENY → frame-ancestors allow-list
+
+**2. That middleware carries the allow-list** — `Traefik/dynamic/middlewares.yml`:
+
+```yaml
+http:
+  middlewares:
+    security-headers:
+      headers:
+        # ← the Workcenter shell's origin, and nothing else (IN-5.8)
+        contentSecurityPolicy: "frame-ancestors https://workcenter.example.com"
 ```
 
-| Ref | Note |
+The two must agree with the deployment's own hostnames: the router's `Host(...)` is
+`SETTING_EXTERNAL_HOST` (`chat.<base domain>`), and the allow-list is the **shell's** origin
+(`https://<base domain>`) — not Zulip's. A label without the middleware, or a middleware naming the
+wrong origin, is a Chat pane that either refuses to load or is blocked by the browser; nothing else
+reports it, because Zulip itself is healthy throughout.
+
+| Ref | Requirement |
 | --- | --- |
-| IN-5.7 | The derived image is pinned to the **same** upstream version. It exists only to change one static header. No application code is patched. |
-| IN-5.8 | The override must restrict framing to the Workcenter origin — never `*`. Zulip is a chat application holding user content; framing it from anywhere would enable clickjacking. |
-| IN-5.9 | If the derived image becomes unmaintainable, the fallback is to render the Chat pane as a launch surface (summary plus **Open in new tab**) rather than an embedded frame. That decision is recorded in the roadmap as an open risk. |
+| IN-5.7 | The `zulip` service runs the pinned **upstream** image, unmodified. Framing is an ingress concern (IN-8.4) and a Zulip release is adopted by moving one tag in `Zulip/.env` — no image is built, patched or retagged. |
+| IN-5.8 | The allow-list names the **Workcenter origin** — scheme + host of the shell, e.g. `https://workcenter.example.com` — and **never `*`**. Zulip is a chat application holding user content; framing it from anywhere would enable clickjacking. `setup.sh` writes this value from the base URL (`production.md` §5.4). |
+| IN-5.9 | If framing cannot be configured — an ingress Workcenter does not own (IN-8.4), or a proxy that cannot set response headers — the fallback is to render the Chat pane as a launch surface (summary plus **Open in new tab**) rather than an embedded frame. |
 | IN-5.10 | The Playwright suite asserts the Chat pane actually renders application content, not an error page, so a regression here fails CI rather than shipping silently. |
+| IN-5.27 | **The two settings above are the whole mechanism, and both are required for a manual deployment:** the `traefik.http.routers.zulip.middlewares` label, and the `contentSecurityPolicy` entry it names. `setup.sh` writes them (production.md §5.4); `scripts/e2e.sh` generates the middleware for a test run and reports the header it finds. A proxy that cannot be configured this way is IN-5.9's fallback. |
 
 ### 5.5 Traefik and the long-poll connection
 
@@ -407,7 +441,7 @@ Zulip/
 
 | Ref | Note |
 | --- | --- |
-| IN-5.18 | **OIDC group→role sync requires Zulip 13.** Zulip 11 added group sync for **SAML only**. On the pinned 12.2 image, `zulip_groups`/`zulip_role` claims are accepted into the IdP configuration but not synchronised. |
+| IN-5.18 | **OIDC group→role sync requires Zulip 13.** Zulip 11 added group sync for **SAML only**. On the pinned 12.3 image, `zulip_groups`/`zulip_role` claims are accepted into the IdP configuration but not synchronised. |
 | IN-5.19 | `setup.sh` therefore propagates `workspaceadmin` **out of band** with `PATCH /api/v1/users/{user_id}` (role: owner 100, administrator 200, moderator 300, member 400, guest 600), and re-runs on demand. This is idempotent and safe to repeat. |
 | IN-5.20 | When Workcenter moves to Zulip 13, the out-of-band step is replaced by `SOCIAL_AUTH_SYNC_ATTRS_DICT` with `groups` and `role` entries and the `zulip_groups`/`zulip_role` claims listed in the IdP's `extra_attrs`. |
 
@@ -416,7 +450,7 @@ Zulip/
 | Ref | Mechanism |
 | --- | --- |
 | IN-5.21 | **Mode, per user, at runtime.** `PATCH /api/v1/settings` with `color_scheme` as a JSON-encoded integer: **1 automatic, 2 dark, 3 light**. Zulip pushes the resulting `user_settings` event to that user's open clients, which swap the `dark-theme` class on `:root` — so the Chat pane changes **live, without a reload**, and the night logo swaps with it. |
-| IN-5.22 | **Mode, for everyone, at setup.** `PATCH /api/v1/settings` also accepts `target_users` — `{"user_ids":[…],"group_ids":[…],"skip_if_already_edited":true}` — from feature level 444 (present on the pinned 12.2). Workcenter always passes `skip_if_already_edited: true`: Zulip then skips any user who has ever changed that setting themselves, which is exactly the advisory contract of `design.md` D-T1. |
+| IN-5.22 | **Mode, for everyone, at setup.** `PATCH /api/v1/settings` also accepts `target_users` — `{"user_ids":[…],"group_ids":[…],"skip_if_already_edited":true}` — from feature level 444 (present on the pinned 12.3). Workcenter always passes `skip_if_already_edited: true`: Zulip then skips any user who has ever changed that setting themselves, which is exactly the advisory contract of `design.md` D-T1. |
 | IN-5.23 | `PATCH /api/v1/settings` is **`@human_users_only`**. A bot API key cannot call it. The realm-wide pass therefore uses a human realm-administrator account created by `setup.sh`, and the per-user path uses the user's own credentials. |
 | IN-5.24 | **New-user default.** `PATCH /api/v1/realm/user_settings_defaults` with `color_scheme=2` makes dark the default for accounts created later. It does **not** accept `default_language`. |
 | IN-5.25 | **Branding.** `PATCH /api/v1/realm` sets `name`, `description` and `default_language`; `POST /api/v1/realm/icon` uploads the organisation icon; `POST /api/v1/realm/logo` uploads the wordmark and is called **twice** — `night=false` and `night=true` — so Zulip swaps logos with the theme. All are admin-only and multipart. |
@@ -712,14 +746,35 @@ certificatesResolvers:
 
 | Middleware | Used by | Notes |
 | --- | --- | --- |
-| `security-headers@file` | Workcenter, FileBrowser, Mailcow, Zulip | HSTS, `X-Content-Type-Options`, `Referrer-Policy`, and a per-application `frame-ancestors` |
+| `security-headers@file` | Workcenter, FileBrowser, Mailcow, Zulip | HSTS, `X-Content-Type-Options`, `Referrer-Policy`, and the `frame-ancestors` allow-list |
 | `no-frame-block@file` | OnlyOffice | Must **not** deny framing |
 | `authentik@file` (forwardauth) | Traefik dashboard only | Plus the second, higher-priority router described in IN-7.8 |
 | Long-poll tuning | Zulip's event routes | Response buffering off, extended read/idle timeouts |
 
-> **Rule IN-8.5:** framing policy is expressed **per application**, never globally. Workcenter's own
-> `frame-ancestors` allow-list is the Workcenter origin; OnlyOffice must be framable; Zulip's framing
-> is handled by its derived image.
+> **Rule IN-8.5:** framing policy is expressed **per application**, never globally, and it is expressed
+> **at the ingress**. Workcenter's own `frame-ancestors` allow-list is the Workcenter origin; OnlyOffice
+> must be framable; and Zulip — which ships `X-Frame-Options: DENY` and cannot be told otherwise — is
+> framed by attaching `security-headers@file` to its router, whose `frame-ancestors` value a browser
+> honours in preference to that header ([§5.4](#54-the-framing-problem), IN-5.27). No application image
+> is modified to achieve framing.
+
+**Writing the middleware by hand.** A deployment that does not use `setup.sh` writes the value itself in
+`Traefik/dynamic/middlewares.yml`:
+
+```yaml
+contentSecurityPolicy: "frame-ancestors https://<the shell's own host>"
+```
+
+and attaches it per application from the compose labels
+(`traefik.http.routers.<name>.middlewares: "security-headers@file"`). `scripts/e2e.sh` does exactly this
+for a test run, substituting the run's own origin into a generated copy of the file
+(`Testing.md` §6.5). Note that Traefik **sets** this header rather than merging it: a response that
+carries a CSP of its own — Zulip does for some upload paths — has that policy replaced by this one, so
+anything an application needs to keep has to be expressed in a middleware of its own (IN-8.5a).
+
+| Ref | Rule |
+| --- | --- |
+| IN-8.5a | One middleware cannot merge two CSPs. If an application must keep a policy of its own, it gets its own middleware and its own router; attaching `security-headers@file` to a router replaces whatever CSP the backend sent. |
 
 ---
 
