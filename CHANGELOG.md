@@ -645,6 +645,14 @@ as described in [`contributions.md`](./contributions.md).
    the step then ran `manage.py create_realm`, which answered "Subdomain is already in use." and ended
    the run before the admin account that follows it was made. That answer is now treated as the
    idempotent case the check was trying to detect, so the admin step always runs.
+ - **`--hosts` aborted while writing the browser trust stores.** `trust_local_certificate` compares the
+   stored authority's fingerprint with the one on disk, and both probes assumed the nickname was
+   already there: `certutil -L -n <name>` exits non-zero with no output for a profile that does not
+   hold it yet — the normal first run, and every fresh profile — so `openssl` failed on empty input,
+   `pipefail` failed the assignment and the run stopped before the certificate was installed at all.
+   The `certutil -D` that clears a previous entry failed the same way one line later. Both now
+   tolerate the absent case, which the comparison already treats as "not stored", so a first run
+   installs the certificate into every profile it finds.
 
 ### Documentation
  - `Testing.md` §6.5 rewritten for the Docker harness: the option table, the stage-by-stage behaviour, the
