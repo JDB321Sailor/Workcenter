@@ -2014,15 +2014,24 @@ trust_local_certificate() {
       # bytes would not do either: `certutil` re-encodes what it exports, so a
       # byte comparison never matches and every run rewrites the entry.
       local stored_fp file_fp
+      # `|| true`: a profile that does not hold the nickname yet — the normal first
+      # run, and every fresh browser profile — makes `certutil -L -n` exit non-zero
+      # with no output, and `openssl` then fails on empty input. Under `pipefail`
+      # that aborted the whole run before the certificate could be installed at all.
+      # An empty fingerprint is simply "not stored", which the comparison below
+      # already handles.
       stored_fp="$(as_browser_user certutil -d "sql:${db}" -L -n "${TRUST_STORE_NAME}" -a 2>/dev/null \
-        | openssl x509 -noout -fingerprint -sha256 2>/dev/null)"
+        | openssl x509 -noout -fingerprint -sha256 2>/dev/null || true)"
       file_fp="$(openssl x509 -in "${cert}" -noout -fingerprint -sha256 2>/dev/null)"
       if [[ -n "${stored_fp}" && "${stored_fp}" == "${file_fp}" ]]; then
         info "the local certificate authority is already in ${db}"
         installed=1
         continue
       fi
-      as_browser_user certutil -d "sql:${db}" -D -n "${TRUST_STORE_NAME}" >/dev/null 2>&1
+      # `|| true`: `-D` exits non-zero when the nickname is not there, which is the
+      # normal first run and every profile this script has not written yet. The `-A`
+      # below is the command whose result matters.
+      as_browser_user certutil -d "sql:${db}" -D -n "${TRUST_STORE_NAME}" >/dev/null 2>&1 || true
       if as_browser_user certutil -d "sql:${db}" -A -t 'C,,' \
           -n "${TRUST_STORE_NAME}" -i "${cert}" 2>/dev/null; then
         ok "trusted the local certificate authority in ${db}"

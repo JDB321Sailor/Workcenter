@@ -6,7 +6,7 @@ import path from 'node:path';
  * The e2e harness's own guardrails.
  *
  * `scripts/e2e.sh` has no unit-testable surface — a person is the runner and
- * ShellCheck is the CI gate (`Testing.md` §6.5, §10) — so these assert the two
+ * ShellCheck is the CI gate (`Testing.md` §6.5, §10) — so these assert the
  * properties that failed in the field. They are deliberately narrow: the
  * behaviour itself is exercised by the harness's own checks when it runs.
  */
@@ -34,6 +34,15 @@ describe('the e2e harness', () => {
     expect(script).toContain('manage.py create_user');
     expect(script).toContain('manage.py change_user_role');
     expect(script).toContain('/api/v1/fetch_api_key');
+  });
+
+  it('does not abort when a browser store has no certificate yet', () => {
+    /* `certutil -L -n <name>` and `certutil -D -n <name>` both exit non-zero when
+       the nickname is absent — the normal first run, and every fresh profile — so
+       under `pipefail` the unguarded `trust_local_certificate` probes aborted the
+       whole `--hosts` run before the certificate could be installed. */
+    expect(script).toContain('fingerprint -sha256 2>/dev/null || true)');
+    expect(script).toContain('-D -n "${TRUST_STORE_NAME}" >/dev/null 2>&1 || true');
   });
 
   it('prints both test accounts', () => {
