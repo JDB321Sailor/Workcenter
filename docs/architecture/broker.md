@@ -10,7 +10,7 @@
 | --- | --- |
 | **Status** | Specified (Phase 6 target). The health and preference routes are implemented; the transfer engine is not yet built — [§12](#13-implementation-status) marks exactly what exists |
 | **Owner** | `services/utils/broker/` (runtime), `services/broker-server.js` (entry), `src/broker/` (shell client) |
-| **Contractual siblings** | [`architecture.md`](./architecture.md) §4 (placement and decisions AR-46…AR-49), [`integration.md`](./integration.md) §9 (integrity rules IN-9.1…IN-9.8), [`design.md`](./design.md) D-6/D-8 (the UI the broker answers to), [`roadmap.md`](./roadmap.md) §7 and Phase 6 (the flows) |
+| **Contractual siblings** | [`architecture.md`](./architecture.md) §4 (placement and decisions AR-46…AR-49), [`integration.md`](./integration.md) §9 (integrity rules IN-9.1…IN-9.8), [`design.md`](./design.md) D-6/D-8 (the UI the broker answers to), [`roadmap.md`](../../roadmap.md) §7 and Phase 6 (the flows) |
 | **Requirement family** | `BR-<section>.<n>` — this document. It **references** `AR-*`, `IN-*`, `D-*`, `U-*`, `I-*` and `T-*`; it never restates or overrides them |
 
 ---
@@ -109,8 +109,8 @@ security defect, not a feature (BR-2.8).
 | BR-2.4 | **Transfers stream.** Memory use is bounded by a buffer, not by file size; the spool is a temporary file in a private directory, removed when the transfer ends, whatever the outcome ([IN-9.2](./integration.md)) | A 4 GB attachment must not become 4 GB of heap |
 | BR-2.5 | **Nothing is written to another application's store behind its back.** Mailcow and Zulip are **read-only from the disk's point of view**; every write goes through IMAP or the Zulip API ([IN-9.7](./integration.md)) | Writing into Dovecot's or Zulip's storage directly corrupts indexes and caches |
 | BR-2.6 | **The only direct writes are into the FileBrowser source**, and only with temp-file-then-atomic-rename in the destination directory ([IN-9.3](./integration.md)) | FileBrowser indexes that directory; a half-written file would be indexed as a real one |
-| BR-2.7 | **Framing is never weakened by the broker.** No route rewrites `X-Frame-Options` or CSP, and a pane that an application refuses to frame is reported as `blocked`, never "fixed" by stripping a header ([`design.md` D-7.1](./design.md), [`roadmap.md` R14](./roadmap.md)) | Clickjacking protection belongs to the application that set it |
-| BR-2.8 | **A new capability ships with its tests** — authorisation, SSRF-rejection, oversized input, secret-leak and failure-path tests, in the same change ([`architecture.md` AR-45](./architecture.md), [`Testing.md` §5](./Testing.md)) | The broker's blast radius is every user's data in three systems |
+| BR-2.7 | **Framing is never weakened by the broker.** No route rewrites `X-Frame-Options` or CSP, and a pane that an application refuses to frame is reported as `blocked`, never "fixed" by stripping a header ([`design.md` D-7.1](./design.md), [`roadmap.md` R14](../../roadmap.md)) | Clickjacking protection belongs to the application that set it |
+| BR-2.8 | **A new capability ships with its tests** — authorisation, SSRF-rejection, oversized input, secret-leak and failure-path tests, in the same change ([`architecture.md` AR-45](./architecture.md), [`Testing.md` §5](../development/Testing.md)) | The broker's blast radius is every user's data in three systems |
 
 > **Rule BR-2.9:** an outcome the broker cannot determine is reported as `unknown`, never as success
 > and never as failure ([`architecture.md` AR-49](./architecture.md)).
@@ -166,7 +166,7 @@ typed body, its own validation and its own authorisation test (BR-3.5).
 > and it returns liveness and per-application reachability, never anything about a user
 > ([`architecture.md` AR-15](./architecture.md)).
 > **Rule BR-3.3:** an unknown id, a malformed body or a path that fails validation is rejected with a
-> typed error **before** any adapter is called ([`Testing.md` §5](./Testing.md)).
+> typed error **before** any adapter is called ([`Testing.md` §5](../development/Testing.md)).
 > **Rule BR-3.4:** a `reason` is a stable code, not a sentence. Prose belongs in `en.json`, keyed by
 > the code ([`design.md` D-I3](./design.md)).
 > **Rule BR-3.5:** the per-flow routes exist so that each flow has its own contract: a new flow adds a
@@ -213,7 +213,7 @@ refuses to be embedded" instead of showing a blank frame ([BR-2.7](#2-invariants
 
 | Step | Source |
 | --- | --- |
-| Session | The Workcenter OIDC session (Authorization Code + PKCE, silent renew), verified server-side per request ([`OIDC.md`](./OIDC.md)) |
+| Session | The Workcenter OIDC session (Authorization Code + PKCE, silent renew), verified server-side per request ([`OIDC.md`](../authentication/OIDC.md)) |
 | Subject | `sub` — the stable user id |
 | Username | `preferred_username` — matches the FileBrowser, Zulip and Mailcow account names in the standard deployment |
 | Groups | `groups` — the `profile` scope must be requested or the claim is absent ([`integration.md` IN-7.6](./integration.md)) |
@@ -280,7 +280,7 @@ which strategy it used, so an operator can see what their deployment relies on.
 | Mailcow / SOGo | A **Mailcow app password created with IMAP access**, over IMAP with TLS | The user creates it in Mailcow under *Mailbox → App Passwords* and ticks IMAP access — a credential made for this purpose, revocable on its own | Listing attachments, fetching a MIME part, appending a draft | Mail flows are `unavailable` with reason `no-credential` |
 | Authentik | None (the broker verifies tokens) | — | Verifying the session, reading groups | The broker cannot authenticate anyone; every route is `denied` |
 
-**On bots.** An earlier plan in [`roadmap.md`](./roadmap.md) had the Chat flows use a Zulip **bot** API key. That is not what this document specifies, and the reasons are upstream facts rather than preference: a message sent with a bot key appears as the **bot**; a bot cannot call `PATCH /api/v1/settings` at all (`@human_users_only`); a bot posts only where its *owner* may post, so the permission it needs is the owner's subscription list rather than the user's; and a bot cannot list another user's uploads. A bot key remains the right credential for **setup-time, realm-scoped** work — branding, realm defaults, the admin pass ([`integration.md` IN-5.22](./integration.md)) — where no user is being impersonated. It is the wrong credential for anything a user initiates (BR-4.5).
+**On bots.** An earlier plan in [`roadmap.md`](../../roadmap.md) had the Chat flows use a Zulip **bot** API key. That is not what this document specifies, and the reasons are upstream facts rather than preference: a message sent with a bot key appears as the **bot**; a bot cannot call `PATCH /api/v1/settings` at all (`@human_users_only`); a bot posts only where its *owner* may post, so the permission it needs is the owner's subscription list rather than the user's; and a bot cannot list another user's uploads. A bot key remains the right credential for **setup-time, realm-scoped** work — branding, realm defaults, the admin pass ([`integration.md` IN-5.22](./integration.md)) — where no user is being impersonated. It is the wrong credential for anything a user initiates (BR-4.5).
 
 **On the mail credential.** Mailcow issues **app passwords**, and an app password can be created with
 IMAP access alone ([§12](#12-upstream-verification)). That is the credential the broker asks for: it is
@@ -317,7 +317,7 @@ none of them is optional — a matrix with a hole in it is a user who cannot do 
 
 | Flow | Direction | Where the user starts it | Requirement |
 | --- | --- | --- | --- |
-| **F1** | Mail → Files | **Save to files** in the shell's Mail attachment panel | [`roadmap.md` §7.2](./roadmap.md), [`design.md` D-8.1](./design.md) |
+| **F1** | Mail → Files | **Save to files** in the shell's Mail attachment panel | [`roadmap.md` §7.2](../../roadmap.md), [`design.md` D-8.1](./design.md) |
 | **F2** | Files → Mail | **Attach from files** — the file picker opens on the mail draft | [`design.md` D-8.2](./design.md) |
 | **F3** | Chat → Files | **Save to files** in the shell's chat attachment chooser | [`design.md` D-8.5](./design.md) |
 | **F4** | Files → Chat | **Send from files** — the file picker opens on a chat target | [`design.md` D-8.2](./design.md) |
@@ -471,7 +471,7 @@ the draft, SOGo sends it — with the user's own identity and the user's own sig
 it arrives in the conversation as a message with the attachment.
 
 **Two things this flow deliberately does *not* do, and why.** The roadmap's first wording for F4 had the
-shell "insert the returned Markdown link into the message being composed" ([`roadmap.md` §7.2](./roadmap.md)).
+shell "insert the returned Markdown link into the message being composed" ([`roadmap.md` §7.2](../../roadmap.md)).
 That cannot work: the composer lives in a cross-origin frame, so the shell can neither read it nor type
 into it, and Zulip exposes no inbound channel a host page may drive. The link would have nowhere to go.
 For the same reason the upload cannot be attributed to a bot: a message posted by a bot key appears as the
@@ -650,7 +650,7 @@ caching them in a shared proxy would leak across users.
 | Destination directory is full or read-only | `failed` with reason `write-failed` and the OS error **code only** — never a path that leaks the host layout |
 
 De-duplication is by content hash, not by name: that is what makes a retry safe and what stops the
-same attachment being saved twice under two names ([`roadmap.md` F3 step 3](./roadmap.md)).
+same attachment being saved twice under two names ([`roadmap.md` F3 step 3](../../roadmap.md)).
 
 ### 5.13 Limits and backpressure
 
@@ -732,7 +732,7 @@ below is the call the broker makes, or the reason there is no call to make; the 
 | Application | The call | Live without a reload? | Reported as |
 | --- | --- | --- | --- |
 | **FileBrowser Quantum** | `PATCH /api/users?username=<login>` with `{"which":["darkMode"],"data":{"darkMode":<bool>}}` → `204`. `darkMode` is non-admin-editable, so the **user's own** credential is enough and no admin token is used (**verified**, [`integration.md` IN-3.19](./integration.md)) | The setting is stored, but the running SPA read `darkMode` from its store at load and exposes **no inbound channel** (IN-3.20) → the frame must be reloaded | `ok` + `reload: files` |
-| **Zulip** | `PATCH /api/v1/settings` with `color_scheme` as a **JSON-encoded integer** — `2` dark, `3` light (**verified**, [`integration.md` IN-5.21](./integration.md), [`roadmap.md` I-ZU-13](./roadmap.md)) | **Yes.** Zulip pushes a `user_settings` event to that user's open clients, which swap the `dark-theme` class on `:root`; the night logo swaps with it. No reload | `ok` |
+| **Zulip** | `PATCH /api/v1/settings` with `color_scheme` as a **JSON-encoded integer** — `2` dark, `3` light (**verified**, [`integration.md` IN-5.21](./integration.md), [`roadmap.md` I-ZU-13](../../roadmap.md)) | **Yes.** Zulip pushes a `user_settings` event to that user's open clients, which swap the `dark-theme` class on `:root`; the night logo swaps with it. No reload | `ok` |
 | **Mailcow / SOGo** | No appearance API exists. The mode reaches Mail through the stylesheet hook the deployment installs ([§6.3](#63-mail-the-stylesheet-hook)); the shell sets the mode cookie, and the hook selects on it | Only on the next paint of the Mail frame | `ok` + `reload: mail`, or `unsupported` with reason `no-style-hook` |
 
 **Zulip's settings endpoint is `@human_users_only`** (IN-5.23): a bot API key is refused by the API
@@ -752,7 +752,7 @@ SOGo has no dark mode and no appearance API. The mode therefore reaches Mail one
 
 | Approach | Verdict |
 | --- | --- |
-| A small stylesheet, injected by a **JS file registered in SOGo's `SOGoUIAdditionalJSFiles`** — the only UI-extension hook SOGo 5.12 has. The file links the stylesheet (or inlines it) and selects on the mode the shell publishes for the SOGo origin | **Specified.** SOGo exposes **no** custom-CSS setting at all, so the JS indirection is not a preference, it is the mechanism Mailcow itself already uses (`js/theme.js`, `js/custom-sogo.js`). It follows the same mode contract as the shell, and is what [`roadmap.md` U-11](./roadmap.md) commits to ("SOGo through the Workcenter stylesheet supplied at setup") |
+| A small stylesheet, injected by a **JS file registered in SOGo's `SOGoUIAdditionalJSFiles`** — the only UI-extension hook SOGo 5.12 has. The file links the stylesheet (or inlines it) and selects on the mode the shell publishes for the SOGo origin | **Specified.** SOGo exposes **no** custom-CSS setting at all, so the JS indirection is not a preference, it is the mechanism Mailcow itself already uses (`js/theme.js`, `js/custom-sogo.js`). It follows the same mode contract as the shell, and is what [`roadmap.md` U-11](../../roadmap.md) commits to ("SOGo through the Workcenter stylesheet supplied at setup") |
 | Trying to inject styles into the Mail iframe from the shell | **Refused.** Cross-origin: the shell cannot reach into the frame, and a `postMessage` contract would need SOGo to cooperate. SOGo exposes no such channel (BR-8.7) |
 
 The hook is a **deployment artefact**, not a per-user setting: changing the mode does not rewrite it.
@@ -870,7 +870,7 @@ broker holding anything (BR-7.3).
 | 3 | **SSRF** — a client-supplied path or id steers an outbound request | Outbound URLs are built from configuration; a client value is appended to a configured base only after validation, never parsed as a URL; redirects are not followed to a different origin | BR-2.2, [§8.4](#84-ssrf-and-address-allow-listing) |
 | 4 | **Path traversal** — `../../etc/passwd`, an absolute path, a symlink out of the root | Resolve-then-verify containment inside the source root, `O_NOFOLLOW` where the platform allows, no symlink following out of the root | [§8.5](#85-path-traversal-and-filename-safety) |
 | 5 | **Credential theft at rest** | AES-256-GCM, per-record nonce, key only in `.env`, `0600` file, user+app as AAD | [§4.3](#43-the-vault) |
-| 6 | **Credential leakage in logs or responses** | Redaction at the transport layer, a closed error vocabulary, an audit record with no secret fields, and a test that asserts it on captured output | [`Testing.md` §5](./Testing.md) |
+| 6 | **Credential leakage in logs or responses** | Redaction at the transport layer, a closed error vocabulary, an audit record with no secret fields, and a test that asserts it on captured output | [`Testing.md` §5](../development/Testing.md) |
 | 7 | **Resource exhaustion** — a huge file, many transfers, a slow reader | Size cap, concurrency caps, spool cap, per-request timeouts, streaming with backpressure | [§5.10](#513-limits-and-backpressure) |
 | 8 | **Quota abuse** — filling Zulip's upload store or the mail store | Per-user rate limits, the size cap, and the audit trail ([IN-9.8](./integration.md)) | [§5.10](#513-limits-and-backpressure) |
 | 9 | **Malicious content** — a file that exploits its destination | The broker does not open, execute or render content; it moves bytes and preserves the declared type. It refuses to *guess* a type it needs for a write, and it never follows an archive | [§8.6](#86-content-integrity) |
@@ -893,7 +893,7 @@ broker holding anything (BR-7.3).
 | Property | Specification |
 | --- | --- |
 | Route auth | Every route except `/api/broker/health` requires a verified Workcenter session; a missing or invalid session is `401`, before any adapter runs |
-| Token verification | Issuer, audience, signature, expiry, and the subject's presence; failures are `401` with a reason code, never a partial action ([`Testing.md` §5](./Testing.md)) |
+| Token verification | Issuer, audience, signature, expiry, and the subject's presence; failures are `401` with a reason code, never a partial action ([`Testing.md` §5](../development/Testing.md)) |
 | CSRF | State-changing routes are `POST`/`DELETE`, the session cookie is `SameSite=Lax` or stricter, and the broker rejects a request whose `Origin`/`Sec-Fetch-Site` is not the Workcenter origin |
 | Replay | Transfer ids are unguessable and user-scoped; a cancelled or finished transfer cannot be resumed by replaying a request |
 | Session loss mid-transfer | The transfer fails with `denied` and leaves no residue (BR-5.4) |
@@ -962,7 +962,7 @@ Recorded so that they are not re-proposed as shortcuts:
 | Storing a user's primary password for FileBrowser or Zulip | It is not needed: both can issue a purpose-built credential the user can revoke (BR-4.2) |
 | Writing into Dovecot's or Zulip's storage on the shared disk, even though the broker often can | Bypasses indexes, caches and quota accounting; [IN-9.7](./integration.md) forbids it |
 | Using a Zulip bot with broad permissions for user transfers | The message would appear as the bot, the credential would be far more powerful than the action requires (BR-1.1) — and the settings endpoint the bridge needs is `@human_users_only`, so a bot key cannot perform it at all ([`integration.md` IN-5.23](./integration.md)) |
-| Stripping or rewriting `X-Frame-Options`/CSP to make a pane embeddable | Security-relevant behaviour of the application that set it. Framing is an ingress concern, not the broker's: no application is patched, and the reverse proxy sets the `frame-ancestors` allow-list on the application's own router ([IN-8.5](./integration.md)); the broker itself never touches framing headers. Mailcow/SOGo is the one nginx-side fix ([`roadmap.md` R14](./roadmap.md)) |
+| Stripping or rewriting `X-Frame-Options`/CSP to make a pane embeddable | Security-relevant behaviour of the application that set it. Framing is an ingress concern, not the broker's: no application is patched, and the reverse proxy sets the `frame-ancestors` allow-list on the application's own router ([IN-8.5](./integration.md)); the broker itself never touches framing headers. Mailcow/SOGo is the one nginx-side fix ([`roadmap.md` R14](../../roadmap.md)) |
 | A wildcard `postMessage` target, or trusting any message the pane posts | Cross-origin frames are untrusted input; messages are posted to exact origins and verified on receipt ([`design.md` D-T8](./design.md)) |
 | Disabling TLS verification to reach an internal service | `NODE_EXTRA_CA_CERTS` and a proper internal CA exist for this ([`architecture.md` AR-40](./architecture.md)) |
 | Buffering a whole file in memory "because it is usually small" | The one time it is not small is the time it takes the deployment down (BR-2.4) |
@@ -1001,10 +1001,10 @@ that keeps it honest:
 | Layer | Scope | Where |
 | --- | --- | --- |
 | **Unit** | Naming, de-duplication, path validation, hash, spool lifecycle, outcome mapping, the vault's encrypt/decrypt, the rate limiter | `tests/unit/` |
-| **Route** | The real Express app with `supertest`: auth, validation, the envelope, status codes, the closed reason vocabulary, secret redaction on captured output | `tests/server/broker.test.js` and successors ([`Testing.md` §5](./Testing.md)) |
+| **Route** | The real Express app with `supertest`: auth, validation, the envelope, status codes, the closed reason vocabulary, secret redaction on captured output | `tests/server/broker.test.js` and successors ([`Testing.md` §5](../development/Testing.md)) |
 | **Adapter** | Each adapter against a **fake upstream** that speaks the real protocol (an HTTP fake for FileBrowser and Zulip, an IMAP fake for Mailcow) | `tests/server/adapters/` |
-| **End-to-end (manual, today)** | The six flows by hand against the deployed stack | [`Testing.md` §6.5](./Testing.md), `scripts/e2e.sh` |
-| **End-to-end (automated, Phase 7)** | Playwright drives each flow against seeded fixtures | [`Testing.md` §10](./Testing.md) |
+| **End-to-end (manual, today)** | The six flows by hand against the deployed stack | [`Testing.md` §6.5](../development/Testing.md), `scripts/e2e.sh` |
+| **End-to-end (automated, Phase 7)** | Playwright drives each flow against seeded fixtures | [`Testing.md` §10](../development/Testing.md) |
 
 Fakes are not mocks of the broker's own code: they are minimal servers that implement the *upstream*
 contract (status codes, body shapes, IMAP responses) as verified in [§12](#12-upstream-verification),
@@ -1145,20 +1145,20 @@ them, never recovering them (BR-10.1).
 
 | This document | Requirement it implements |
 | --- | --- |
-| [§1.2](#12-what-the-broker-is-not) not-a-proxy, not-a-store | [`architecture.md` AR-46](./architecture.md)–AR-49, [`roadmap.md` §7.3](./roadmap.md) |
+| [§1.2](#12-what-the-broker-is-not) not-a-proxy, not-a-store | [`architecture.md` AR-46](./architecture.md)–AR-49, [`roadmap.md` §7.3](../../roadmap.md) |
 | [§2](#2-invariants) invariants | [`integration.md` IN-9.1–IN-9.8](./integration.md), [`architecture.md` AR-45](./architecture.md), AR-47 |
 | [§3.2](#32-route-table) route table | [`architecture.md` §4.3](./architecture.md), AR-15 |
 | [§3.4](#34-get-apibrokerhealth) health | AR-49, [`integration.md` IN-10.4](./integration.md), [`design.md` D-2S](./design.md) |
-| [§4](#4-identity-credentials-and-the-vault) identity and vault | IN-9.5, [`OIDC.md`](./OIDC.md), [`roadmap.md` U-20](./roadmap.md) |
-| [§5.4–§5.8](#54-f1--mail--files) the six flows | [`roadmap.md` §7.2](./roadmap.md) F1–F6, Phase 6 steps 6.2–6.6, [`design.md` D-8](./design.md), BR-5.11 and BR-5.19 |
+| [§4](#4-identity-credentials-and-the-vault) identity and vault | IN-9.5, [`OIDC.md`](../authentication/OIDC.md), [`roadmap.md` U-20](../../roadmap.md) |
+| [§5.4–§5.8](#54-f1--mail--files) the six flows | [`roadmap.md` §7.2](../../roadmap.md) F1–F6, Phase 6 steps 6.2–6.6, [`design.md` D-8](./design.md), BR-5.11 and BR-5.19 |
 | [§5.8](#511-progress-cancellation-and-retry) progress and cancellation | D-8.3, IN-9.2 |
-| [§5.9](#512-naming-collisions-and-de-duplication) naming and de-duplication | [`roadmap.md` F3 step 3](./roadmap.md), D-8.1 |
+| [§5.9](#512-naming-collisions-and-de-duplication) naming and de-duplication | [`roadmap.md` F3 step 3](../../roadmap.md), D-8.1 |
 | [§5.11](#514-the-audit-record) audit | IN-9.4 |
-| [§6](#6-appearance-the-lightdark-bridge) appearance | [`design.md` D-6.1](./design.md), D-T1, D-T6, D-T7, D-T8, [`roadmap.md` U-17](./roadmap.md) |
-| [§7](#7-language-the-locale-bridge) language | [`design.md` D-6.2](./design.md), D-I6, D-I8, D-I10, AR-47, [`roadmap.md` U-18](./roadmap.md) |
+| [§6](#6-appearance-the-lightdark-bridge) appearance | [`design.md` D-6.1](./design.md), D-T1, D-T6, D-T7, D-T8, [`roadmap.md` U-17](../../roadmap.md) |
+| [§7](#7-language-the-locale-bridge) language | [`design.md` D-6.2](./design.md), D-I6, D-I8, D-I10, AR-47, [`roadmap.md` U-18](../../roadmap.md) |
 | [§8](#8-security-and-integrity) security | IN-9.1, IN-9.5, IN-9.7, AR-15, AR-45, BR-2.x |
-| [§9](#9-testing) testing | [`Testing.md` §5](./Testing.md), §10, AR-45 |
-| [§10](#10-operations) operations | [`production.md`](./production.md), AR-33, AR-40 |
+| [§9](#9-testing) testing | [`Testing.md` §5](../development/Testing.md), §10, AR-45 |
+| [§10](#10-operations) operations | [`production.md`](../deployment/production.md), AR-33, AR-40 |
 
 ---
 
@@ -1166,14 +1166,14 @@ them, never recovering them (BR-10.1).
 
 Every upstream fact this document relies on is verified against the pinned version and recorded with
 its source, so a future reader can re-check it rather than trusting it. The pins are the ones in
-[`integration.md` §2](./integration.md) and [`roadmap.md` §6](./roadmap.md).
+[`integration.md` §2](./integration.md) and [`roadmap.md` §6](../../roadmap.md).
 
 | Application | Pin | What was verified for this document |
 | --- | --- | --- |
 | FileBrowser Quantum | `v2.0.9-beta` (`gtsteffaniak/filebrowser`, commit `7a06fb1e…`) — see the tag caveat below | **Preferences:** the user-record patch (`PATCH /api/users?username=…` with `{which,data}` → `204`; `darkMode` and `locale` are non-admin-editable), and the absence of any inbound message channel, so a preference change needs a frame reload ([IN-3.19](./integration.md), IN-3.20). **Files:** download is `GET /api/resources/download?source=&file=` and honours `Range` (single files are served through `http.ServeContent`); listing is `GET /api/resources` (with metadata) or `GET /api/resources/items` (names only); a write is `POST /api/resources?path=&override=` with a **raw body**, and a chunked variant (`X-File-Chunk-Offset`, `X-File-Total-Size`, `X-File-Upload-Session`) that stages a `.uploading.tmp`, verifies the total and moves it into place. **Automation:** `POST /api/auth/token` mints a long-lived per-user token (it requires the user's `api` permission); tokens are validated against a server-side registry, so one cannot be forged. **Indexing:** there is **no filesystem watcher and no rescan endpoint** — a scheduled poller runs on tiers from five minutes to twelve hours, and the only way to bring a directory up to date on demand is to read it (`GET /api/resources?path=<dir>`, which re-stats that level unless `skipExtendedAttrs=true`). **Traversal:** the API rejects a residual `..`, joins client paths to the user's scope so a leading `/` cannot discard it, and resolves symlinks before a containment check that answers `403`. **Errors:** a `403` may carry an empty body, so the broker must not assume JSON when it maps an upstream refusal |
-| Zulip | **12.3** — `ghcr.io/zulip/zulip-server:12.3-0` (server commit `b3198225…`, API feature level 500). The concrete pin lives in [`architecture.md`](./architecture.md); the `<version>` placeholders in [`integration.md`](./integration.md) and [`roadmap.md` I-ZU-1](./roadmap.md) are not pins | **Upload:** `POST /api/v1/user_uploads` is multipart (one part), authenticated with **HTTP Basic `email:api_key` only** — a session cookie is *not* accepted on `/api/…` — and answers `{url, filename}`; `uri` is a deprecated alias of `url`. The multipart endpoint is capped by **nginx at 25 MiB** even though the realm default is 100 MiB, so larger files use `/api/v1/tus` (`Tus-Resumable`, `Upload-Length`, `Upload-Metadata`, `PATCH` + `Upload-Offset`, `{url, filename}` on completion), which nginx does not size-cap and which does not consume the API rate budget. **Send:** `POST /api/v1/messages` has **no `file` parameter** in this version or in main — an attachment is carried by a Markdown link to the upload in `content`, and the server claims the path to the message; the broker builds the deep link itself because no message URL is returned before Zulip 13. **Settings:** `PATCH /api/v1/settings` takes `color_scheme` 1/2/3 and applies it live through a `user_settings` event; `default_language` must be a code the server has translations for, and the settings UI itself tells the user a **reload** is required. The endpoint is `@human_users_only`, so a bot key cannot call it. **Rate limit:** 200 requests/minute per user (`api_by_user`), `X-RateLimit-*` advertised, `429` with `Retry-After`. **Attachments:** `GET /api/v1/messages/<id>?apply_markdown=false` returns raw content with upload links but no attachment metadata; `GET /api/v1/attachments` lists only the caller's own uploads. **Framing:** the nginx header at server scope, with no supported way to relax it ([IN-5.26](./integration.md)) |
+| Zulip | **12.3** — `ghcr.io/zulip/zulip-server:12.3-0` (server commit `b3198225…`, API feature level 500). The concrete pin lives in [`architecture.md`](./architecture.md); the `<version>` placeholders in [`integration.md`](./integration.md) and [`roadmap.md` I-ZU-1](../../roadmap.md) are not pins | **Upload:** `POST /api/v1/user_uploads` is multipart (one part), authenticated with **HTTP Basic `email:api_key` only** — a session cookie is *not* accepted on `/api/…` — and answers `{url, filename}`; `uri` is a deprecated alias of `url`. The multipart endpoint is capped by **nginx at 25 MiB** even though the realm default is 100 MiB, so larger files use `/api/v1/tus` (`Tus-Resumable`, `Upload-Length`, `Upload-Metadata`, `PATCH` + `Upload-Offset`, `{url, filename}` on completion), which nginx does not size-cap and which does not consume the API rate budget. **Send:** `POST /api/v1/messages` has **no `file` parameter** in this version or in main — an attachment is carried by a Markdown link to the upload in `content`, and the server claims the path to the message; the broker builds the deep link itself because no message URL is returned before Zulip 13. **Settings:** `PATCH /api/v1/settings` takes `color_scheme` 1/2/3 and applies it live through a `user_settings` event; `default_language` must be a code the server has translations for, and the settings UI itself tells the user a **reload** is required. The endpoint is `@human_users_only`, so a bot key cannot call it. **Rate limit:** 200 requests/minute per user (`api_by_user`), `X-RateLimit-*` advertised, `429` with `Retry-After`. **Attachments:** `GET /api/v1/messages/<id>?apply_markdown=false` returns raw content with upload links but no attachment metadata; `GET /api/v1/attachments` lists only the caller's own uploads. **Framing:** the nginx header at server scope, with no supported way to relax it ([IN-5.26](./integration.md)) |
 | Mailcow / SOGo | Mailcow `2026-09` (server `master`), with **Dovecot 2.3.21** and **SOGo 5.12.11** | **IMAP:** the service is `dovecot-mailcow`, reachable on the compose network as `dovecot:993`; plaintext auth is refused except from SOGo's own address, so TLS is mandatory. The generated certificate is self-signed with **CN only and no SAN**, so it verifies for `MAILCOW_HOSTNAME` and for nothing else — a deployment fix, not a reason to skip verification. Credentials: the mailbox password, an **app password with `imap_access`** (the broker's choice), or a Dovecot **master user** (refused). Mailboxes use the `/` separator and carry `\Drafts`, `\Sent`, `\Trash`, `\Junk`, `\Archive` SPECIAL-USE flags, so the broker resolves them by flag rather than name. **Appending:** `APPEND "Drafts" (\Draft) {n}` returns `APPENDUID`; there is no Dovecot message-size limit (the 100 MB figure is Postfix and governs SMTP, not APPEND), and the mailbox quota does apply. **SOGo's draft detection is folder membership, not the `\Draft` flag**; editing an appended draft can leave the appended message behind as a stale copy, because SOGo keeps its own spool. **Fetching:** `UID FETCH (BODYSTRUCTURE)` then `BODY.PEEK[part]`, which returns the part transfer-encoded, so the broker decodes it; `BINARY` exists but is unevenly supported; RFC 9394 `PARTIAL` is absent, so long reads are sliced with the classic `<start.length>` form; a malformed message can disconnect the session by design. **No API:** SOGo's JSON surface covers calendars and contacts, with only folder actions and UID listing for mail — the message endpoints are undocumented internals. Mailcow's own `/api/v1` is **admin-scoped** and cannot read a mailbox. **Appearance:** there is **no custom-CSS setting** in SOGo 5.12.11; the hook is a JS file in `SOGoUIAdditionalJSFiles`, and any change needs a `sogo-mailcow` restart because the container regenerates its defaults and rsyncs the web volume. **Language:** per-user `SOGoLanguage` (a language name) is written only by `sogo-tool` inside the container — there is no HTTP route. **Framing:** `add_header X-Frame-Options "SAMEORIGIN" always;` at server scope, inherited by `/SOGo` but **not** by the nested `/SOGo/so/*.(xml\|js\|html\|xhtml)` location, which sets its own `add_header` and therefore drops it |
-| Authentik | the pin in [`roadmap.md` §6](./roadmap.md) | The `groups` claim requires the `profile` scope; per-user credentials for downstream applications are issued by those applications, not by Authentik |
+| Authentik | the pin in [`roadmap.md` §6](../../roadmap.md) | The `groups` claim requires the `profile` scope; per-user credentials for downstream applications are issued by those applications, not by Authentik |
 
 The per-fact citations live in the sections above. Where a fact is *not* verified against the pin, the
 section says so in place, and the limitation is carried as a risk rather than as a promise.

@@ -9,7 +9,7 @@ authentication and documentation conventions. The Default dashboard, the Minimal
 the widget engine, status monitoring, the tile grid and the in-app configuration editor
 are not part of Workcenter.
 
-The upstream copyright notice is retained in [`LICENSE`](../LICENSE) and in the header of
+The upstream copyright notice is retained in [`LICENSE`](../../LICENSE) and in the header of
 every file that carries one. Workcenter is an independent project and is not a fork.
 
 ## Dependencies
@@ -64,24 +64,24 @@ apply to their own code.
 
 ### Assets
 
-The application marks in [`icons/`](../icons) are the base SVG variants from the
+The application marks in [`icons/`](../../icons) are the base SVG variants from the
 [Dashboard Icons](https://dashboardicons.com) collection by
 [@homarr-labs](https://github.com/homarr-labs/dashboard-icons) and its contributors, which is
 MIT licensed. Each mark remains the trademark of the project it represents; it is used to
 identify that project and for no other purpose.
 
-The language flags in [`icons/flags/`](../icons/flags) are the square (1x1) SVGs from
+The language flags in [`icons/flags/`](../../icons/flags) are the square (1x1) SVGs from
 [flag-icons](https://github.com/lipis/flag-icons) by [Panayiotis Lipiridis](https://github.com/lipis)
 and its contributors, MIT licensed. They are cropped to a circle in CSS — never distorted and never
 recoloured. A flag identifies the language the shell is set to; it makes no claim about a user's
 nationality, which is why a language with no country of its own shows a globe instead.
 
-The sun and moon glyphs in [`icons/ui/`](../icons/ui) are Solid style icons from
+The sun and moon glyphs in [`icons/ui/`](../../icons/ui) are Solid style icons from
 [Font Awesome Free](https://fontawesome.com) 6.7.2, whose icons are CC BY 4.0. They are committed
 rather than loaded from the Font Awesome kit, so the appearance control renders even when that kit
 is unreachable.
 
 ## Contributing
 
-See [`contributions.md`](../contributions.md) for how to contribute, and
-[`credits`](credits.md) for the licence of each dependency.
+See [`contributions.md`](../development/contributions.md) for how to contribute, and
+[`credits`](./credits.md) for the licence of each dependency.

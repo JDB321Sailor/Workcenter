@@ -1,7 +1,7 @@
 # Bare metal
 
 Running Workcenter directly on a host, without Docker. Most deployments should use Docker
-instead — see [`deployment.md`](../deployment.md) — but this is useful for development and for
+instead — see [`deployment.md`](./deployment.md) — but this is useful for development and for
 a host that already runs Node.js.
 
 ## Build from Source
@@ -44,7 +44,7 @@ nano user-data/conf.yml
 ```
 
 Notes:
-- If you're making changes to Workcenter's codebase, you can run `yarn dev` to start the dev server with hot reloading. See the [Developing](/docs/developing.md) docs for more info.
+- If you're making changes to Workcenter's codebase, you can run `yarn dev` to start the dev server with hot reloading. See the [Developing](../development/developing.md) docs for more info.
 - To keep Workcenter running in the background, either use `yarn pm2-start` (instead of yarn start). Or, with systemd, see the [systemd service](#systemd-service) example below
 
 ---
@@ -107,8 +107,8 @@ If you installed Workcenter somewhere else, update `WorkingDirectory`.
 - `yarn build` must run before `yarn start`; there is no build step at start-up.
 - Workcenter has not cut a release yet. There is no published tarball, no Docker image and no
   GHCR package: build from source, or use the release process in
-  [`docs/release-workflow.md`](../release-workflow.md) once `Dev` is promoted through `Beta`
+  [`docs/development/release-workflow.md`](../development/release-workflow.md) once `Dev` is promoted through `Beta`
   into `Stable`.
 - For production, the supported deployment is the Docker stack described in
-  [`production.md`](../../production.md), which brings up Traefik, Authentik, FileBrowser
+  [`production.md`](./production.md), which brings up Traefik, Authentik, FileBrowser
   Quantum, ONLYOFFICE, Zulip and Mailcow alongside Workcenter.

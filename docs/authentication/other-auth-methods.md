@@ -41,7 +41,7 @@ pane is a separate origin with its own session. Two layers are therefore normal:
 
 Configuring only the edge leaves three independent logins inside the workspace. Configuring only
 Authentik leaves the shell exposed to anyone who can reach it. See [`authentik.md`](./authentik.md)
-and [`OIDC.md`](../../OIDC.md) for the second layer.
+and [`OIDC.md`](./OIDC.md) for the second layer.
 
 ## Avoiding the framing traps
 
@@ -63,4 +63,4 @@ cached shell when a proxy redirects, so the proxy can re-authenticate the user.
 
 - [`header-auth.md`](./header-auth.md) — let an upstream proxy identify the user
 - [`authentik.md`](./authentik.md) — the identity provider for the whole workspace
-- [`security.md`](../security.md) — the intended deployment and its trust boundaries
+- [`security.md`](../security/security.md) — the intended deployment and its trust boundaries

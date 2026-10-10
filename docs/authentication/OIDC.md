@@ -4,8 +4,8 @@
 > must create in **Authentik** before bringing Workcenter up, the exact values each application needs,
 > and the verbatim prompts `setup.sh` uses to collect them.
 > **Audience:** the operator deploying Workcenter.
-> **Companions:** [`roadmap.md`](./roadmap.md) · [`integration.md`](./integration.md) ·
-> [`production.md`](./production.md) · [`Readme.md`](./Readme.md) · [`architecture.md`](./architecture.md)
+> **Companions:** [`roadmap.md`](../../roadmap.md) · [`integration.md`](../architecture/integration.md) ·
+> [`production.md`](../deployment/production.md) · [`Readme.md`](../../Readme.md) · [`architecture.md`](../architecture/architecture.md)
 
 ---
 
@@ -597,7 +597,7 @@ services:
 | O-6.7 | **There is no `SOCIAL_AUTH_OIDC_ENABLED`, `SOCIAL_AUTH_OIDC_CLIENT_ID`, `SOCIAL_AUTH_OIDC_SECRET` or `SOCIAL_AUTH_OIDC_URL` setting in Zulip.** The only OIDC settings are `SOCIAL_AUTH_OIDC_ENABLED_IDPS` and `SOCIAL_AUTH_OIDC_FULL_NAME_VALIDATED`. Any documentation that uses the other names is wrong. |
 | O-6.8 | `ZULIP_CUSTOM_SETTINGS` is raw Python appended to `settings.py`. Treat it as code: it is reviewed, and a syntax error prevents Zulip from starting. Keep secrets out of it by reading them from a file in `Zulip/secrets/` if you prefer. |
 | O-6.9 | If your Authentik uses a private CA, set `custom_ca_path` in Zulip's settings so it trusts the issuer. |
-| O-6.10 | **Zulip sends `X-Frame-Options: DENY` at server scope and cannot be embedded as shipped.** There is no Django `X_FRAME_OPTIONS` setting, no `XFrameOptionsMiddleware`, and Zulip's own CSP never carries `frame-ancestors`, so the policy is written **at the ingress** and Zulip runs the pinned upstream image **unmodified**. The `zulip` router carries `traefik.http.routers.zulip.middlewares: "security-headers@file"` (`Zulip/compose.yaml`), and that middleware's `headers.contentSecurityPolicy: "frame-ancestors https://<the shell's origin>"` in `Traefik/dynamic/middlewares.yml` — never `*` — makes the Chat pane embeddable; a browser that sees a `frame-ancestors` directive ignores `X-Frame-Options` (CSP Level 2 and later). `setup.sh` writes that origin from the base URL ([`integration.md` §5.4](./integration.md#54-the-framing-problem), IN-5.27, `production.md` P-35). |
+| O-6.10 | **Zulip sends `X-Frame-Options: DENY` at server scope and cannot be embedded as shipped.** There is no Django `X_FRAME_OPTIONS` setting, no `XFrameOptionsMiddleware`, and Zulip's own CSP never carries `frame-ancestors`, so the policy is written **at the ingress** and Zulip runs the pinned upstream image **unmodified**. The `zulip` router carries `traefik.http.routers.zulip.middlewares: "security-headers@file"` (`Zulip/compose.yaml`), and that middleware's `headers.contentSecurityPolicy: "frame-ancestors https://<the shell's origin>"` in `Traefik/dynamic/middlewares.yml` — never `*` — makes the Chat pane embeddable; a browser that sees a `frame-ancestors` directive ignores `X-Frame-Options` (CSP Level 2 and later). `setup.sh` writes that origin from the base URL ([`integration.md` §5.4](../architecture/integration.md#54-the-framing-problem), IN-5.27, `production.md` P-35). |
 | O-6.11 | **OIDC group→role sync requires Zulip 13.** On the currently pinned 12.3 image, group sync exists for **SAML only**; Zulip 12.3's own settings template states *"Sync for other backends is not currently supported."* `workspaceadmin` is therefore propagated out of band via `PATCH /api/v1/users/{user_id}` by `setup.sh`. |
 | O-6.12 | **`CSRF_TRUSTED_ORIGINS` is not a Zulip production setting.** It appears only in Zulip's development settings. Zulip's CSRF protection rests on trusting the proxy: pass the client `Host` through unchanged, set the forwarded proto, and list the proxy's address in `SETTING_LOADBALANCER_IPS`. Fix CSRF by making Traefik trusted — not by inventing a setting. |
 | O-6.13 | Do not set `ALLOWED_HOSTS`. Zulip derives it automatically from `SETTING_EXTERNAL_HOST`. |
@@ -1101,7 +1101,7 @@ Work through this after `setup.sh` completes.
 | **Authentik 502 / never loads right after `up -d`** | First-boot migrations | Wait; `docker compose logs -f server` until the startup line appears |
 | **Self-signed Authentik certificate rejected** | A private CA the client does not trust | Use a real certificate, or mount your CA and set `NODE_EXTRA_CA_CERTS` in the Workcenter container |
 | **Zulip: `invalid_client`** | Secret mismatch between the provider and `Zulip/.env` | Recopy the secret; restart the `zulip` service |
-| **Zulip: "refused to connect" in the pane** | Zulip's `X-Frame-Options: DENY` is the only framing policy the browser sees | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin, not Zulip's (O-6.10, [`integration.md` §5.4](./integration.md#54-the-framing-problem)) |
+| **Zulip: "refused to connect" in the pane** | Zulip's `X-Frame-Options: DENY` is the only framing policy the browser sees | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin, not Zulip's (O-6.10, [`integration.md` §5.4](../architecture/integration.md#54-the-framing-problem)) |
 | **Zulip: CSRF error on login** | Missing trusted origin | Set `SETTING_CSRF_TRUSTED_ORIGINS` to include `https://chat.<base>` |
 | **Mailcow: login fails after switching to Generic-OIDC** | No attribute mapping, or the mail domain does not exist | Configure the attribute mapping; ensure the domain exists and has capacity |
 | **Mailcow: "Test Connection" fails** | Wrong endpoints, or `Ignore SSL Errors` masking a real certificate problem | Verify all three endpoints, then fix the certificate rather than enabling the ignore flag |
@@ -1123,7 +1123,7 @@ Work through this after `setup.sh` completes.
 | O-13.4 | Access to each application is restricted by a **group binding** to `workspaceusers`. Being able to authenticate is not the same as being authorised. |
 | O-13.5 | The Mailcow UI, Authentik admin interface and Traefik dashboard are administrative surfaces. Do not expose them beyond the group that needs them. |
 | O-13.6 | `Ignore SSL Errors` in Mailcow and `disableVerifyTLS` in FileBrowser Quantum are **testing-only** switches. Neither may be enabled in a production deployment; a failing certificate is fixed, not ignored. |
-| O-13.7 | Rotating a client secret means updating it in both Authentik and the application's `.env`, then restarting that service. Record the rotation in [`CHANGELOG.md`](./CHANGELOG.md) under `Notes` if it affects operators. |
+| O-13.7 | Rotating a client secret means updating it in both Authentik and the application's `.env`, then restarting that service. Record the rotation in [`CHANGELOG.md`](../../CHANGELOG.md) under `Notes` if it affects operators. |
 | O-13.8 | A user removed from `workspaceusers` keeps access only until their current token expires. Shorten the access-token validity if you need faster revocation. |
 
 ---

@@ -3,7 +3,7 @@
 > **Scope:** what is tested, how it is tested, the automated harness that brings the whole stack up
 > with deterministic defaults, and the gates every merge into `Dev` must pass.
 > **Companions:** [`contributions.md`](./contributions.md) · [`standards.md`](./standards.md) ·
-> [`production.md`](./production.md) · [`integration.md`](./integration.md) · [`Agents.md`](./Agents.md)
+> [`production.md`](../deployment/production.md) · [`integration.md`](../architecture/integration.md) · [`Agents.md`](../../Agents.md)
 
 ---
 
@@ -159,7 +159,7 @@ tests/
 ## 5. Server and broker tests
 
 The broker's own contract — routes, credential handling, the six flows, the bridge outcomes and the
-security cases — is specified in [`broker.md`](./broker.md) §9, which is the source of the matrix
+security cases — is specified in [`broker.md`](../architecture/broker.md) §9, which is the source of the matrix
 below.
 
 Server tests run in Node, not happy-dom, and drive the real Express app.
@@ -250,7 +250,7 @@ The harness brings services up in dependency order and waits for real health, no
 | T-6.3 | Waiting is **health-based**, never `sleep`. `docker compose up -d --wait` plus per-service probes. |
 | T-6.4 | Seeding is **idempotent**: running the harness twice converges, and a re-run does not duplicate users, channels or mail. |
 | T-6.5 | The harness must be able to run from a clean checkout with a single command, with no manual browser step. |
-| T-6.6 | Authentik's provider seeding uses its **API** with the bootstrap token — not the Web UI. This is what makes the E2E suite possible at all, and it is the automation that [`OIDC.md`](./OIDC.md) documents manually for operators. |
+| T-6.6 | Authentik's provider seeding uses its **API** with the bootstrap token — not the Web UI. This is what makes the E2E suite possible at all, and it is the automation that [`OIDC.md`](../authentication/OIDC.md) documents manually for operators. |
 
 ### 6.4 Teardown
 
@@ -379,7 +379,7 @@ as public DNS would.
 | `POST /api/v1/fetch_api_key` on the Chat hostname, with the run's `ZULIP_ADMIN_EMAIL` and `ZULIP_ADMIN_PASSWORD` | Zulip's own email+password exchange answers 200 with an API key, so the Chat testing account works and the printed login is one the deployment accepts (IN-5.31). The password is never printed |
 | `GET /` on the Chat hostname | Zulip serves an **organization**: 302 to the login page, or 200 for a signed-in visitor. A 404 is a Zulip with no organization, which leaves the Chat pane with nothing to render (IN-5.30) |
 | Framing headers per application | Whether the pane's origin may be framed by the shell: `frame-ancestors` naming the shell's origin is read **first**, because a browser ignores `X-Frame-Options` when it sees that directive — which is how the unmodified Zulip image is framed (IN-5.27). With neither header, or a `DENY` and no `frame-ancestors`, the script says so instead of letting a person discover a blank frame |
-| `stat` of the source directory **inside both** the Workcenter and Filebrowser containers | The shared-disk contract ([`integration.md` IN-9.6](./integration.md), [`broker.md` §5.3](./broker.md)): the same device and inode, not two directories that merely look alike |
+| `stat` of the source directory **inside both** the Workcenter and Filebrowser containers | The shared-disk contract ([`integration.md` IN-9.6](../architecture/integration.md), [`broker.md` §5.3](../architecture/broker.md)): the same device and inode, not two directories that merely look alike |
 | The image's OCI title label | The built image carries the metadata the registry and the deployment expect |
 
 #### Teardown, and what it leaves
@@ -419,7 +419,7 @@ Every run writes into `user-data/e2e/`, which is **gitignored**, so nothing here
 | `created-<run>.manifest` | The paths the run created, which is what `--down` removes. |
 | `workcenter.log`, `workcenter.pid` | The `--shell-only` server's output and its pid. |
 The contract **grows with the roadmap** rather than being replaced
-([`roadmap.md` §12](./roadmap.md#12-step-by-step-build-plan)). Every phase adds its step to the
+([`roadmap.md` §12](../../roadmap.md#12-step-by-step-build-plan)). Every phase adds its step to the
 same entry point:
 
 | Phase | What the script does |
@@ -763,11 +763,11 @@ jobs:
 >
 > **Rule T-10.3 (deferred gate):** gate 9 is **deferred, not waived**. The Playwright suite,
 > `compose.test.yaml` and the `e2e.yml` workflow are roadmap Phase 7 work
-> ([`roadmap.md` §12](./roadmap.md#12-step-by-step-build-plan)). Until they exist, the automated
+> ([`roadmap.md` §12](../../roadmap.md#12-step-by-step-build-plan)). Until they exist, the automated
 > gates are lint, typecheck, unit/component/server tests, the locale check, config validation and
 > the build, with the conditional gates (ShellCheck, compose validity, Docker build, dependency
 > audit, secret scanning) unchanged. The user-visible behaviour at the current phase gate is covered
-> by the **manual checklist** in [`scripts/e2e.sh`](./scripts/e2e.sh)
+> by the **manual checklist** in [`scripts/e2e.sh`](../../scripts/e2e.sh)
 > ([§6.5](#65-the-manual-verification-harness)), which a person walks in a browser. This is a
 > **temporary state, not a permanent exemption**: the Phase 7 change that adds the suite **must**
 > restore gate 9 as a required check and delete this rule. T-10.1 and T-10.2 apply unchanged from
@@ -892,7 +892,7 @@ const chat  = createChatAdapter({ transport: replayingTransport('fixtures/zulip-
 | Merge into `Dev` | The full gate set in [§10](#10-ci-gates) |
 | Promote `Dev` → `Beta` | The full E2E suite green on `Dev`, plus a clean `setup.sh` run on a disposable host |
 | `Beta` soak | Nightly E2E for the agreed window |
-| Promote `Beta` → `Stable` | E2E green on `Beta`; a fresh-host Quick Start completed end to end; the production checklist in [`production.md` §16](./production.md#16-production-checklist) walked through |
+| Promote `Beta` → `Stable` | E2E green on `Beta`; a fresh-host Quick Start completed end to end; the production checklist in [`production.md` §16](../deployment/production.md#16-production-checklist) walked through |
 | Release | Images published with an SBOM; a restore drill recorded |
 
 > **Rule T-15.1:** no promotion with a failing or quarantined-and-unresolved E2E suite.
@@ -916,7 +916,7 @@ A change is tested when **all** of the following hold:
 
 > **Deferred gate:** the two Playwright items above are roadmap Phase 7 work and are **deferred, not
 > dropped** (T-10.3). At the current phase gate the user-visible behaviour is verified with the
-> manual checklist in [`scripts/e2e.sh`](./scripts/e2e.sh)
+> manual checklist in [`scripts/e2e.sh`](../../scripts/e2e.sh)
 > ([§6.5](#65-the-manual-verification-harness)).
 
 ---

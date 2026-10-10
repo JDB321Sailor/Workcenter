@@ -2,7 +2,7 @@
 
 OIDC is the mechanism that covers the whole workspace: the shell signs the user in against an OpenID
 Connect provider, and the server verifies every token the browser sends. For the full stack, read
-[`OIDC.md`](../../OIDC.md); for Authentik specifically, [`authentik.md`](./authentik.md).
+[`OIDC.md`](./OIDC.md); for Authentik specifically, [`authentik.md`](./authentik.md).
 
 ## Configuration
 
@@ -127,4 +127,4 @@ session.
 | No admin access | The token carries no `groups` claim | Add the `groups` scope, and include claims in the id_token. |
 | Silent renewal never fires | `offline_access` is not granted | Add it to the provider's allowed scopes. |
 
-See [`authentik.md`](./authentik.md) for the provider walkthrough, and [`OIDC.md`](../../OIDC.md) for the whole stack.
+See [`authentik.md`](./authentik.md) for the provider walkthrough, and [`OIDC.md`](./OIDC.md) for the whole stack.

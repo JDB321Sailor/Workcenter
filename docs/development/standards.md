@@ -3,8 +3,8 @@
 > **Applies to:** every file in this repository — application source, deployment files, shell scripts,
 > tests and documentation.
 > **Enforced by:** ESLint, ShellCheck, Vitest, and the checks in CI. There is no formatter and no style linter (see the note in §1).
-> **Companions:** [`contributions.md`](./contributions.md) · [`Agents.md`](./Agents.md) ·
-> [`Testing.md`](./Testing.md) · [`architecture.md`](./architecture.md)
+> **Companions:** [`contributions.md`](./contributions.md) · [`Agents.md`](../../Agents.md) ·
+> [`Testing.md`](./Testing.md) · [`architecture.md`](../architecture/architecture.md)
 
 ---
 
@@ -291,7 +291,7 @@ Workcenter's documentation is part of the product. It inherits Workcenter's hous
 | S-D-1 | Markdown (CommonMark) with GitHub-flavoured tables, task lists and `<details>` blocks. |
 | S-D-2 | Exactly one `#` H1 per file; heading levels never skip. |
 | S-D-3 | Every file opens with a short scope statement and a **Companions** line linking related documents. |
-| S-D-4 | The specification set at the repository root keeps its published file names (`Readme.md`, `OIDC.md`, `Agents.md`, `Testing.md`, `CHANGELOG.md`). Long-form guides under `docs/` are kebab-case. |
+| S-D-4 | The published file names of the specification set are preserved: `Readme.md`, `Agents.md` and `CHANGELOG.md` at the repository root, and `OIDC.md` and `Testing.md` under `docs/`. Every other document is kebab-case. |
 | S-D-5 | A table of contents is required for any document longer than ~300 lines. |
 | S-D-6 | Documentation is versioned with the code and updated in the **same PR** as the behaviour it describes. |
 
@@ -358,7 +358,7 @@ renumbered; every Playwright spec header cites the IDs it asserts.
 | S-SEC-8 | OIDC providers use **signed** tokens only, never encrypted (JWE). |
 | S-SEC-9 | Untrusted input that reaches a URL is sanitised (`sanitizeUrl`), and untrusted HTML is sanitised (`DOMPurify`). |
 | S-SEC-10 | Dependencies are audited in CI; a new high/critical advisory blocks the merge until triaged. |
-| S-SEC-11 | Any deliberate security trade-off is recorded in `docs/security.md` with its rationale. |
+| S-SEC-11 | Any deliberate security trade-off is recorded in `docs/security/security.md` with its rationale. |
 
 ---
 

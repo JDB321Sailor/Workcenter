@@ -13,16 +13,16 @@ documented, but each of them stops at the shell. See [What the mechanisms cover]
 
 | Option | Enabled by | Guide |
 | --- | --- | --- |
-| OIDC | `appConfig.auth.enableOidc` with an `appConfig.auth.oidc` block | [`oidc.md`](./authentication/oidc.md) |
-| Authentik over OIDC | The OIDC mechanism, configured against Authentik | [`authentik.md`](./authentication/authentik.md) |
-| Header auth | `appConfig.auth.enableHeaderAuth` — the mechanism behind a forward-auth proxy such as Traefik with Authentik | [`header-auth.md`](./authentication/header-auth.md) |
-| Built-in user list | `appConfig.auth.users` | [`built-in.md`](./authentication/built-in.md) |
-| Keycloak | `appConfig.auth.enableKeycloak` with an `appConfig.auth.keycloak` block | [`other-auth-methods.md`](./authentication/other-auth-methods.md) |
-| Nothing in front of it | A proxy, VPN or network that authenticates before the request arrives | [`other-auth-methods.md`](./authentication/other-auth-methods.md) |
+| OIDC | `appConfig.auth.enableOidc` with an `appConfig.auth.oidc` block | [`oidc-client.md`](./oidc-client.md) |
+| Authentik over OIDC | The OIDC mechanism, configured against Authentik | [`authentik.md`](./authentik.md) |
+| Header auth | `appConfig.auth.enableHeaderAuth` — the mechanism behind a forward-auth proxy such as Traefik with Authentik | [`header-auth.md`](./header-auth.md) |
+| Built-in user list | `appConfig.auth.users` | [`built-in.md`](./built-in.md) |
+| Keycloak | `appConfig.auth.enableKeycloak` with an `appConfig.auth.keycloak` block | [`other-auth-methods.md`](./other-auth-methods.md) |
+| Nothing in front of it | A proxy, VPN or network that authenticates before the request arrives | [`other-auth-methods.md`](./other-auth-methods.md) |
 
 **Authentik over OIDC is the recommended configuration.** Deploying it once gives the shell, Files,
-Chat and Mail the same sign-in and the same group membership. Read [`OIDC.md`](../OIDC.md) for the
-full stack, and [`authentik.md`](./authentication/authentik.md) for the walkthrough.
+Chat and Mail the same sign-in and the same group membership. Read [`OIDC.md`](./OIDC.md) for the
+full stack, and [`authentik.md`](./authentik.md) for the walkthrough.
 
 ## The configuration an OIDC session needs
 
@@ -41,7 +41,7 @@ appConfig:
 `clientId` and `endpoint` are required. `endpoint` is the provider's bare issuer URL, without
 `/.well-known/openid-configuration`. `scope` must include `groups` when `adminGroup` is set, or the
 claim that decides admin access never arrives. The full key list is in
-[`oidc.md`](./authentication/oidc.md) and in [`configuring.md`](./configuring.md).
+[`oidc-client.md`](./oidc-client.md) and in [`configuring.md`](../guides/configuring.md).
 
 ## What a session is
 
@@ -76,7 +76,7 @@ the provider.
   in front of the shell; it does not protect the applications, and it cannot replace an identity
   provider.
 - **Bind access to a group as well as authenticating.** Being able to sign in is not the same as
-  being authorised. See [`security.md`](./security.md).
+  being authorised. See [`security.md`](../security/security.md).
 - **OIDC and Keycloak need an identity provider; header auth needs a proxy.** Only the built-in user
   list works on its own.
 
@@ -93,14 +93,14 @@ There is no logout control in the shell. Where a session actually ends depends o
 
 ## In this folder
 
-- [`authentik.md`](./authentication/authentik.md) — Authentik as the identity provider for the whole workspace
-- [`oidc.md`](./authentication/oidc.md) — the OIDC client settings, the admin group claim and server-side verification
-- [`header-auth.md`](./authentication/header-auth.md) — trusting a username header from an upstream proxy
-- [`built-in.md`](./authentication/built-in.md) — the user list in `conf.yml`, and what it does and does not cover
-- [`other-auth-methods.md`](./authentication/other-auth-methods.md) — what Workcenter does not implement, and what an operator can put in front of it
+- [`authentik.md`](./authentik.md) — Authentik as the identity provider for the whole workspace
+- [`oidc-client.md`](./oidc-client.md) — the OIDC client settings, the admin group claim and server-side verification
+- [`header-auth.md`](./header-auth.md) — trusting a username header from an upstream proxy
+- [`built-in.md`](./built-in.md) — the user list in `conf.yml`, and what it does and does not cover
+- [`other-auth-methods.md`](./other-auth-methods.md) — what Workcenter does not implement, and what an operator can put in front of it
 
 ## Read next
 
-- [`OIDC.md`](../OIDC.md) — the identity provider setup for the full stack
-- [`configuring.md`](./configuring.md) — the configuration file and the `appConfig.auth` keys
-- [`security.md`](./security.md) — trust boundaries and known limitations
+- [`OIDC.md`](./OIDC.md) — the identity provider setup for the full stack
+- [`configuring.md`](../guides/configuring.md) — the configuration file and the `appConfig.auth` keys
+- [`security.md`](../security/security.md) — trust boundaries and known limitations

@@ -17,13 +17,13 @@ it is reviewed, and how a release reaches `Stable`.
 | Companion documents |
 | --- |
 | [`standards.md`](./standards.md) — coding, naming, commit and documentation rules |
-| [`Agents.md`](./Agents.md) — the same rules for AI coding agents |
+| [`Agents.md`](../../Agents.md) — the same rules for AI coding agents |
 | [`Testing.md`](./Testing.md) — what tests a PR must carry |
-| [`architecture.md`](./architecture.md) — where code lives |
-| [`design.md`](./design.md) — UI conventions and the design review checklist |
-| [`CHANGELOG.md`](./CHANGELOG.md) — the running log of changes |
-| [`production.md`](./production.md) — deployment and `setup.sh` |
-| [`OIDC.md`](./OIDC.md) — authentication setup |
+| [`architecture.md`](../architecture/architecture.md) — where code lives |
+| [`design.md`](../architecture/design.md) — UI conventions and the design review checklist |
+| [`CHANGELOG.md`](../../CHANGELOG.md) — the running log of changes |
+| [`production.md`](../deployment/production.md) — deployment and `setup.sh` |
+| [`OIDC.md`](../authentication/OIDC.md) — authentication setup |
 
 ---
 
@@ -63,7 +63,7 @@ it is reviewed, and how a release reaches `Stable`.
 | New integrated application pane | PR into `Dev`, **after a roadmap change is agreed** | Large |
 | Translations | PR into `Dev` adding a locale JSON | Small |
 | Theme | PR into `Dev` adding a theme partial | Small |
-| Security report | **Private** — see [`SECURITY.md`](./.github/SECURITY.md) | — |
+| Security report | **Private** — see [`SECURITY.md`](../../.github/SECURITY.md) | — |
 
 > **Not accepted:** PRs that reintroduce a removed Workcenter subsystem (Default view, Minimal view,
 > widgets, status/ping monitoring), PRs that fork and patch a bundled application, and PRs that weaken
@@ -230,7 +230,7 @@ If `yarn check-all` fails on a clean `Dev`, that is a bug — please open an iss
 | Integrated apps | `Filebrowser/`, `Zulip/`, `Mailcow/`, `OnlyOffice/`, `Authentik/`, `Traefik/` | One folder per application; config, secrets and volumes inside |
 | Orchestration | `compose.yaml`, `setup.sh` | One root composition and one bootstrap script |
 
-Full breakdown: [`architecture.md`](./architecture.md).
+Full breakdown: [`architecture.md`](../architecture/architecture.md).
 
 ---
 
@@ -265,7 +265,7 @@ Then open a PR **against `Dev`**.
 * Add every new user-visible string to `src/assets/locales/en.json`.
 * Add every new colour or dimension as a CSS custom property.
 * Never invent a config key, env var or route — read the source
-  ([`Agents.md` §4](./Agents.md#4-repository-facts-an-agent-must-not-get-wrong)).
+  ([`Agents.md` §4](../../Agents.md#4-repository-facts-an-agent-must-not-get-wrong)).
 
 ### 5.4 The "new config option" checklist
 
@@ -275,10 +275,10 @@ complete **all** of these:
 - [ ] Confirm the option is genuinely necessary and nothing similar already exists.
 - [ ] Add it to `src/utils/config/ConfigSchema.json` with a `description` (the schema is also the docs source).
 - [ ] Set a sensible default or fallback (`src/utils/config/defaults.js`, or in the component's `computed`).
-- [ ] Document it in `docs/configuring.md`, and in the relevant root document.
+- [ ] Document it in `docs/guides/configuring.md`, and in the relevant specification document.
 - [ ] Keep it **backwards compatible** — nothing may break when the option is absent.
 - [ ] Add a test that the default applies when the key is missing.
-- [ ] Add a `Documentation` entry to [`CHANGELOG.md`](./CHANGELOG.md).
+- [ ] Add a `Documentation` entry to [`CHANGELOG.md`](../../CHANGELOG.md).
 
 ### 5.5 Changing the deployment
 
@@ -287,7 +287,7 @@ complete **all** of these:
   shared network, and bind-mounted state inside its own application folder.
 * Every new setting needs a commented entry in the matching `.env.example`.
 * `setup.sh` changes must remain idempotent — run it three times and prove convergence.
-* Quote the requirement IDs from [`production.md`](./production.md) that your change implements.
+* Quote the requirement IDs from [`production.md`](../deployment/production.md) that your change implements.
 
 ---
 
@@ -325,7 +325,7 @@ yarn test:e2e           # end-to-end against the test stack
 
 ## 7. The running log of changes
 
-[`CHANGELOG.md`](./CHANGELOG.md) is the repository's running log. **Every PR adds an entry**, in the
+[`CHANGELOG.md`](../../CHANGELOG.md) is the repository's running log. **Every PR adds an entry**, in the
 same PR, under `## [Unreleased]`.
 
 ```markdown
@@ -347,7 +347,7 @@ same PR, under `## [Unreleased]`.
 | C-7.2 | Reference the issue or PR number at the end of each line: `(#123)`. |
 | C-7.3 | **Never create a version heading.** Release sections are cut by maintainers during promotion. |
 | C-7.4 | **Never edit a released section.** Released history is immutable; corrections go in a new patch. |
-| C-7.5 | Anything an operator must act on (a new `.env` key, a changed volume, a changed port, a new Authentik setting) goes under `Notes` **and** into [`production.md`](./production.md). |
+| C-7.5 | Anything an operator must act on (a new `.env` key, a changed volume, a changed port, a new Authentik setting) goes under `Notes` **and** into [`production.md`](../deployment/production.md). |
 
 ---
 
@@ -434,7 +434,7 @@ A PR is **mergeable** only when all of these hold:
 
 ### 8.5 Screenshots for UI changes
 
-Follow the convention inherited from the specification set ([`design.md` §11](./design.md#11-design-review-checklist)):
+Follow the convention inherited from the specification set ([`design.md` §11](../architecture/design.md#11-design-review-checklist)):
 
 * Capture at a **fixed viewport** (1440×900) with the same theme and zoom for before and after.
 * Present them side by side in a two-column table.
@@ -564,9 +564,16 @@ Documentation is a deliverable, not an afterthought. It is reviewed with the sam
 
 | Location | Contents |
 | --- | --- |
-| Repository root (`*.md`) | The **specification set**: `Readme.md`, `roadmap.md`, `architecture.md`, `design.md`, `integration.md`, `OIDC.md`, `Testing.md`, `production.md`, `standards.md`, `contributions.md`, `Agents.md`, `CHANGELOG.md` |
-| `docs/` | Long-form, task-oriented guides (kebab-case filenames) |
-| Application folders | A short `README.md` per integrated application, pointing at the root documents |
+| Repository root | `Readme.md` (overview and quick start), `Agents.md` (AI coding agent requirements), `roadmap.md` (the build plan) and `CHANGELOG.md` |
+| `docs/architecture/` | The specification set for the system: `architecture.md`, `design.md`, `integration.md`, `broker.md` |
+| `docs/authentication/` | `OIDC.md` and the per-provider guides |
+| `docs/deployment/` | `deployment.md`, `production.md` and the per-method guides |
+| `docs/development/` | `developing.md`, `contributing.md`, `contributions.md`, `standards.md`, `Testing.md`, `branch-protection.md`, `release-workflow.md` |
+| `docs/guides/` | Task-oriented guides: quick start, configuration, management, theming, troubleshooting |
+| `docs/security/` | `security.md` and `privacy.md` |
+| `docs/reference/` | `api.md` and `credits.md` |
+| `docs/research/` | The feasibility studies |
+| Application folders | A short `README.md` per integrated application, pointing at the specification set |
 | `.env.example` files | Inline comments for every setting |
 
 ### 12.2 Rules
@@ -575,7 +582,8 @@ Documentation is a deliverable, not an afterthought. It is reviewed with the sam
   one H1, fenced code blocks with a language, real config key names, links to upstream sources.
 * Update the document **in the same PR** as the behaviour it describes.
 * Do not document a feature that does not exist. This is the most damaging documentation error.
-* Add new root documents to the index in [`Readme.md`](./Readme.md) and `docs/readme.md`.
+* Register a new document in [`docs/readme.md`](../readme.md), and in
+  [`Readme.md`](../../Readme.md) when it is operator-facing.
 * Keep `CHANGELOG.md` honest: an entry for the documentation change itself, under `Documentation`.
 
 ---
@@ -588,7 +596,7 @@ repository. Extra conditions apply.
 | Ref | Requirement |
 | --- | --- |
 | C-13.1 | Never edit an upstream file inside `Mailcow/`. Use `docker-compose.override.yml`. |
-| C-13.2 | `setup.sh` must remain idempotent and must keep its prompt contract identical to [`OIDC.md`](./OIDC.md). If you change a prompt, change `OIDC.md` in the same PR. |
+| C-13.2 | `setup.sh` must remain idempotent and must keep its prompt contract identical to [`OIDC.md`](../authentication/OIDC.md). If you change a prompt, change `OIDC.md` in the same PR. |
 | C-13.3 | Every image reference is a pinned tag, sourced from `.env`. |
 | C-13.4 | Every new service has a healthcheck, Traefik labels, and bind-mounted state in its own folder. |
 | C-13.5 | Every new secret is generated with `openssl rand -hex 32` and written with `umask 077`. |
@@ -624,7 +632,7 @@ Use the **Feature request** template and state:
 
 1. The problem, in user terms — what you cannot do today.
 2. Which panes or integrations are involved.
-3. Which goal in [`roadmap.md` §3](./roadmap.md#3-application-goals) it serves, or whether it needs a
+3. Which goal in [`roadmap.md` §3](../../roadmap.md#3-application-goals) it serves, or whether it needs a
    new goal.
 4. Whether it is already in the roadmap's build plan.
 
@@ -644,7 +652,7 @@ Maintainers are expected to:
 * Review within a few days, or state when they will.
 * Keep `Dev` green; a red `Dev` blocks everyone.
 * Never promote with a failing E2E run.
-* Record every release in [`CHANGELOG.md`](./CHANGELOG.md).
+* Record every release in [`CHANGELOG.md`](../../CHANGELOG.md).
 
 ---
 

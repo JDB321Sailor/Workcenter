@@ -67,7 +67,7 @@ jobs:
 
           gh pr edit "$NUMBER" --base Dev
           gh pr comment "$NUMBER" --body \
-            "Retargeted from \`$BASE\` to \`Dev\`. Every pull request targets \`Dev\`; \`Beta\` and \`Stable\` advance only by promotion. See [contributions.md §8](../blob/Dev/contributions.md#8-pull-request-guide)."
+            "Retargeted from \`$BASE\` to \`Dev\`. Every pull request targets \`Dev\`; \`Beta\` and \`Stable\` advance only by promotion. See [contributions.md §8](../blob/Dev/docs/development/contributions.md#8-pull-request-guide)."
 
           {
             echo "### Pull request retargeted"

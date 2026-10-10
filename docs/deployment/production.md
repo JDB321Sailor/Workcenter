@@ -3,8 +3,8 @@
 > **Scope:** deploying, operating, upgrading, backing up and troubleshooting Workcenter in production,
 > including the full contract for `setup.sh`.
 > **Audience:** operators and anyone changing the deployment files.
-> **Companions:** [`roadmap.md`](./roadmap.md) · [`OIDC.md`](./OIDC.md) · [`integration.md`](./integration.md) ·
-> [`Testing.md`](./Testing.md) · [`architecture.md`](./architecture.md)
+> **Companions:** [`roadmap.md`](../../roadmap.md) · [`OIDC.md`](../authentication/OIDC.md) · [`integration.md`](../architecture/integration.md) ·
+> [`Testing.md`](../development/Testing.md) · [`architecture.md`](../architecture/architecture.md)
 
 ---
 
@@ -105,26 +105,104 @@ traefik.example.com       Traefik dashboard (workspaceadmin only)
 
 ## 3. Preparation
 
+### 3.1 Prepare the host
+
 ```bash
 # 1. Install Docker and Compose (example for Debian/Ubuntu)
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker "$USER" && newgrp docker
 
-# 2. Clone Workcenter
+# 2. Install jq — Mailcow's own installer requires it (see below)
+sudo apt-get install -y jq
+
+# 3. Clone Workcenter
 git clone https://github.com/<your-org>/workcenter.git
 cd workcenter
 
-# 3. Stable is the GitHub default branch and is what you want in production.
+# 4. Stable is the GitHub default branch and is what you want in production.
 #    Workcenter releases are promoted Dev → Beta → Stable.
 git checkout Stable
 git pull origin Stable
 
-# 4. Sanity-check the host
-docker --version && docker compose version
+# 5. Sanity-check the host
+docker --version && docker compose version && jq --version
 ```
 
 > **Warning:** do **not** deploy from `Dev`. `Dev` is the integration branch and may be broken between
 > merges. Production runs `Stable`.
+
+`setup.sh` re-checks these and refuses to start when one is missing. The list is the union of
+Workcenter's own needs and the tools Mailcow's `generate_config.sh` requires
+(§[5.2](#52-stage-b--application-file-provisioning)):
+
+| Tool | Version | Check | Why |
+| --- | --- | --- | --- |
+| Docker Engine | **24+** | `docker --version` | Mailcow's installer exits below 24 |
+| Docker Compose | **v2.20+** | `docker compose version` | `include:` in the root composition |
+| `jq` | any | `jq --version` | **Required by Mailcow's installer**; also used to parse Docker/API JSON |
+| `git` | any recent | `git --version` | Cloning/updating Mailcow's repository |
+| `openssl` | any recent | `openssl version` | Generating every secret |
+| `curl` | any recent | `curl --version` | Health probes and the Mailcow/Authentik APIs |
+
+### 3.2 What `setup.sh` will ask you for
+
+Every question has three equivalents — an interactive prompt, a command-line option, and an environment
+variable — so the same script runs attended and unattended. `--non-interactive` reads only the latter
+two and treats a missing **required** value as a fatal error.
+
+| # | Question | Default | Option | Environment |
+| --- | --- | --- | --- | --- |
+| 1 | Existing deployment detected — resume or reconfigure? | resume | `--reconfigure` | `SETUP_MODE` |
+| 2 | Is a reverse proxy already running? *(auto-detected; asked only when detection is ambiguous)* | adopt if found | `--traefik adopt\|deploy\|external` | `TRAEFIK_MODE` |
+| 3 | Deploy the Workcenter default hostnames or custom ones? | defaults | `--urls defaults\|custom` | `URLS_MODE` |
+| 4 | What is the base domain (the root URL)? | — | `--base-domain` | `BASE_DOMAIN` |
+| 5 | The six hostnames *(custom mode only)* | derived | `--host-workcenter`, `--host-filebrowser`, `--host-auth`, `--host-mail`, `--host-chat`, `--host-traefik` | `WORKCENTER_HOST`, `FILEBROWSER_HOST`, `AUTH_HOST`, `MAIL_HOST`, `CHAT_HOST`, `TRAEFIK_HOST` |
+| 6 | Email address for Let's Encrypt (ACME) *(only when deploying Traefik)* | — | `--acme-email` | `ACME_EMAIL` |
+| 7 | Is an Authentik already running? / Deploy Authentik as part of the stack? | adopt if found | `--authentik adopt\|deploy\|manual\|skip` | `AUTHENTIK_MODE` |
+| 8 | Authentik administrator (akadmin) email address | — | `--admin-email` | `AUTHENTIK_BOOTSTRAP_EMAIL` |
+| 9 | Authentik akadmin bootstrap password *(blank generates one)* | generated | — | `AUTHENTIK_BOOTSTRAP_PASSWORD` |
+| 10 | Pin a specific Authentik version? | the repository pin | `--authentik-tag` | `AUTHENTIK_TAG` |
+| 11 | Auto-provision the Workcenter OIDC objects in Authentik now? | **yes** | `--authentik auto\|manual` | `AUTHENTIK_PROVISION` |
+| 12 | Authentik container name *(only if detection or configuration failed)* | auto-detected | `--authentik-container` | `AUTHENTIK_CONTAINER` |
+| 13 | Authentik API token *(only for an adopted instance)* | — | `--authentik-api-token` | `AUTHENTIK_API_TOKEN` |
+| 14 | Authentik base URL *(adopted instance)* | `https://auth.<base>` | `--authentik-url` | `AUTHENTIK_URL` |
+| 15 | FileBrowser admin password *(blank generates one)* | generated | — | `FILEBROWSER_ADMIN_PASSWORD` |
+| 16 | Create a Zulip organization? And what should it be called? | yes / `Workcenter` | `--zulip-org NAME`, `--no-zulip-org` | `ZULIP_ORGANIZATION_NAME` |
+| 17 | Zulip administrator email address | the admin email | `--zulip-admin` | `SETTING_ZULIP_ADMINISTRATOR` |
+| 18 | Configure Mailcow through its API? | **yes** | `--mailcow auto\|manual\|skip` | `MAILCOW_MODE` |
+| 19 | Mailcow administrator password *(blank generates one)* | generated | — | `MAILCOW_ADMIN_PASSWORD` |
+| 20 | Create the default mailbox? What local part? | yes / `admin` | `--mailbox-localpart` | `MAILCOW_MAILBOX` |
+| 21 | Mail protocol authentication: app passwords, or LDAP? | app passwords | `--mailcow-authsource apppasswords\|ldap` | `MAILCOW_AUTHSOURCE` |
+| 22 | LDAP bind DN and bind password *(LDAP only)* | — | — | `MAILCOW_LDAP_BIND_DN`, `MAILCOW_LDAP_BIND_PASSWORD` |
+| 23 | Proceed with these hostnames? | yes | `--yes` | — |
+
+A blank secret answer always means **generate one**; the script never stores an empty secret. Secrets
+are never echoed (§[4.3](#43-guarantees), P-5).
+
+### 3.3 Decide before you start
+
+| Decision | Options | Consequence |
+| --- | --- | --- |
+| **Reverse proxy** | adopt an existing Traefik · let Workcenter deploy Traefik · use another reverse proxy | Workcenter's panes *embed* the applications, which requires a proxy that can set framing headers. The script warns once if it deploys (or is told about) none, then continues. |
+| **Identity provider** | adopt an existing Authentik · let Workcenter deploy Authentik · configure OIDC manually | Adopting or deploying lets `setup.sh` create every group, scope mapping, provider and application itself (§[5.5](#55-stage-e--oidc-and-identity-provider)). Manual entry remains a fallback. |
+| **Hostnames** | Workcenter defaults (`filebrowser.`, `auth.`, `mail.`, `chat.`, `traefik.` under the base domain) · custom | Hostnames are baked into OIDC redirect URIs; changing them later is a redeploy, not an edit (§[9](#9-day-2-operations)). |
+| **Mail protocol authentication** | app passwords · LDAP | Mailcow holds **one identity provider at a time**: Generic-OIDC for the web UI excludes LDAP, and vice versa (§[5.7](#57-stage-g--mailcow-post-boot-configuration)). |
+| **Zulip organization** | create one · none | Without an organization the Chat host answers 404, so a pane has nothing to render. |
+| **Administrator mailbox** | create it · skip | A default mailbox gives the deployment's administrator a real inbox on the Mail host. |
+
+### 3.4 Have ready
+
+* **DNS** for the six hostnames, plus the `MX`, `SPF` and `_dmarc` records for the mail domain, and a
+  **PTR** record for the mail hostname — see §[2.3](#23-network-and-dns).
+* **Ports 80/443 reachable from the internet** before the run if Traefik is to use Let's Encrypt
+  HTTP-01, and Mailcow's mail ports open.
+* If adopting an existing **Traefik**: its Docker network name is discovered automatically; nothing else
+  is needed.
+* If adopting an existing **Authentik**: an **API token** (Directory → Tokens, `intent: api`, created by
+  an administrator) *or* the ability to run `docker exec` against its server container. The script asks
+  for one only when it cannot provision without it.
+* The **email addresses** you want to use for the Authentik administrator, Zulip administrator and (if
+  created) the Mailcow default mailbox.
 
 ---
 
@@ -135,28 +213,75 @@ the second run, and running it a third time must still change nothing.
 
 ### 4.1 Purpose
 
-Take a bare host with Docker and correct DNS to a fully deployed, TLS-terminated, OIDC-protected
-Workcenter stack — with exactly **one** manual step, which is configuring providers in the Authentik
-Web UI.
+Take a host with Docker — and, optionally, an already-running Traefik and/or Authentik — to a fully
+deployed, TLS-terminated, OIDC-protected Workcenter stack, **including the Authentik provider and
+application objects and the Mailcow post-boot configuration**, with **no required manual Web UI steps**.
+
+`setup.sh` is an interactive, decision-tree script. It gathers what it needs from the operator and then
+performs every remaining step itself: cloning and preparing Mailcow with Mailcow's own installer
+(§[5.2](#52-stage-b--application-file-provisioning)), generating every secret (P-38), provisioning
+Authentik through its API or a blueprint (§[5.5](#55-stage-e--oidc-and-identity-provider)), and
+configuring Mailcow through its API after bring-up (§[5.7](#57-stage-g--mailcow-post-boot-configuration)).
+
+The Authentik and Mailcow Web UIs are **fallbacks**, not part of the happy path. The script reaches for
+them only when the operator declines automation, when an adopted instance cannot be reached, or when an
+automated step has failed twice — and it then prints exactly what remains to be done. The manual
+procedures are documented in
+[`OIDC.md`](../authentication/OIDC.md#5-setting-up-authentik-the-full-walkthrough) and
+[`integration.md`](../architecture/integration.md#6-mailcow-dockerized-and-sogo-mail).
 
 ### 4.2 Interface
 
 ```bash
 ./setup.sh [options]
 
-Options:
-  -h, --help              Show usage and exit
-  -y, --yes               Assume "yes" for confirmations (does not skip required values)
-  -n, --non-interactive   Never prompt; read everything from the environment or existing .env files.
-                          A missing required value is a fatal error.
-      --base-domain DOMAIN
-                          Set the base domain without prompting
-      --skip-pull         Do not pull images
-      --skip-up           Configure only; do not bring the stack up
-      --force             Reconfigure files that already exist (backs them up first)
-      --brand             Re-apply the Workcenter branding to the embedded applications and exit
-                          (see 5.2a). Implied by a normal run; useful on its own after an upgrade
-  -v, --verbose           Trace command execution
+General:
+  -h, --help                Show usage and exit
+  -y, --yes                 Assume "yes" for confirmations (does not skip required values)
+  -n, --non-interactive     Never prompt; read everything from the environment or existing .env files.
+                            A missing required value is a fatal error
+      --reconfigure         Re-ask every question and rewrite configuration (implies --force)
+      --force               Overwrite files that already exist (each is backed up first)
+  -v, --verbose             Trace command execution
+
+URLs:
+      --urls defaults|custom    Which hostname scheme to use (default: defaults)
+      --base-domain DOMAIN      The root domain (defaults mode)
+      --host-workcenter HOST    \
+      --host-filebrowser HOST    |  the six hostnames; any one of them implies --urls custom
+      --host-auth HOST           |
+      --host-mail HOST           |
+      --host-chat HOST           |
+      --host-traefik HOST       /
+      --acme-email EMAIL        Let's Encrypt account email (only when Traefik is deployed)
+
+Ingress:
+      --traefik adopt|deploy|external
+                            adopt the detected Traefik · deploy one · a different reverse proxy is in use
+
+Identity:
+      --authentik adopt|deploy|manual|skip
+                            adopt the detected Authentik · deploy one · configure OIDC by hand · no OIDC
+      --authentik-provision auto|manual
+                            Provision the OIDC objects automatically (default) or prompt for them
+      --authentik-url URL       Base URL of an adopted Authentik (default: https://auth.<base>)
+      --authentik-api-token T   API token for an adopted Authentik
+      --authentik-container N   Server container name, when detection or the API fails
+      --admin-email EMAIL       Deployment administrator / akadmin email
+      --authentik-tag TAG       Override the pinned Authentik image tag
+
+Applications:
+      --mailcow auto|manual|skip
+                            Configure Mailcow through its API · prompt for the values · leave it alone
+      --mailcow-authsource apppasswords|ldap
+      --mailbox-localpart NAME  Local part of the default mailbox (default: admin)
+      --zulip-org NAME, --no-zulip-org
+      --zulip-admin EMAIL
+      --brand                   Re-apply the Workcenter branding and exit (implied by a normal run)
+
+Execution:
+      --skip-pull               Do not pull images
+      --skip-up                 Configure only; do not bring the stack up
 ```
 
 ### 4.3 Guarantees
@@ -171,36 +296,59 @@ Options:
 | P-6 | **Resumable.** Stopping at any prompt and re-running continues from the detected state. |
 | P-7 | **Never edits upstream files.** Mailcow's `docker-compose.yml`, `generate_config.sh` and `update.sh` are untouched. |
 | P-8 | **Convergent.** Ends with a per-service health report and a non-zero exit code if any service failed to become healthy. |
+| P-37 | **Automates the identity provider.** When an Authentik is deployed or adopted, `setup.sh` itself creates or reconciles the groups, scope mappings, the four OIDC providers and applications, the Traefik proxy provider and application, the embedded-outpost membership and the application icons (Authentik `meta_icon`) — see §[5.5](#55-stage-e--oidc-and-identity-provider). Typing the values by hand is a fallback, not the path. |
+| P-38 | **Generates real secrets.** Every secret is produced on the host with `openssl rand`, is unique to the deployment, is written only to a gitignored `.env` or secret file, and is never echoed or logged (P-5). A secret that already exists is **reused**, so a re-run never rotates a live secret by accident. |
+| P-39 | **Configures files securely.** Secret files are mode `0600`; ordinary configuration is `0644`; a bind-mounted secret is owned by the uid/gid that reads it inside its container (P-32, IN-5.17). `Authentik/`, `Mailcow/mailcow.conf` and every `.env` are gitignored (P-16). |
+| P-40 | **Never duplicates Authentik objects.** Before creating anything, the script looks it up by its unique key — application `slug`, provider `client_id`, group `name`, built-in mapping `managed` id — and updates the existing object instead of creating a second one. |
+| P-41 | **Never duplicates Mailcow objects.** Mailcow's API has no upsert, so the script looks each object up first and treats an "already exists" answer as success (§[5.7](#57-stage-g--mailcow-post-boot-configuration)). |
+| P-42 | **Warns, then continues, when the proxy cannot be confirmed.** The reverse-proxy framing warning is printed **once**, at the moment the decision is taken; it is not repeated in later output and never aborts the deployment (§[5.3](#53-stage-c--traefik)). |
+| P-43 | **Degrades to documented manual steps.** An automation step that fails twice prints a named warning, records what it could not do, and lets the deployment continue. The closing report lists every remaining manual follow-up. |
 
 ### 4.4 Required behaviour, in order
 
-1. **Create the application folders** if missing: `Filebrowser/`, `Zulip/`, `Mailcow/`, and — on
-   demand — `OnlyOffice/`, `Authentik/`, `Traefik/`.
-2. **Provision each application's files** if missing:
-   * **Mailcow** — clone `mailcow-dockerized` and run **its own** `generate_config.sh` with the
-     variables pre-set so it never prompts (see [§5.2](#52-stage-b--application-file-provisioning)).
-     Mailcow is downloaded, not templated, because its installer owns `mailcow.conf`.
-   * **FileBrowser Quantum** — write `Filebrowser/config.yaml` from the repository template and
-     `.env` with generated secrets. The image is pulled; no source build.
-   * **Zulip** — write `Zulip/compose.yaml`, `Zulip/.env` and the five secret files. The image is
-     pulled; nothing is built, for Zulip or from it.
-3. **Detect Traefik.** If it is already running, adopt it (join `proxy`, do not deploy a second proxy).
-   If not, create `Traefik/` and add it to the stack.
-4. **Ask for the base URL** and derive the six hostnames; write them into every `.env`.
-5. **Skip the `.env`/OIDC checks for anything this run created** — there is nothing to check yet — and
-   go straight to the Authentik deployment question.
-6. **Resolve OIDC**, following the branch logic in [§5.5](#55-stage-e--oidc-resolution).
-7. **Apply the Workcenter branding** to every provisioned application
-   (see [§5.2a](#52a-stage-b1--branding-the-embedded-applications)). File-level branding is written
-   before bring-up; the parts that need a running API are applied after health is reached.
-8. **Bring the stack up** with `docker compose up -d` and wait for health.
-9. **Report** per-service health, list any branding step that could not be applied, and exit
-   accordingly.
+The order is fixed; the branches depend on what the script finds and what the operator answers. The
+full flow, including every prompt, is specified in [§5](#5-what-setupsh-does-stage-by-stage).
+
+1. **Preflight.** Verify the host's tools (§[3.1](#31-prepare-the-host)); detect an existing deployment
+   (a root `.env`, `Authentik/`, `Mailcow/mailcow.conf`, or running containers) and choose *fresh*,
+   *resume* or *reconfigure*. Fail fast on a missing tool or an unreadable existing file.
+2. **Folders and application files.** Create the application folders that are missing and provision
+   each application's files and secrets:
+   * **Mailcow** — clone `mailcow-dockerized` when it is absent and let **its own** installer write
+     `mailcow.conf`; on a re-run, skip the installer unless `--reconfigure` was given, because it
+     prompts before overwriting (§[5.2](#52-stage-b--application-file-provisioning)).
+   * **FileBrowser Quantum**, **Zulip**, **OnlyOffice** — write their compose and configuration files
+     from the repository templates with freshly generated secrets.
+   * Anything this run created is exempt from the "already configured?" checks later, because a new
+     folder cannot already contain configuration.
+3. **Ingress.** Detect a running Traefik. If found, adopt it (join its network, deploy nothing). If not,
+   ask whether to deploy one; warn **once** if the answer is no, then continue
+   (§[5.3](#53-stage-c--traefik), P-42).
+4. **URLs.** Ask whether to use the Workcenter default hostnames or custom ones, then resolve and
+   confirm the six hostnames, and write them into every `.env`
+   (§[5.4](#54-stage-d--urls)).
+5. **Identity.** Detect a running Authentik. If found, ask whether to auto-provision; if not, offer to
+   deploy one. Provisioning creates or reconciles every group, scope mapping, provider, application,
+   outpost membership and application icon through Authentik's API (or a blueprint), and reads the
+   generated client secrets back into the application `.env` files. On a failure the script asks for
+   the Authentik container name, retries once, and then falls back to the documented manual prompt
+   (§[5.5](#55-stage-e--oidc-and-identity-provider), P-37, P-40, P-43).
+6. **Bring the stack up.** `docker compose up -d` for the root composition, then Mailcow from inside
+   its own directory, and wait for health (§[5.6](#56-stage-f--bring-up-and-health)).
+7. **Configure Mailcow.** With Mailcow up, use its API to set the identity provider (Generic-OIDC
+   against the Authentik endpoints), replace the default administrator password, and create the domain
+   and default mailbox (§[5.7](#57-stage-g--mailcow-post-boot-configuration), P-41).
+8. **Apply the API-side branding** — the Zulip organization and its branding, and any other step that
+   needs a running service (§[5.2a](#52a-stage-b1--branding-the-embedded-applications)).
+9. **Verify and report.** Confirm the Authentik objects and icons, the Mailcow configuration and every
+   service's health; print the summary with secrets masked and the list of any manual follow-ups; exit
+   non-zero if a service failed to become healthy or a required object is missing
+   (§[5.8](#58-stage-h--verification-and-report)).
 
 ### 4.5 The stop message
 
 Whenever `setup.sh` stops because Authentik is not yet configured, it prints **exactly** this — the
-wording is part of the contract and is reproduced in [`OIDC.md` §8.6](./OIDC.md#86-the-stop-message):
+wording is part of the contract and is reproduced in [`OIDC.md` §8.6](../authentication/OIDC.md#86-the-stop-message):
 
 ```text
 Create required OIDC application and provider per OIDC.md in authentik.
@@ -230,31 +378,64 @@ cannot already contain configuration, so asking about it would be nonsense.
 
 ### 5.2 Stage B — Application file provisioning
 
-**Mailcow** (downloaded and prepared by its own installer):
+**Mailcow** (downloaded and prepared by **its own** installer — Workcenter never templates Mailcow):
 
 ```bash
+# 1. Check out Mailcow. Setting MAILCOW_BRANCH makes the installer update the checkout itself.
+if [ ! -f Mailcow/docker-compose.yml ]; then
+  git clone https://github.com/mailcow/mailcow-dockerized.git Mailcow
+fi
 cd Mailcow
-export MAILCOW_HOSTNAME="mail.${BASE_DOMAIN}"
-export MAILCOW_TZ="${TZ:-Etc/UTC}"
-export MAILCOW_BRANCH="master"
-export MAILCOW_DBPASS="$(openssl rand -hex 24)"
-export MAILCOW_DBROOT="$(openssl rand -hex 24)"
-export MAILCOW_REDISPASS="$(openssl rand -hex 24)"
-export SKIP_CLAMD="${SKIP_CLAMD:-n}"
-export FORCE="y"                 # suppresses the interactive IPv6 daemon.json prompt
-./generate_config.sh
-# then, because Traefik terminates TLS for mail.example.com:
+
+# 2. The installer prompts before overwriting an existing mailcow.conf, so it is run only when
+#    there is nothing to overwrite — or when --reconfigure explicitly asked for a fresh file.
+if [ ! -f mailcow.conf ] || [ "$RECONFIGURE" = 1 ]; then
+  export MAILCOW_HOSTNAME="${MAIL_HOST}"
+  export MAILCOW_TZ="${TZ:-Etc/UTC}"
+  export MAILCOW_BRANCH="master"
+  export MAILCOW_DBPASS="$(openssl rand -hex 24)"
+  export MAILCOW_DBROOT="$(openssl rand -hex 24)"
+  export MAILCOW_REDISPASS="$(openssl rand -hex 24)"
+  export SKIP_CLAMD="${SKIP_CLAMD:-n}"
+  export FORCE="y"                 # answers Mailcow's Docker-IPv6 daemon prompt; see P-10
+  ./generate_config.sh </dev/null || fatal "Mailcow's installer failed"
+fi
+
+# 3. Traefik terminates TLS for mail.example.com, so the generated defaults are replaced:
 sed -i 's/^HTTP_REDIRECT=.*/HTTP_REDIRECT=n/'                 mailcow.conf
 sed -i 's/^SKIP_LETS_ENCRYPT=.*/SKIP_LETS_ENCRYPT=y/'         mailcow.conf
 sed -i 's/^AUTODISCOVER_SAN=.*/AUTODISCOVER_SAN=n/'           mailcow.conf
 sed -i 's/^HTTP_BIND=.*/HTTP_BIND=127.0.0.1/'                 mailcow.conf
 sed -i 's/^HTTPS_BIND=.*/HTTPS_BIND=127.0.0.1/'               mailcow.conf
+
+# 4. Append the keys the generator does not emit, inside a delimited block a re-run replaces
+#    rather than duplicates (P-10a). Values come from the URL stage and from generated secrets.
+append_once mailcow.conf <<EOF
+TRUSTED_PROXIES=${PROXY_SUBNET}
+BASE_DOMAIN=${BASE_DOMAIN}
+WORKCENTER_HOST=${WORKCENTER_HOST}
+FILEBROWSER_HOST=${FILEBROWSER_HOST}
+CHAT_HOST=${CHAT_HOST}
+MAIL_HOST=${MAIL_HOST}
+OFFICE_HOST=${OFFICE_HOST}
+API_ALLOW_FROM=${PROXY_SUBNET}
+API_KEY=${MAILCOW_API_KEY}
+API_KEY_READ_ONLY=${MAILCOW_API_KEY_RO}
+EOF
 ```
+
+`MAILCOW_API_KEY` (read-write) and `MAILCOW_API_KEY_RO` (read-only) are generated with
+`openssl rand -hex 24`. They are what make the post-boot Mailcow configuration possible without the Web
+UI: Mailcow's `php-fpm` container seeds them into the `api` table on start, so no key has to be created
+by hand (§[5.7](#57-stage-g--mailcow-post-boot-configuration)). The read-only key is used only by the
+health probe.
 
 | Ref | Note |
 | --- | --- |
 | P-9 | `HTTP_REDIRECT=n` is **mandatory**. The generator writes `y`, and with `y` the only listener on `HTTP_PORT` is a 301 redirect — so Traefik → `http://nginx:8080` returns `301 https://mail.example.com` and loops forever. Mailcow's own Traefik guide omits this step. |
-| P-10 | `FORCE=y` is required for a fully non-interactive run; without it the generator may ask about rewriting the Docker daemon's IPv6 configuration. |
+| P-10 | `FORCE=y` makes the installer answer its Docker-IPv6 question itself, so a non-interactive run is possible. It is **not only a prompt suppressor**: on an IPv6-capable host the same code path also authorises rewriting `/etc/docker/daemon.json` and **restarting the Docker daemon**, which would bounce every running container. `setup.sh` detects usable IPv6 first and warns; `--strict-ipv6` turns the warning into a stop. |
+| P-10a | The generator emits none of `TRUSTED_PROXIES`, the six host variables, `API_KEY`, `API_KEY_READ_ONLY` or `API_ALLOW_FROM`. They are appended in a delimited block that a re-run **replaces**, not duplicates (P-1). |
+| P-10b | **The installer runs only when `mailcow.conf` is absent, or when `--reconfigure` was given.** Its overwrite question is *not* bypassed by `FORCE=y`; with stdin closed it exits 1 (verified against Mailcow `master`, 2026-09). Calling it unconditionally wedges every re-run. |
 | P-11 | Ports **cannot** be unpublished from an override file — Docker concatenates `ports` lists. `HTTP_BIND`/`HTTPS_BIND` is Mailcow's supported mechanism, and the override supplies `expose` plus the `proxy` network. |
 | P-12 | Never set `COMPOSE_FILE` in `mailcow.conf`: that file **is** Mailcow's `.env`. |
 | P-13 | Never pass `-f` when driving Mailcow. Run `docker compose` from inside `Mailcow/` so the override auto-merges and `update.sh` keeps working. |
@@ -302,7 +483,7 @@ sed -i 's/^HTTPS_BIND=.*/HTTPS_BIND=127.0.0.1/'               mailcow.conf
   here, because Zulip cannot express it** — it ships `X-Frame-Options: DENY` with no setting to change
   it. Stage C writes the `frame-ancestors` allow-list into Traefik instead, and the `zulip` router
   already carries the middleware that applies it; both are specified in
-  [`integration.md` §5.4](./integration.md#54-the-framing-problem) and [§8.4](./integration.md#84-middleware-contracts).
+  [`integration.md` §5.4](../architecture/integration.md#54-the-framing-problem) and [§8.4](../architecture/integration.md#84-middleware-contracts).
 
 **OnlyOffice** (templated, image pulled): write `.env`, `compose.yaml` with the JWT secret matching
 FileBrowser's `integrations.office.secret`, and the four bind-mounted directories.
@@ -316,8 +497,8 @@ FileBrowser's `integrations.office.secret`, and the four bind-mounted directorie
 Workcenter is meant to read as one product rather than three tenants of a reverse proxy. The shell
 can only control its own chrome, so the rest is done here, once, against each application's own
 supported mechanism. The design rationale and the palette source are in
-[`design.md` §4.6](./design.md#46-branding-the-embedded-applications); the per-application mechanics
-are in [`integration.md`](./integration.md).
+[`design.md` §4.6](../architecture/design.md#46-branding-the-embedded-applications); the per-application mechanics
+are in [`integration.md`](../architecture/integration.md).
 
 **Written before bring-up (files):**
 
@@ -343,7 +524,7 @@ are in [`integration.md`](./integration.md).
 | Ref | Requirement |
 | --- | --- |
 | P-29 | Branding is idempotent (P-1): a second run detects current branding and changes nothing, and `--brand` re-applies it after an upgrade has reverted a file. |
-| P-30 | Every colour written in this stage comes from the single palette source in [`design.md` §4.3.1](./design.md#431-where-the-palette-comes-from). `setup.sh` contains no colour literal that is not derived from it. |
+| P-30 | Every colour written in this stage comes from the single palette source in [`design.md` §4.3.1](../architecture/design.md#431-where-the-palette-comes-from). `setup.sh` contains no colour literal that is not derived from it. |
 | P-31 | The appended SOGo block is delimited by `// >>> workcenter` / `// <<< workcenter` markers, is replaced rather than duplicated on re-run, and **preserves Mailcow's own `mc_logout()`**, which the SOGo navbar patch calls. |
 | P-32 | `sogo-mailcow` is restarted after a SOGo branding change: SOGo's web resources are rsynced into the nginx volume at container start, so an unrestarted container keeps serving the old files. |
 | P-33 | A branding step that fails is reported by name, does not abort the deployment, and does not leave a half-written file — each file is written temp-then-rename. |
@@ -353,67 +534,265 @@ are in [`integration.md`](./integration.md).
 
 ### 5.3 Stage C — Traefik
 
+`setup.sh` first looks for a reverse proxy it can join. Detection uses `docker ps` plus a `/ping` probe,
+never an HTTP status from an application (P-26):
+
 ```bash
-if docker ps --format '{{.Image}}' | grep -q 'traefik'; then
-  ok  "Existing Traefik detected — adopting it"
-  PROXY_NETWORK="$(docker inspect "$(docker ps --filter ancestor=traefik --format '{{.ID}}' | head -1)" \
-                   --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' | head -1)"
+# Detection: a running container whose image is Traefik, confirmed by its ping endpoint.
+TRAEFIK_CONTAINER="$(docker ps --format '{{.ID}} {{.Image}}' | awk '$2 ~ /traefik/ {print $1; exit}')"
+
+if [ -n "$TRAEFIK_CONTAINER" ]; then
+  PROXY_NETWORK="$(docker inspect "$TRAEFIK_CONTAINER" \
+      --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' | head -1)"
+  ok "Existing Traefik detected on network '${PROXY_NETWORK}' — adopting it"
 else
-  warn "No running Traefik detected"
-  ask_yn "Deploy Traefik as part of the Workcenter stack?" Y && deploy_traefik
+  warn "No running Traefik detected."
+  if ask_yn "Deploy Traefik as part of the Workcenter stack?" Y; then
+    deploy_traefik
+  else
+    warn "Continuing without a confirmed reverse proxy. Workcenter's panes embed the integrated"
+    warn "applications, which requires a reverse proxy able to set the framing headers. Configure"
+    warn "your proxy for the six hostnames; the deployment will continue."
+  fi
 fi
 ```
 
-Adoption means: joining the existing proxy network and **not** deploying a second proxy. The network
-name is detected, not assumed.
+Three outcomes, and the script records which one applies:
 
-**Traefik also carries the one header that makes the Chat pane embeddable.** Zulip ships
-`X-Frame-Options: DENY` and exposes no setting to change it, so Stage C writes the policy at the ingress
-([`integration.md` §5.4](./integration.md#54-the-framing-problem)):
+| Outcome | What happens |
+| --- | --- |
+| **Adopt** — a proxy was detected (`--traefik adopt`) | The detected network is recorded as `PROXY_NETWORK`; every Workcenter service joins it; **no second proxy is deployed** and `Traefik/` is not created. |
+| **Deploy** — none was detected and the answer was yes (`--traefik deploy`) | `Traefik/` is created from the templates, added to the stack, and joined to a `proxy` network it creates. |
+| **External** — none was detected and the answer was no (`--traefik external`) | Nothing is deployed. The script warns **once**, exactly as above, and continues. This is the escape hatch for a different reverse proxy — or for a Traefik that detection missed. |
+
+> **The warning never aborts the deployment** (P-42). Detection can be wrong — a proxy behind a socket
+> proxy, a proxy not managed by the invoking user, a non-Docker proxy — and a different reverse proxy
+> may be the deliberate choice. The warning is printed at the decision point and is **not** repeated in
+> the closing report.
+
+**The ingress also carries the one header that makes the Chat pane embeddable.** Zulip ships
+`X-Frame-Options: DENY` and exposes no setting to change it, so the policy is written at the ingress
+([`integration.md` §5.4](../architecture/integration.md#54-the-framing-problem)); `setup.sh` writes it at the end of
+Stage D, once the base URL is known:
 
 * `Traefik/dynamic/middlewares.yml` — the `security-headers` middleware's
-  `headers.contentSecurityPolicy` is written as `frame-ancestors <base URL>`: the **shell's** origin
-  and nothing else, never `*` (P-35, IN-5.8). Stage D supplies the base URL.
+  `headers.contentSecurityPolicy` is written as `frame-ancestors https://<base domain>`: the **shell's**
+  origin and nothing else, never `*` (P-35, IN-5.8).
 * `Zulip/compose.yaml` already carries the label that applies it to Zulip's router
   (`traefik.http.routers.zulip.middlewares: "security-headers@file"`, IN-5.27). Nothing touches Zulip
   itself: the image is the pinned upstream image, and every browser that sees a `frame-ancestors`
   directive ignores Zulip's `X-Frame-Options` header.
-* A deployment that adopts an existing Traefik it does not own must get this file loaded by that
-  Traefik's **file provider** — P-21 means it cannot be expressed as a label. If it cannot be, the Chat
-  pane falls back to a launch surface (IN-5.9).
+* A deployment that adopts a Traefik it does not own must get this file loaded by that Traefik's **file
+  provider** — P-21 means it cannot be expressed as a label. If it cannot be, the Chat pane falls back
+  to a launch surface (IN-5.9).
 
-### 5.4 Stage D — Base URL
+### 5.4 Stage D — URLs
+
+The URL stage has two modes, and asks which one first:
+
+```text
+?  Use the Workcenter default hostnames, or custom hostnames? [defaults/custom] (defaults)
+```
+
+**Defaults** ask only for the base domain and derive the other five from it:
 
 ```text
 ?  What is the base domain for Workcenter (the root URL)? [example.com]
 ```
 
-Then derived, printed, and confirmed. The derivation rule: the prefixes `filebrowser.`, `auth.`,
-`mail.`, `chat.` and `traefik.` are applied to the **registrable domain**, so a base of
-`work.example.com` yields `filebrowser.work.example.com`.
-
-At the end of this stage every configuration file and compose file is complete. The only thing left is
-OIDC.
-
-The base URL is also the value written into the ingress framing allow-list in Stage C — `frame-ancestors
-https://<base domain>` — so a later change of hostname means rewriting `Traefik/dynamic/middlewares.yml`
-as well as the `.env` files (P-35).
-
-### 5.5 Stage E — OIDC resolution
+**Custom** keeps the derived names as the defaults and lets each one be replaced:
 
 ```text
-⚠  OIDC configuration is incomplete.
-?  Have you already created the required OIDC applications and providers in Authentik? [y/N]
+?  Workcenter shell hostname ............... [example.com]
+?  FileBrowser hostname .................... [filebrowser.example.com]
+?  Authentik hostname ...................... [auth.example.com]
+?  Mailcow / SOGo hostname ................. [mail.example.com]
+?  Zulip hostname .......................... [chat.example.com]
+?  Traefik dashboard hostname .............. [traefik.example.com]
 ```
 
-| Answer | Script behaviour |
-| --- | --- |
-| **yes** | Create `Authentik/` in the Workcenter root for Authentik's own files, then prompt for every OIDC value into the correct `.env` and `config.yaml`, with a short descriptor per prompt. The prompts are specified verbatim in [`OIDC.md` §8.4](./OIDC.md#84-stage-d--authentik-deployment). |
-| **no** *(default)* | Check whether Authentik is running on the host. If it is, offer to configure the values now. If it is not, offer to **deploy** Authentik: request the values needed to deploy it securely, generate the secrets, bring it up, and stop with the guidance message. If the user declines deployment, stop immediately with the same message and deploy nothing further. |
+The derivation rule is the same in both modes: the prefixes `filebrowser.`, `auth.`, `mail.`, `chat.`
+and `traefik.` are applied to the **registrable domain**, so a base of `work.example.com` yields
+`filebrowser.work.example.com`.
 
-The prompt text for every value is normative and lives in
-[`OIDC.md` §8](./OIDC.md#8-the-setupsh-prompt-contract). `setup.sh` and `OIDC.md` must never drift; a
-change to one requires a change to the other in the same PR.
+The resolved set is then printed and confirmed:
+
+```text
+ℹ  Workcenter will be deployed at:
+     Workcenter .......... https://example.com
+     FileBrowser ......... https://filebrowser.example.com
+     Authentik ........... https://auth.example.com
+     Mailcow / SOGo ...... https://mail.example.com
+     Zulip ............... https://chat.example.com
+     Traefik dashboard ... https://traefik.example.com
+?  Proceed with these hostnames? [Y/n]
+```
+
+Every hostname is then written, in one pass, into the root `.env`, each application's `.env`,
+`Mailcow/mailcow.conf` and the ingress. `frame-ancestors` is written here, at the end of the stage, with
+the base hostname (P-35). At this point every configuration and compose file is complete; only identity
+remains.
+
+| Ref | Note |
+| --- | --- |
+| P-44 | The six hostnames have exactly one source — the values resolved here — and are written to every file that needs them in a single pass, so a partial write can never leave two services disagreeing about a hostname. |
+| P-45 | Changing a hostname later is a **redeploy**, not an edit: the OIDC redirect URIs in Authentik and the ingress framing allow-list are derived from these values (§[9](#9-day-2-operations), P-35). |
+
+### 5.5 Stage E — OIDC and identity provider
+
+This is the stage that removes the manual Web UI step. `setup.sh` looks for a running Authentik,
+decides with the operator whether to adopt the one it found or deploy its own, and then **creates or
+reconciles the identity objects itself** — the groups, the scope mappings, the four OIDC providers and
+applications, the Traefik proxy provider and application, the embedded-outpost membership and the
+application icons. Entering the values by hand remains available, and remains the fallback.
+
+#### 5.5.1 What the automation creates
+
+| Object | Looked up first by (P-40) |
+| --- | --- |
+| Groups `workspaceusers`, `workspaceadmin` | `name` |
+| Scope mappings `groups`, `email-verified`, `mailcow_template` | `name`, or the built-in `managed` id |
+| Providers `workcenter`, `filebrowser`, `zulip`, `mailcow` | `client_id` |
+| Applications `workcenter`, `filebrowser`, `zulip`, `mailcow`, `traefik` | `slug` |
+| Proxy provider `traefik-dashboard` | `name` |
+| Embedded-outpost membership | the outpost's `managed` id |
+| Application icons (`meta_icon`) | the uploaded file name |
+
+Every provider carries the settings in
+[`OIDC.md` §4.4](../authentication/OIDC.md#44-provider-settings-that-apply-to-all-five) — the two
+default flows, the confidential client type, the built-in self-signed signing key, an **empty**
+encryption key, the selected scopes, and *Include claims in id_token* on — and every application is
+bound to `workspaceusers` (`workspaceadmin` for `traefik`) through a **policy binding**, not through
+the application's free-text `group` label.
+
+#### 5.5.2 How the identity provider is reached
+
+```text
+ℹ  Checking whether an Authentik is already running on this host…
+```
+
+Authentik is detected from `docker ps` by image and name, **excluding** the worker, the database, the
+cache and any outpost container, and confirmed against its health endpoint:
+
+```bash
+AUTHENTIK_CONTAINER="$(docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Command}}' \
+  | awk -F'\t' '$3 ~ /goauthentik\/server/ && $4 ~ /(^|[^a-z])server([^a-z]|$)/ {print $2; exit}')"
+```
+
+| Situation | Question | Behaviour |
+| --- | --- | --- |
+| **Running** | `?  Auto-provision the Workcenter OIDC objects in Authentik now? [Y/n]` | **Yes** → provision (§5.5.3). **No** → the manual prompt (§5.5.5). |
+| **Not running** | `?  Deploy Authentik now as part of the Workcenter stack? [Y/n]` | **Yes** → ask for the deployment values, generate the secrets, write `Authentik/`, bring it up, then provision automatically. **No** → stop with the guidance message in [§4.5](#45-the-stop-message). |
+
+Deploying Authentik asks for three things and generates the rest:
+
+```text
+?  Authentik administrator (akadmin) email address:
+?  Authentik akadmin bootstrap password (leave blank to generate one):
+?  Pin a specific Authentik version? [2024.12]:
+```
+
+`PG_PASS`, `AUTHENTIK_SECRET_KEY`, the bootstrap password when it is left blank, and
+`AUTHENTIK_BOOTSTRAP_TOKEN` are generated with `openssl rand` and written to `Authentik/.env` at mode
+`0600`. The bootstrap token is what makes the API reachable on first boot.
+
+#### 5.5.3 Provisioning an adopted or newly deployed instance
+
+```text
+✔  Authentik detected: <container>
+?  Authentik base URL [https://auth.example.com]:
+?  Authentik API token (leave blank to apply a blueprint through the container instead):
+```
+
+Three access paths, in order of preference:
+
+1. **Bootstrap token** (Workcenter-deployed): `AUTHENTIK_BOOTSTRAP_TOKEN` is already in
+   `Authentik/.env`. Full API access, no operator input.
+2. **Operator token** (adopted): `AUTHENTIK_API_TOKEN`, verified with `GET /api/v3/core/users/me/`.
+   Full API access, including the icon upload.
+3. **Container blueprint** (adopted, no token): the rendered blueprint is copied into the detected
+   server container and applied with `docker exec <container> ak apply_blueprint /tmp/workcenter.yaml`.
+   This needs no token at all, but it cannot upload icons, so the script says so and leaves them as a
+   one-line follow-up.
+
+The objects are then reconciled in this order:
+
+```text
+ℹ  Reconciling Authentik objects (existing objects are updated, never duplicated)…
+✔  groups: workspaceusers, workspaceadmin
+✔  scope mappings: groups, email-verified, mailcow_template
+✔  providers/applications: workcenter, filebrowser, zulip, mailcow
+✔  proxy provider + application: traefik-dashboard, traefik
+✔  embedded outpost: traefik-dashboard attached
+✔  application icons uploaded and assigned
+ℹ  Reading the client secrets back into the application .env files…
+```
+
+The client secrets are either **preset** by `setup.sh` — so Authentik and the application `.env` are
+written with the same value and there is no read-back at all — or read from the create response when
+Authentik generates them. Either way the operator never copies a secret.
+
+#### 5.5.4 Icons
+
+Authentik has no single "set icon" endpoint; its admin UI uploads a file to the storage backend and
+then points the application at the returned URL. `setup.sh` does the same:
+
+```bash
+# 1. Idempotent: the upload API rejects a name that already exists, so look first.
+curl -fsS -H "Authorization: Bearer ${TOKEN}" \
+     "${AUTHENTIK_URL}/api/v3/admin/file/?usage=media&search=workcenter.png"
+
+# 2. Upload each icon once (multipart)…
+curl -fsS -X POST -H "Authorization: Bearer ${TOKEN}" \
+     -F "file=@icons/workcenter.png" -F "name=workcenter.png" \
+     "${AUTHENTIK_URL}/api/v3/admin/file/"
+
+# 3. …then point the application's meta_icon at the uploaded file's URL.
+curl -fsS -X PATCH -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+     -d "{\"meta_icon\":\"${AUTHENTIK_URL}/media/workcenter.png\"}" \
+     "${AUTHENTIK_URL}/api/v3/core/applications/workcenter/"
+```
+
+| Application | Icon source |
+| --- | --- |
+| Workcenter | `icons/workcenter.png` |
+| FileBrowser | `icons/filebrowser-quantum.svg` |
+| Zulip | `icons/zulip.svg` |
+| Mailcow | `icons/mailcow.svg` |
+| Traefik | `icons/traefik.svg` |
+
+The icon is what the user sees on Authentik's **My applications** page. A missing or unsupported icon
+is reported by name and does not fail the deployment (P-33, P-43).
+
+#### 5.5.5 Manual fallback
+
+When automation is declined, or has failed twice, the script asks for the values exactly as it always
+has. The verbatim prompts are in
+[`OIDC.md` §8.4](../authentication/OIDC.md#84-stage-d--authentik-deployment) and the walkthrough is
+[`OIDC.md` §5](../authentication/OIDC.md#5-setting-up-authentik-the-full-walkthrough). The manual path
+is never removed; it is what makes the script safe to run against an Authentik it cannot reach.
+
+#### 5.5.6 Failure handling
+
+```text
+⚠  Automatic Authentik configuration failed: <reason>
+?  Authentik server container name:
+ℹ  Retrying with container '<name>'…
+```
+
+| Attempt | Behaviour |
+| --- | --- |
+| 1 — the auto-detected container | Resolve the container and provision through it. |
+| Failure | Ask the operator for the Authentik container name (`--authentik-container`), then retry. |
+| 2 — the operator-supplied container | Provision again. |
+| Failure again | Print `⚠ Automatic Authentik configuration failed — manual configuration in the Authentik UI is required.`, record the fallback in the closing report, and **continue the deployment**. The applications still come up; their OIDC logins do not work until the objects exist. |
+
+> **Version sensitivity.** The API shape is stable across the pinned range, but field defaults are not:
+> `include_claims_in_id_token`, the built-in `email` mapping's `email_verified`, and the `profile`
+> scope's group expression have all changed between releases. The script therefore sets every field it
+> depends on explicitly, and validates a rendered blueprint against the instance's own
+> `/api/v3/schema/` when blueprints are used. The evidence is in
+> [`authentik-api-feasibility.md`](../research/authentik-api-feasibility.md).
 
 ### 5.6 Stage F — Bring-up and health
 
@@ -440,7 +819,44 @@ fi
 ```
 
 Zulip reports "User will be created with a disabled password." for the owner account: signing in is
-OIDC (Stage E, Phase 5) or a password reset. Nothing is generated, printed or stored.
+OIDC (Stage E) or a password reset. Nothing is generated, printed or stored.
+
+### 5.7 Stage G — Mailcow post-boot configuration
+
+Mailcow is configured through **its own API**, after it is up. The read-write key appended to
+`mailcow.conf` in Stage B (§[5.2](#52-stage-b--application-file-provisioning)) is seeded into
+Mailcow's `api` table by its `php-fpm` container on start, so nothing has to be created in the Mailcow
+UI first. Every step looks before it writes, because the API has no upsert (P-41).
+
+| Step | Call | Notes |
+| --- | --- | --- |
+| Identity provider | `POST /api/v1/edit/identity-provider` | `authsource: generic-oidc`, the three Authentik endpoints, the client id and secret, the redirect URL `https://<mail host>`, `client_scopes: openid profile email mailcow_template`, and the attribute-mapping template |
+| Administrator password | `POST /api/v1/edit/admin` | Replaces Mailcow's own default |
+| Domain | `POST /api/v1/add/domain` | Skipped when the domain already exists |
+| Default mailbox | `POST /api/v1/add/mailbox` | Created with `authsource: generic-oidc` |
+
+> **One identity provider at a time.** Mailcow stores a single identity provider and refuses to change
+> it while mailboxes use another, so Generic-OIDC for the web UI and LDAP for the mail protocols cannot
+> both be active at once. The choice is made in [§3.3](#33-decide-before-you-start) and recorded as
+> `MAILCOW_AUTHSOURCE`.
+
+The key this stage uses is the read-write `API_KEY` generated in Stage B; its companion
+`API_KEY_READ_ONLY` is used only by the health probe. The evidence for every call is in
+[`mailcow-automation-feasibility.md`](../research/mailcow-automation-feasibility.md).
+
+### 5.8 Stage H — Verification and report
+
+The last stage proves the deployment rather than assuming it:
+
+* the Authentik objects exist with the right flows, scopes, redirect URIs and group bindings, and each
+  application carries its `meta_icon`;
+* the Mailcow identity provider, administrator, domain and mailbox are present;
+* every service with a healthcheck is `healthy`;
+* any step that could not be completed is named.
+
+The report masks every secret, prints the URLs the deployment answers on, and lists the remaining
+manual follow-ups. The script exits non-zero when a service failed to become healthy or a required
+object is missing (P-8, P-43).
 
 ---
 
@@ -588,7 +1004,7 @@ git checkout Stable && git pull origin Stable
 docker compose up -d --build workcenter
 ```
 
-Read [`CHANGELOG.md`](./CHANGELOG.md) first. Anything under `Notes` may require action.
+Read [`CHANGELOG.md`](../../CHANGELOG.md) first. Anything under `Notes` may require action.
 
 ### 10.2 Mailcow
 
@@ -632,7 +1048,7 @@ pane looks wrong.
 2. Read the changelogs of everything you are bumping.
 3. Authentik, then Traefik, then the applications, then Workcenter last.
 4. Re-apply branding with `./setup.sh --brand`.
-5. Verify with `docker compose ps` and the [integration matrix](./integration.md#12-integration-verification-matrix).
+5. Verify with `docker compose ps` and the [integration matrix](../architecture/integration.md#12-integration-verification-matrix).
 
 ---
 
@@ -707,7 +1123,7 @@ docker compose ps
 ### 11.4 Restore drill
 
 A restore that has never been tested is not a backup. Run a drill at least quarterly on a disposable
-host, and record the date and outcome in [`CHANGELOG.md`](./CHANGELOG.md) under `Notes` if the
+host, and record the date and outcome in [`CHANGELOG.md`](../../CHANGELOG.md) under `Notes` if the
 procedure changed.
 
 ---
@@ -736,7 +1152,7 @@ INTERNAL_CA_CN="Workcenter Internal CA"
 | --- | --- |
 | P-23 | Internal TLS is **opt-in**, and the generated CA private key is stored in `Traefik/certs/` and gitignored. |
 | P-24 | Never disable certificate verification to make internal TLS work. For OnlyOffice over self-signed HTTPS, use a Traefik `serversTransport` with the CA — not `insecureSkipVerify`. |
-| P-25 | Applications that cannot validate a private CA are left on the internal network without TLS, and the exception is recorded in [`docs/security.md`](./docs/security.md). |
+| P-25 | Applications that cannot validate a private CA are left on the internal network without TLS, and the exception is recorded in [`docs/security/security.md`](../security/security.md). |
 
 ---
 
@@ -827,7 +1243,7 @@ Ordered by likelihood.
 | Login rejected with an email-verification error | `email_verified` defaults to `False` in recent Authentik | Map or override the claim |
 | 403 after login | The user is not in `workspaceusers` | Add them, or remove `userGroups` |
 
-Full table: [`OIDC.md` §12](./OIDC.md#12-troubleshooting).
+Full table: [`OIDC.md` §12](../authentication/OIDC.md#12-troubleshooting).
 
 ### 14.2 Panes
 
@@ -865,7 +1281,7 @@ Full table: [`OIDC.md` §12](./OIDC.md#12-troubleshooting).
 | A service restarts in a loop | Config error — FileBrowser v2 decoding is strict | `docker compose logs <service>`; an unknown key is fatal |
 | Out of memory | Undersized host | Add RAM or swap; see [§2.1](#21-host) |
 | Disk full | Docker images and logs, or mail | `docker system prune`; review Mailcow retention |
-| `setup.sh` fails at a prompt in CI | A required value is missing | Every prompt has an environment-variable equivalent; see [`OIDC.md` §9](./OIDC.md#9-environment-variable-reference) |
+| `setup.sh` fails at a prompt in CI | A required value is missing | Every prompt has an environment-variable equivalent; see [`OIDC.md` §9](../authentication/OIDC.md#9-environment-variable-reference) |
 
 ---
 
@@ -911,7 +1327,7 @@ Before you call a deployment production-ready:
 - [ ] `Ignore SSL Errors` and any `disableVerifyTLS` setting are **off**.
 - [ ] No service is published directly to the internet except Traefik and Mailcow's mail ports.
 - [ ] The Zulip role sync has been re-run after any group change (`./setup.sh`).
-- [ ] [`CHANGELOG.md`](./CHANGELOG.md) has been reviewed for `Notes` that require operator action.
+- [ ] [`CHANGELOG.md`](../../CHANGELOG.md) has been reviewed for `Notes` that require operator action.
 
 ---
 

@@ -5,7 +5,7 @@
 > **Foundations:** [Dashy](https://github.com/lissy93/dashy)'s theming model, CSS custom properties and
 > Workspace view layout; [FileBrowser Quantum's sidebar](https://filebrowserquantum.com/en/docs/features/sidebar-links/)
 > as the sidebar interaction pattern.
-> **Companions:** [`roadmap.md`](./roadmap.md) · [`architecture.md`](./architecture.md) · [`standards.md`](./standards.md)
+> **Companions:** [`roadmap.md`](../../roadmap.md) · [`architecture.md`](./architecture.md) · [`standards.md`](../development/standards.md)
 
 ---
 
@@ -219,7 +219,7 @@ The same set covers the rest of the shell's application references:
 | Ref | Requirement |
 | --- | --- |
 | D-2I.1 | Icons live in `icons/` at the repository root — one SVG per application, named for the application, and are the single source of truth for every application mark in the shell. |
-| D-2I.2 | Every mark is sourced from [Dashboard Icons](https://dashboardicons.com) in its **base (SVG)** variant, keeping the upstream filename so a refresh is a straight re-download. Attribution is recorded in [`docs/credits.md`](./docs/credits.md). |
+| D-2I.2 | Every mark is sourced from [Dashboard Icons](https://dashboardicons.com) in its **base (SVG)** variant, keeping the upstream filename so a refresh is a straight re-download. Attribution is recorded in [`docs/reference/credits.md`](../reference/credits.md). |
 | D-2I.3 | Components reference them through the `@icons` path alias (`@icons/zulip.svg`), so the bundler emits them as hashed assets and a missing file is a **build** failure rather than a broken image at runtime. |
 | D-2I.4 | A brand mark is rendered as an `<img>` at its own colours and is **never recoloured, tinted or masked** — active state is carried by the underline, the label colour and `aria-current` (D-2), not by the mark. |
 | D-2I.5 | Marks are rendered at 24px in the switcher, 20px in sidebar rows and user-menu rows, and 48px in pane loading and error states. The SVG scales; no second raster asset is committed. |
@@ -395,8 +395,8 @@ and Logout.
 | Role | **Not shown here.** Who the user is — `User` or `Admin` — is stated once, in the brand header (D-1.1) |
 
 The implemented appearance, captured from the running shell (signed out, so the role label is absent by
-D-1.1): [the user row and its menu](docs/assets/ui/rail-user-menu.png) ·
-[the language menu](docs/assets/ui/rail-language-menu.png).
+D-1.1): [the user row and its menu](../assets/ui/rail-user-menu.png) ·
+[the language menu](../assets/ui/rail-language-menu.png).
 
 > **Rule D-6.1:** the two icon buttons are the **only** place in the shell that change appearance or
 > language. There is no settings route, no configuration modal and no second entry point.
@@ -521,7 +521,7 @@ The right-hand group is read as one object, so its spacing is not two separate d
 | `loading` | Rail-accent spinner centred, application name, "Connecting to `<host>`", and a hint after 5s | Load event or timeout |
 | `ready` | The iframe, at full size | — |
 | `unavailable` | App not deployed or health `unhealthy`: icon, name, one-line reason, **Retry**, and a **Open in new tab** fallback | Retry re-runs the health check and reloads the iframe |
-| `blocked` | The app refuses to be framed: explain that the application must allow framing from the Workcenter origin, name the header to change, and link to `docs/troubleshooting.md` | Manual; documented fix |
+| `blocked` | The app refuses to be framed: explain that the application must allow framing from the Workcenter origin, name the header to change, and link to `docs/guides/troubleshooting.md` | Manual; documented fix |
 | `auth-error` | The pane redirected to a login page: "Your session for `<app>` has expired" with a **Sign in again** action that opens the app's OIDC entry point in a new tab | Re-authentication |
 
 > **Rule D-7.1:** the shell always detects "the iframe loaded a login page" and shows the `auth-error`
@@ -549,7 +549,7 @@ health detail".
 ### D-8 — File-movement elements
 
 Three applications, and a file that can move from any one of them to either of the others: **six flows**
-([`roadmap.md` §7.2](./roadmap.md#72-the-six-flows), [`broker.md` §5.1](./broker.md#51-the-six-flows)).
+([`roadmap.md` §7.2](../../roadmap.md#72-the-six-flows), [`broker.md` §5.1](./broker.md#51-the-six-flows)).
 
 The shell owns a **source chooser** per application — it is the only place a flow can start, because none
 of the three panes can be injected into from outside (each is a cross-origin frame):
@@ -785,7 +785,7 @@ The bridge in §4.4 carries the **mode**. It cannot carry a look: three applicat
 projects do not become one product because they are all dark. The remaining work — palette, logo,
 name, corner radius — is done **once, at deployment, by `setup.sh`**, so that a running Workcenter
 reads as one system. The operator contract, stage by stage, is in
-[`production.md` §5.2a](./production.md#52a-stage-b1--branding-the-embedded-applications); the
+[`production.md` §5.2a](../deployment/production.md#52a-stage-b1--branding-the-embedded-applications); the
 mechanisms are:
 
 | Application | What `setup.sh` sets | Mechanism |
@@ -799,7 +799,7 @@ mechanisms are:
 | --- | --- |
 | D-T9 | Every value `setup.sh` writes into an application's branding is **derived from the same palette source** ([§4.3.1](#431-where-the-palette-comes-from)). There is no second place where a Workcenter colour is decided. |
 | D-T10 | Branding is **idempotent and re-appliable**: re-running `setup.sh` changes nothing if the branding is already current, and re-applies it after an application upgrade has reverted a file. |
-| D-T11 | Branding never edits an upstream file that upstream also edits. Where the only available surface is such a file, the change is a delimited, re-appliable block and the fact is recorded in [`production.md` §10](./production.md#10-upgrading). |
+| D-T11 | Branding never edits an upstream file that upstream also edits. Where the only available surface is such a file, the change is a delimited, re-appliable block and the fact is recorded in [`production.md` §10](../deployment/production.md#10-upgrading). |
 | D-T12 | **Zulip cannot be restyled.** It ships no custom-CSS mechanism, and its production tarball contains no editable CSS. Workcenter brands Zulip with name, icon, logos and theme only, and does not fork it for appearance. Documentation must not imply otherwise. |
 | D-T13 | Branding must never reduce contrast below the D-A1 floor inside an embedded application. Where a Workcenter colour would fail there, the application keeps its own value. |
 
@@ -955,7 +955,7 @@ Every UI pull request is reviewed against this list:
 - [ ] Does it look right in **both** modes, and does anything it adds to a pane still look right after the mode is forwarded (§4.4)?
 - [ ] Does every brand mark come from `icons/` through the `@icons` alias, unrecoloured (D-2I)?
 - [ ] Does it respect `prefers-reduced-motion`?
-- [ ] Does it have a Playwright assertion for its happy path and one failure path? (see [`Testing.md`](./Testing.md))
+- [ ] Does it have a Playwright assertion for its happy path and one failure path? (see [`Testing.md`](../development/Testing.md))
 - [ ] Are the screenshots in the PR taken at a consistent viewport with before/after side by side?
 
 ---

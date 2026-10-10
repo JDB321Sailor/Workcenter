@@ -1,9 +1,9 @@
 # Workcenter — Product Roadmap
 
 > **Document status:** Living document · **Owner:** Workcenter maintainers · **Last major revision:** initial baseline
-> **Companion documents:** [`Readme.md`](./Readme.md) · [`architecture.md`](./architecture.md) · [`design.md`](./design.md) ·
-> [`integration.md`](./integration.md) · [`OIDC.md`](./OIDC.md) · [`Testing.md`](./Testing.md) ·
-> [`production.md`](./production.md) · [`standards.md`](./standards.md) · [`contributions.md`](./contributions.md) ·
+> **Companion documents:** [`Readme.md`](./Readme.md) · [`architecture.md`](./docs/architecture/architecture.md) · [`design.md`](./docs/architecture/design.md) ·
+> [`integration.md`](./docs/architecture/integration.md) · [`OIDC.md`](./docs/authentication/OIDC.md) · [`Testing.md`](./docs/development/Testing.md) ·
+> [`production.md`](./docs/deployment/production.md) · [`standards.md`](./docs/development/standards.md) · [`contributions.md`](./docs/development/contributions.md) ·
 > [`Agents.md`](./Agents.md) · [`CHANGELOG.md`](./CHANGELOG.md)
 
 ---
@@ -146,8 +146,8 @@ Two groups define privilege everywhere: `workspaceusers` (general access) and
 
 ### G6 — Documentation as a deliverable
 
-The repository is only "done" when a competent self-hoster can read the Markdown in the
-repository root and reproduce, operate, upgrade and troubleshoot the deployment without
+The repository is only "done" when a competent self-hoster can read the Markdown in this
+repository and reproduce, operate, upgrade and troubleshoot the deployment without
 asking a question.
 
 ### G7 — Tested by construction
@@ -206,7 +206,7 @@ and the six file-movement flows actually work.
 | OnlyOffice Docs | internal only (`office`, no public hostname required) | Document server for FileBrowser | Workcenter `OnlyOffice/` |
 
 > The base URL is asked for by `setup.sh`; the six hostnames above are **derived** from it
-> by prefix substitution. See [`production.md`](./production.md) for the exact algorithm.
+> by prefix substitution. See [`production.md`](./docs/deployment/production.md) for the exact algorithm.
 
 ### 5.2 Honoured upstream pinning
 
@@ -238,7 +238,7 @@ Workcenter/
 
 ## 6. Integration requirements
 
-Each integration is specified in full in [`integration.md`](./integration.md). The
+Each integration is specified in full in [`integration.md`](./docs/architecture/integration.md). The
 roadmap-listed requirements below are the acceptance contract.
 
 ### 6.1 FileBrowser Quantum (Files)
@@ -296,11 +296,11 @@ roadmap-listed requirements below are the acceptance contract.
 | I-MC-4b | **An override file cannot remove Mailcow's published ports.** Docker *concatenates* `ports`/`expose` lists rather than replacing them, so `docker-compose.override.yml` cannot delete `80:80`/`443:443`, and adding `127.0.0.1:80:80` produces two conflicting bindings. The supported fix is Mailcow's own `HTTP_BIND`/`HTTPS_BIND` in `mailcow.conf` (set them to `127.0.0.1`), combined with the override exposing the container and attaching it to the `proxy` network. Mailcow's `.gitignore` already lists `docker-compose.override.yml` and `mailcow.conf`, confirming the override is the sanctioned, untracked customisation point |
 | I-MC-5 | **OIDC into SOGo via the Mailcow UI**: Mailcow's *Identity Provider* feature (`System → Configuration → Access → Identity Provider`) is configured for **Generic-OIDC** against Authentik — Authorization, Token and User Info endpoints, Client ID/Secret, Redirect URL `https://mail.example.com`, scopes `openid profile email mailcow_template`, attribute→mailbox-template mapping, and per-mailbox *Identity Provider = Generic-OIDC*. This is a **first-class upstream feature**; the Mailcow UI must **not** be placed behind an Authentik forward-auth proxy |
 | I-MC-6 | **Mailcow's LDAP identity provider is additionally configured** (Authentik LDAP outpost → Mailcow) so that Authentik becomes the source of truth for *mail protocol* credentials as well as the web UI. This is what gives the broker a non-password path for IMAP/SMTP when the OIDC route only covers the UI. Fields: Host, Port, Use SSL/TLS, Base DN, Username Field, Filter, Attribute Field, Bind DN/Bind Password, Attribute Mapping, Periodic Full Sync, Import Users |
-| I-MC-7 | **SOGo's own OIDC is deliberately not wired.** SOGo ≥ 5.12 has native OIDC and Mailcow ships 5.12.11, but Mailcow does not configure it, and enabling it would require a Dovecot **OAuth2 passdb** (absent) plus an `OCSOpenIdURL` pointing at a `sogo_openid` table that does not exist in Mailcow's schema. Mailcow's documented consequence stands: identity-provider users *"can only log in to SOGo through the mailcow UI."* Workcenter therefore authenticates at the Mailcow UI and reaches SOGo through Mailcow's own `sogo-auth` proxy SSO session. [`OIDC.md` §7](./OIDC.md#7-sogo-mailcow-and-the-oidc-reality) documents the mechanism in full |
+| I-MC-7 | **SOGo's own OIDC is deliberately not wired.** SOGo ≥ 5.12 has native OIDC and Mailcow ships 5.12.11, but Mailcow does not configure it, and enabling it would require a Dovecot **OAuth2 passdb** (absent) plus an `OCSOpenIdURL` pointing at a `sogo_openid` table that does not exist in Mailcow's schema. Mailcow's documented consequence stands: identity-provider users *"can only log in to SOGo through the mailcow UI."* Workcenter therefore authenticates at the Mailcow UI and reaches SOGo through Mailcow's own `sogo-auth` proxy SSO session. [`OIDC.md` §7](./docs/authentication/OIDC.md#7-sogo-mailcow-and-the-oidc-reality) documents the mechanism in full |
 | I-MC-7a | The SOGo session is established by the Mailcow UI's **"Login to Webmail"** action (`/sogo-auth.php?login=<address>`), which sets a session flag that nginx's `auth_request` then translates into injected credentials. Opening `/SOGo` with no such session shows **SOGo's own login form** — which the Workcenter Mail pane must detect and surface as its `auth-error` state with **Sign in again** |
 | I-MC-8 | `SKIP_SOGO=n` and the SOGo container must be present and healthy. Mailcow's compose defines **no** `healthcheck:` blocks of its own (only image-baked `HEALTHCHECK` instructions and one `condition: service_healthy` on unbound), so Workcenter's override supplies explicit healthchecks for `nginx-mailcow`, `sogo-mailcow`, `mysql-mailcow` and `redis-mailcow`, plus a Mailcow API key (`API_KEY`, `API_ALLOW_FROM`) for `/api/v1/get/status/containers` |
 | I-MC-9 | External mail clients use Mailcow **app passwords** (documented in `OIDC.md`) unless LDAP is enabled; switching a mailbox's identity provider never destroys the existing SQL password, so fallback to the account password remains possible |
-| I-MC-10 | The vmail store must be reachable for the file broker's "save attachment" path; `./Mailcow/data/` and the FileBrowser source are co-located on the same host filesystem  The store is a **named Docker volume** (`mailcowdockerized_vmail-vol-1`, mounted at `/var/vmail`, indexes in a second volume) owned by uid 5000 with `0700`/`0600` permissions and encrypted at rest — **not** a directory under `./Mailcow/data/`. A broker may not mount it: reading it would expose every mailbox and writing it would corrupt a UID list, an index and a SQL-backed quota that only Dovecot maintains ([`broker.md` §5.2](./broker.md#52-how-bytes-move-by-path-or-by-api)). |
+| I-MC-10 | The vmail store must be reachable for the file broker's "save attachment" path; `./Mailcow/data/` and the FileBrowser source are co-located on the same host filesystem  The store is a **named Docker volume** (`mailcowdockerized_vmail-vol-1`, mounted at `/var/vmail`, indexes in a second volume) owned by uid 5000 with `0700`/`0600` permissions and encrypted at rest — **not** a directory under `./Mailcow/data/`. A broker may not mount it: reading it would expose every mailbox and writing it would corrupt a UID list, an index and a SQL-backed quota that only Dovecot maintains ([`broker.md` §5.2](./docs/architecture/broker.md#52-how-bytes-move-by-path-or-by-api)). |
 | I-MC-11 | **SOGo 5.12 has no dark mode**, no theme preference and one stylesheet, so Workcenter *supplies* the palette: a stylesheet bind-mounted into SOGo's web resources through `Mailcow/docker-compose.override.yml`, plus a delimited block appended to `data/conf/sogo/custom-sogo.js` — a file `sogo.conf` already loads through `SOGoUIAdditionalJSFiles`, so no Mailcow configuration key is edited. The block preserves Mailcow's own `mc_logout()` |
 | I-MC-12 | That block sets `data-wc-mode` from the `wc_mode` cookie for first paint and updates it on an **origin-checked** `workcenter:mode` message, so the Mail pane changes mode live. It reads only the values `dark` and `light`, never evaluates a received string, and never touches mail content or credentials |
 | I-MC-13 | `sogo-mailcow` is **restarted** after any SOGo branding change, because `bootstrap-sogo.sh` rsyncs the web resources into the nginx volume at container start. Everything under `data/conf/sogo/` is tracked by Mailcow and `update.sh` merges `-X theirs`, so `setup.sh --brand` is a documented post-upgrade step |
@@ -334,7 +334,7 @@ roadmap-listed requirements below are the acceptance contract.
 
 | Ref | Requirement |
 | --- | --- |
-| I-X-1 | A **file broker** service (see [`architecture.md`](./architecture.md#4-the-broker)) provides the six transfer flows over the same host filesystem, with per-user authorisation |
+| I-X-1 | A **file broker** service (see [`architecture.md`](./docs/architecture/architecture.md#4-the-broker)) provides the six transfer flows over the same host filesystem, with per-user authorisation |
 | I-X-2 | Every transfer is **streamed**, size-capped and time-limited; no partial file is left visible to the user |
 | I-X-3 | Every transfer emits a user-visible progress state and a terminal success/failure notification, and is recorded in an audit log |
 | I-X-4 | The broker never stores mail or chat credentials in plaintext at rest; per-user tokens are kept in an encrypted store keyed by a secret held only in `.env` |
@@ -398,7 +398,7 @@ server's IMAP mailbox).
 3. Files ≥ 25 MB use the resumable `POST /api/v1/tus` endpoint instead.
 
 > The broker sends the message rather than handing a link back to the shell: the composer is inside a
-> cross-origin frame, so no host page can insert text into it. See [`broker.md` §5.6](./broker.md#56-f3--chat--files-and-f4--files--chat).
+> cross-origin frame, so no host page can insert text into it. See [`broker.md` §5.6](./docs/architecture/broker.md#56-f3--chat--files-and-f4--files--chat).
 
 **F5 — SOGo attachment → Zulip message**
 
@@ -431,14 +431,14 @@ authorisation, and present one consistent progress UI to the user.
 | B-4 | Atomic writes; a failed transfer leaves zero residue |
 | B-5 | Streaming with backpressure; configurable max size; no full-file buffering in memory |
 | B-6 | Audit record per transfer: actor, direction, source, destination, byte count, result, timestamp |
-| B-7 | Unit-tested against fixtures; end-to-end tested by Playwright (see [`Testing.md`](./Testing.md)) |
+| B-7 | Unit-tested against fixtures; end-to-end tested by Playwright (see [`Testing.md`](./docs/development/Testing.md)) |
 | B-8 | Degrades gracefully: if the broker is down the shell still works, and all six flows report "unavailable" instead of hanging |
 
 ---
 
 ## 8. UI design requirements
 
-Full element-level specification lives in [`design.md`](./design.md). The roadmap-level
+Full element-level specification lives in [`design.md`](./docs/architecture/design.md). The roadmap-level
 requirements are:
 
 ### 8.1 Layout
@@ -474,7 +474,7 @@ requirements are:
 | Ref | Requirement |
 | --- | --- |
 | U-12 | A global keyboard shortcut switches applications (`Alt+1/2/3`), and each embedded app is reachable by URL (`/files`, `/chat`, `/mail`) so panes are linkable |
-| U-13 | The six file-movement actions are **first-class, one click from the file they act on** — the Mail attachment panel, the chat attachment chooser and the file picker — never buried in a settings screen. They are the shell's own surfaces beside the pane rather than controls inside it: each application is a cross-origin frame, so no host page can add a button to SOGo's attachment list or an action to a Zulip message ([`design.md` D-8](./design.md#d-8--file-movement-elements)) |
+| U-13 | The six file-movement actions are **first-class, one click from the file they act on** — the Mail attachment panel, the chat attachment chooser and the file picker — never buried in a settings screen. They are the shell's own surfaces beside the pane rather than controls inside it: each application is a cross-origin frame, so no host page can add a button to SOGo's attachment list or an action to a Zulip message ([`design.md` D-8](./docs/architecture/design.md#d-8--file-movement-elements)) |
 | U-14 | Every long-running action shows progress and can be cancelled without breaking the pane |
 | U-15 | If an application fails to load or fails its healthcheck, the pane shows a diagnostic card with the service name, the failing check and a **Retry** button — never a blank iframe |
 | U-16 | Accessibility: full keyboard navigation of the rail and switcher, visible focus rings, `aria-current` on the active application, and WCAG AA contrast for shell chrome |
@@ -490,7 +490,7 @@ requirements are:
 
 ## 9. Deployment requirements
 
-Full runbook in [`production.md`](./production.md).
+Full runbook in [`production.md`](./docs/deployment/production.md).
 
 | Ref | Requirement |
 | --- | --- |
@@ -510,7 +510,7 @@ Full runbook in [`production.md`](./production.md).
 
 ## 10. Authentication and authorisation requirements
 
-Full provider-by-provider walkthrough in [`OIDC.md`](./OIDC.md).
+Full provider-by-provider walkthrough in [`OIDC.md`](./docs/authentication/OIDC.md).
 
 | Ref | Requirement |
 | --- | --- |
@@ -558,14 +558,14 @@ These files are the specification of the product and are maintained as part of i
 | --- | --- |
 | [`roadmap.md`](./roadmap.md) | This document |
 | [`Readme.md`](./Readme.md) | Overview, quick start, feature summary |
-| [`architecture.md`](./architecture.md) | Folder structure, file breakdown, layout |
-| [`design.md`](./design.md) | Every UI element and interaction |
-| [`integration.md`](./integration.md) | What each integrated application is and how it is wired in |
-| [`OIDC.md`](./OIDC.md) | OIDC concepts, Authentik setup, `setup.sh` prompts |
-| [`Testing.md`](./Testing.md) | Test strategy, Playwright harness, gates |
-| [`production.md`](./production.md) | Production deployment, `setup.sh` contract, upgrades, backups |
-| [`standards.md`](./standards.md) | Coding and documentation standards |
-| [`contributions.md`](./contributions.md) | PR guide, process, workflow |
+| [`architecture.md`](./docs/architecture/architecture.md) | Folder structure, file breakdown, layout |
+| [`design.md`](./docs/architecture/design.md) | Every UI element and interaction |
+| [`integration.md`](./docs/architecture/integration.md) | What each integrated application is and how it is wired in |
+| [`OIDC.md`](./docs/authentication/OIDC.md) | OIDC concepts, Authentik setup, `setup.sh` prompts |
+| [`Testing.md`](./docs/development/Testing.md) | Test strategy, Playwright harness, gates |
+| [`production.md`](./docs/deployment/production.md) | Production deployment, `setup.sh` contract, upgrades, backups |
+| [`standards.md`](./docs/development/standards.md) | Coding and documentation standards |
+| [`contributions.md`](./docs/development/contributions.md) | PR guide, process, workflow |
 | [`Agents.md`](./Agents.md) | Requirements for AI coding agents |
 | [`CHANGELOG.md`](./CHANGELOG.md) | Running log of changes |
 
@@ -674,7 +674,7 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 
 **Goal:** one script from bare host to running stack.
 
-Implement exactly the contract in [`production.md`](./production.md):
+Implement exactly the contract in [`production.md`](./docs/deployment/production.md):
 
 | Step | Work |
 | --- | --- |
@@ -683,7 +683,7 @@ Implement exactly the contract in [`production.md`](./production.md):
 | 4.3 | Traefik detection: if not running, create `Traefik/` and add it to the stack |
 | 4.4 | Prompt for the base URL and derive the six hostnames; write them into every `.env` and config |
 | 4.5 | Skip the `.env`/OIDC checks for anything the script just created, and go straight to the Authentik deployment question |
-| 4.6 | OIDC branch logic exactly as specified in [`OIDC.md`](./OIDC.md): if not configured, ask whether the user has already created the Authentik applications/providers; if yes, create `Authentik/` and prompt for every OIDC variable into the right `.env` files; if no (default), detect a running Authentik, offer to deploy one, and either stop with the exact guidance message or continue |
+| 4.6 | OIDC branch logic exactly as specified in [`OIDC.md`](./docs/authentication/OIDC.md): if not configured, ask whether the user has already created the Authentik applications/providers; if yes, create `Authentik/` and prompt for every OIDC variable into the right `.env` files; if no (default), detect a running Authentik, offer to deploy one, and either stop with the exact guidance message or continue |
 | 4.7 | Final bring-up: `docker compose up -d`, then poll until every service is healthy, printing a per-service report |
 | 4.8 | Branding (`U-22`): write the FileBrowser styling keys, the SOGo stylesheet and script hook, and the Mailcow custom CSS before bring-up; apply the Zulip realm name, icon, both logos and the dark default afterwards; print the one manual Mailcow logo step. Support `--brand` to re-apply it alone |
 | 4.9 | Idempotency tests: run `setup.sh` three times and assert convergence, branding included |
@@ -751,7 +751,7 @@ Implement exactly the contract in [`production.md`](./production.md):
 
 **Exit criteria:** a deliberately broken integration fails the suite with an actionable artifact; a clean merge passes; runtime is bounded and documented.
 
-**Depends on:** Phases 2, 5, 6. Detailed in [`Testing.md`](./Testing.md).
+**Depends on:** Phases 2, 5, 6. Detailed in [`Testing.md`](./docs/development/Testing.md).
 
 ---
 

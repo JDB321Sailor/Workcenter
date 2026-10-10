@@ -194,7 +194,7 @@ other, a same-origin **broker** inside the Workcenter container performs the tra
 per-user credentials, resolves the FileBrowser source path, talks IMAP to Dovecot and the REST API to
 Zulip, and writes files atomically into the shared tree.
 
-Full detail: [`architecture.md`](./architecture.md) and [`integration.md`](./integration.md).
+Full detail: [`architecture.md`](./docs/architecture/architecture.md) and [`integration.md`](./docs/architecture/integration.md).
 
 ---
 
@@ -289,7 +289,7 @@ Create required OIDC application and provider per OIDC.md in authentik.
 Once complete rerun setup.sh to input the .env variables as necessary for Workcenter.
 ```
 
-Follow [`OIDC.md`](./OIDC.md), then rerun `./setup.sh`.
+Follow [`OIDC.md`](./docs/authentication/OIDC.md), then rerun `./setup.sh`.
 
 ### Then
 
@@ -331,15 +331,15 @@ appConfig:
 The appearance mode starts dark and the language follows the browser until the user chooses in the
 user menu; both are remembered per browser. Accent colours are not configuration: each application's
 accent is a shell token derived from FileBrowser Quantum's palette
-([`design.md` §4.3.1](./design.md#431-where-the-palette-comes-from)).
+([`design.md` §4.3.1](./docs/architecture/design.md#431-where-the-palette-comes-from)).
 
 Every setting, with types and defaults, is documented in
-[`architecture.md` §6](./architecture.md#6-configuration-model) and `docs/configuring.md`.
+[`architecture.md` §6](./docs/architecture/architecture.md#6-configuration-model) and `docs/guides/configuring.md`.
 
 ### Environment variables
 
 Deployment settings live in `.env` at the repository root, with every key documented in
-the deployment guide in [`production.md`](./production.md). Per-application settings live in that application's own
+the deployment guide in [`production.md`](./docs/deployment/production.md). Per-application settings live in that application's own
 `.env`/`.env.example`. **Nothing is hard-coded**, and no secret is ever committed.
 
 ---
@@ -359,35 +359,34 @@ the deployment guide in [`production.md`](./production.md). Per-application sett
 **Original FileBrowser is deprecated** — Workcenter uses **FileBrowser Quantum** only, and its
 configuration follows the Quantum **v2** schema.
 
-Full wiring for each: [`integration.md`](./integration.md).
+Full wiring for each: [`integration.md`](./docs/architecture/integration.md).
 
 ---
 
 ## Documentation
 
-### The specification set
+Four documents live at the repository root. Everything else is under [`docs/`](./docs/readme.md),
+grouped by subject.
 
 | Document | Contents |
 | --- | --- |
-| [`roadmap.md`](./roadmap.md) | Goals, integration requirements, UI requirements, the phased build plan |
-| [`architecture.md`](./architecture.md) | Folder structure, file breakdown, layout, configuration model |
-| [`design.md`](./design.md) | Every UI element, state, token and interaction |
-| [`integration.md`](./integration.md) | What each integrated application is, and exactly how it is wired in |
-| [`broker.md`](./broker.md) | The broker: identity, credentials, the six file flows, the appearance and language bridges, security and its test criteria |
-| [`OIDC.md`](./OIDC.md) | How OIDC works here, the Authentik setup walkthrough, and the `setup.sh` prompt contract |
-| [`Testing.md`](./Testing.md) | Test strategy, the Playwright harness, and the gates every merge passes |
-| [`production.md`](./production.md) | Production deployment, the `setup.sh` contract, volumes, upgrades, backups |
-| [`standards.md`](./standards.md) | Coding, naming, documentation and security standards |
-| [`contributions.md`](./contributions.md) | Branching, the PR guide, review process, promotion to `Stable` |
+| [`Readme.md`](./Readme.md) | This file — overview, features, quick start and configuration |
 | [`Agents.md`](./Agents.md) | Requirements for AI coding agents working in this repository |
+| [`roadmap.md`](./roadmap.md) | Goals, integration requirements, UI requirements and the phased build plan |
 | [`CHANGELOG.md`](./CHANGELOG.md) | The running log of changes |
 
-### Long-form guides
+| Folder | Documents |
+| --- | --- |
+| `docs/architecture/` | [architecture](./docs/architecture/architecture.md) · [design](./docs/architecture/design.md) · [integration](./docs/architecture/integration.md) · [broker](./docs/architecture/broker.md) |
+| `docs/authentication/` | [authentication](./docs/authentication/authentication.md) · [OIDC](./docs/authentication/OIDC.md) · [Authentik](./docs/authentication/authentik.md) · [OIDC client](./docs/authentication/oidc-client.md) · [header auth](./docs/authentication/header-auth.md) · [built-in](./docs/authentication/built-in.md) · [other methods](./docs/authentication/other-auth-methods.md) |
+| `docs/deployment/` | [deployment](./docs/deployment/deployment.md) · [production](./docs/deployment/production.md) · [Docker](./docs/deployment/docker.md) · [bare metal](./docs/deployment/bare-metal.md) |
+| `docs/development/` | [developing](./docs/development/developing.md) · [contributing](./docs/development/contributing.md) · [contributions](./docs/development/contributions.md) · [standards](./docs/development/standards.md) · [Testing](./docs/development/Testing.md) · [branch protection](./docs/development/branch-protection.md) · [release workflow](./docs/development/release-workflow.md) |
+| `docs/guides/` | [quick start](./docs/guides/quick-start.md) · [configuring](./docs/guides/configuring.md) · [management](./docs/guides/management.md) · [theming](./docs/guides/theming.md) · [troubleshooting](./docs/guides/troubleshooting.md) |
+| `docs/reference/` | [REST API](./docs/reference/api.md) · [credits](./docs/reference/credits.md) |
+| `docs/research/` | [Authentik API feasibility](./docs/research/authentik-api-feasibility.md) · [Mailcow automation feasibility](./docs/research/mailcow-automation-feasibility.md) |
+| `docs/security/` | [security](./docs/security/security.md) · [privacy](./docs/security/privacy.md) |
 
-Start at [`docs/readme.md`](./docs/readme.md) for the full index, including
-[deployment](./docs/deployment.md), [configuration](./docs/configuring.md),
-[management](./docs/management.md), [security](./docs/security.md),
-[theming](./docs/theming.md) and [troubleshooting](./docs/troubleshooting.md).
+The full index is [`docs/readme.md`](./docs/readme.md).
 
 ---
 
@@ -432,8 +431,8 @@ yarn build
 `Stable` when beta testing completes. `Stable` is the GitHub default branch and holds the
 documentation — switch to `Dev` before you start work.
 
-See [`contributions.md`](./contributions.md) for the full workflow and
-[`standards.md`](./standards.md) for the conventions.
+See [`contributions.md`](./docs/development/contributions.md) for the full workflow and
+[`standards.md`](./docs/development/standards.md) for the conventions.
 
 ---
 
@@ -449,7 +448,7 @@ Workcenter is verified at three levels:
 
 The E2E suite runs on every pull request into `Dev`, so a breaking integration is caught before it
 reaches `Beta`. Full detail, including how to run the stack locally and how failures are reported, is
-in [`Testing.md`](./Testing.md).
+in [`Testing.md`](./docs/development/Testing.md).
 
 ---
 
@@ -464,11 +463,11 @@ in [`Testing.md`](./Testing.md).
 | Update Workcenter | `git pull` then `docker compose up -d --build` |
 | Update Mailcow | `cd Mailcow && ./update.sh` — **never** by hand |
 | Update an image pin | Edit the tag in `.env`, then `docker compose up -d` |
-| Back up | [`production.md`](./production.md) |
-| Restore | [`production.md`](./production.md) |
+| Back up | [`production.md`](./docs/deployment/production.md) |
+| Restore | [`production.md`](./docs/deployment/production.md) |
 | Enable internal TLS | Set `ENABLE_INTERNAL_TLS=true`, rerun `./setup.sh` |
 
-Everything operational is in [`production.md`](./production.md).
+Everything operational is in [`production.md`](./docs/deployment/production.md).
 
 ---
 
@@ -478,14 +477,14 @@ Everything operational is in [`production.md`](./production.md).
 | --- | --- |
 | Redirect loop at sign-in | The Authentik issuer URL must exactly match the public HTTPS URL; check `AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS` and `X-Forwarded-Proto` |
 | `invalid redirect URI` | The exact URL is not registered on the provider — register both the bare URL and the trailing-slash variant |
-| A pane shows "refused to connect" | The application is sending `X-Frame-Options: DENY` or a restrictive `frame-ancestors`; see [`docs/troubleshooting.md`](./docs/troubleshooting.md) |
+| A pane shows "refused to connect" | The application is sending `X-Frame-Options: DENY` or a restrictive `frame-ancestors`; see [`docs/troubleshooting.md`](./docs/guides/troubleshooting.md) |
 | A pane shows a login page inside the shell | The application's session expired; use **Sign in again**, or **Open in new tab** |
 | Mail attachments will not save | Check the broker's file-source mount resolves to the same host directory as FileBrowser's source |
 | Zulip will not load or stops updating | Check Traefik's long-poll route: response buffering must be **off** and the read/idle timeout must exceed 60 s (Zulip's own nginx uses `proxy_read_timeout 1200;`). Zulip has no websockets, so `Upgrade` handling is not the issue. Also check `CSRF_TRUSTED_ORIGINS` |
 | A service is unhealthy after an update | `docker compose logs <service>`; Mailcow must only ever be updated with `./update.sh` |
 
-Full runbook: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and
-[`OIDC.md`](./OIDC.md#12-troubleshooting).
+Full runbook: [`docs/troubleshooting.md`](./docs/guides/troubleshooting.md) and
+[`OIDC.md`](./docs/authentication/OIDC.md#12-troubleshooting).
 
 ---
 
@@ -499,7 +498,7 @@ Full runbook: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and
   restricted to `workspaceadmin`.
 
 To report a vulnerability, please do **not** open a public issue — see
-[`SECURITY.md`](./.github/SECURITY.md).
+[`SECURITY.md`](.github/SECURITY.md).
 
 ---
 
@@ -516,7 +515,7 @@ deliberately out of scope.
 Contributions are welcome — bug fixes, regression tests, documentation and new integration
 capabilities.
 
-1. Read [`contributions.md`](./contributions.md) and [`standards.md`](./standards.md).
+1. Read [`contributions.md`](./docs/development/contributions.md) and [`standards.md`](./docs/development/standards.md).
 2. Branch from `Dev`, and open your pull request **against `Dev`**.
 3. Add a [`CHANGELOG.md`](./CHANGELOG.md) entry in the same PR.
 4. Make sure the CI checks pass — `yarn lint`, `yarn typecheck`, `yarn test`,

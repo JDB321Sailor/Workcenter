@@ -4,7 +4,7 @@ Workcenter is a self-hosted application: a Node server that serves the built she
 configuration and the API. It is deployed as a container, or run directly on a host.
 
 The supported production deployment is the **full stack** described in
-[`production.md`](../production.md): Workcenter plus Traefik, Authentik, FileBrowser Quantum,
+[`production.md`](./production.md): Workcenter plus Traefik, Authentik, FileBrowser Quantum,
 ONLYOFFICE, Zulip and Mailcow/SOGo, brought up together. That is what makes the three panes and
 the cross-application file movement work. Running the shell alone is useful for development.
 
@@ -29,10 +29,10 @@ locally, as above.
 
 | Method | Guide | When to use it |
 | --- | --- | --- |
-| **The full stack** | [`production.md`](../production.md) | Production. Every integrated application, TLS and identity. |
-| **Docker** | [`deployment/docker.md`](./deployment/docker.md) | The shell alone, in a container |
-| **Bare metal** | [`deployment/bare-metal.md`](./deployment/bare-metal.md) | A host that already runs Node.js, or development |
-| **Local development** | [`developing.md`](./developing.md) | `yarn dev`, with hot reloading |
+| **The full stack** | [`production.md`](./production.md) | Production. Every integrated application, TLS and identity. |
+| **Docker** | [`deployment/docker.md`](./docker.md) | The shell alone, in a container |
+| **Bare metal** | [`deployment/bare-metal.md`](./bare-metal.md) | A host that already runs Node.js, or development |
+| **Local development** | [`developing.md`](../development/developing.md) | `yarn dev`, with hot reloading |
 
 ## Requirements
 
@@ -61,7 +61,7 @@ idles around 80–120 MB.
 ### Network
 
 Ports 80 and 443 must reach the host for Traefik to obtain certificates, plus Mailcow's mail
-ports. Six DNS records are needed — see [`production.md` §3](../production.md).
+ports. Six DNS records are needed — see [`production.md` §3](./production.md).
 
 ### Browser support
 
@@ -80,7 +80,7 @@ two versions of each, via [browserslist](https://browsersl.ist/).
 
 ## Where to go next
 
-- [`quick-start.md`](./quick-start.md) — the shortest path to a running instance
-- [`configuring.md`](./configuring.md) — the options in `user-data/conf.yml`
-- [`OIDC.md`](../OIDC.md) — the Authentik setup, which every pane depends on
-- [`management.md`](./management.md) — day-2 operations
+- [`quick-start.md`](../guides/quick-start.md) — the shortest path to a running instance
+- [`configuring.md`](../guides/configuring.md) — the options in `user-data/conf.yml`
+- [`OIDC.md`](../authentication/OIDC.md) — the Authentik setup, which every pane depends on
+- [`management.md`](../guides/management.md) — day-2 operations

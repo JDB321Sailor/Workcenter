@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 the entry taxonomy and release cadence follow the
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) changelog, and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-as described in [`contributions.md`](./contributions.md).
+as described in [`contributions.md`](./docs/development/contributions.md).
 
 > **This file is the running log of changes.**
 > Every merged pull request that changes behaviour, configuration, documentation,
@@ -37,7 +37,7 @@ as described in [`contributions.md`](./contributions.md).
    reference the issue or PR number at the end of the line: `(#123)`.
 4. If the change affects an operator (a new `.env` key, a new volume, a changed
    port, a required Authentik setting), put it under `Notes` **and** add a
-   migration note to [`production.md`](./production.md).
+   migration note to [`production.md`](./docs/deployment/production.md).
 5. Never edit a released section. Released history is immutable; corrections are
    made in a new patch release.
 
@@ -354,7 +354,7 @@ as described in [`contributions.md`](./contributions.md).
  - `setup.sh` gains `--brand`, which re-applies the branding on its own. Run it after
    `Mailcow/update.sh`: Mailcow tracks everything under `data/conf/sogo/` and merges with
    `-X theirs`, so an upgrade can revert the Mail pane's styling
-   ([`production.md` §10.2](./production.md#102-mailcow)).
+   ([`production.md` §10.2](./docs/deployment/production.md#102-mailcow)).
  - Mailcow's light and dark logos are uploaded by hand in **Configuration → Customize**. They are
    stored in Redis by a form POST and Mailcow exposes no API for it, so `setup.sh` prints the step
    instead of reporting a success it did not achieve.
@@ -655,14 +655,32 @@ as described in [`contributions.md`](./contributions.md).
    installs the certificate into every profile it finds.
 
 ### Documentation
+ - **Documentation organized by subject.** Four documents live at the repository root —
+   [`Readme.md`](./Readme.md), [`Agents.md`](./Agents.md), [`roadmap.md`](./roadmap.md) and
+   [`CHANGELOG.md`](./CHANGELOG.md) — and every other document lives under `docs/`, grouped by subject:
+   `architecture/`, `authentication/`, `deployment/`, `development/`, `guides/`, `reference/`,
+   `research/` and `security/`. Every relative link and cross-reference was updated to the new
+   locations. The index at [`docs/readme.md`](./docs/readme.md) lists every folder and document, the
+   documentation map in [`Readme.md`](./Readme.md) mirrors it, and the rules that describe documentation
+   placement ([`architecture.md`](./docs/architecture/architecture.md) AR-7 and §8,
+   [`standards.md`](./docs/development/standards.md) S-D-4,
+   [`contributions.md`](./docs/development/contributions.md) §12.1) describe the grouped layout.
+ - **The `setup.sh` contract now covers the automation the feasibility studies found.** The identity
+   stage adopts or deploys Authentik and then creates or reconciles every group, scope mapping,
+   provider, application, embedded-outpost membership and application icon itself, and a new Mailcow
+   post-boot stage configures the identity provider, administrator, domain and mailbox through
+   Mailcow's own API
+   ([`production.md` §5.5 and §5.7](./docs/deployment/production.md#55-stage-e--oidc-and-identity-provider)).
+   The manual Web UI procedure remains the documented fallback, and the two studies are published under
+   [`docs/research/`](./docs/research/).
  - `Testing.md` §6.5 rewritten for the Docker harness: the option table, the stage-by-stage behaviour, the
    ingress rule that keeps the unauthenticated phase on the loopback interface, the automated checks and
    what each one proves, the teardown contract, and the run artefacts. The phase table now records Phase 3
    as the current one and keeps `--shell-only` documented as the Phase 2 path.
- - **New: [`broker.md`](./broker.md) — the definitive document for the broker, and the completion of the
+ - **New: [`broker.md`](./docs/architecture/broker.md) — the definitive document for the broker, and the completion of the
    file-movement specification.** Earlier revisions of the documentation described **four** transfer flows;
    the complete set is the **six ordered pairs** of the three applications (Mail → Files, Mail → Chat,
-   Chat → Files, Chat → Mail, Files → Mail, Files → Chat), and [`broker.md`](./broker.md) §5 specifies all
+   Chat → Files, Chat → Mail, Files → Mail, Files → Chat), and [`broker.md`](./docs/architecture/broker.md) §5 specifies all
    six — each with its route, the source chooser it starts from, the exact upstream mechanism, the audit
    flow name, and its own test cases. **Chat → Mail (F6) had no specification at all before this change:**
    it is now defined end to end (read the upload from Zulip with the user's own key, build the MIME message,

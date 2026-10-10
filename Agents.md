@@ -4,8 +4,8 @@
 > that edits this repository, including agents invoked through an IDE, a CLI harness, a CI job, or a
 > hosted service.
 > **Status:** normative. These are requirements, not suggestions.
-> **Companions:** [`standards.md`](./standards.md) · [`contributions.md`](./contributions.md) ·
-> [`architecture.md`](./architecture.md) · [`Testing.md`](./Testing.md) · [`roadmap.md`](./roadmap.md)
+> **Companions:** [`standards.md`](./docs/development/standards.md) · [`contributions.md`](./docs/development/contributions.md) ·
+> [`architecture.md`](./docs/architecture/architecture.md) · [`Testing.md`](./docs/development/Testing.md) · [`roadmap.md`](./roadmap.md)
 
 ---
 
@@ -40,11 +40,11 @@ An agent must read, at minimum:
 | Order | File | Why |
 | --- | --- | --- |
 | 1 | The file(s) named in the task | The task refers to real code |
-| 2 | [`standards.md`](./standards.md) | Coding, naming, commit and documentation rules |
-| 3 | [`architecture.md`](./architecture.md) | Where things live and what was kept from Dashy |
-| 4 | [`design.md`](./design.md) | If the task touches anything a user sees |
-| 5 | [`contributions.md`](./contributions.md) | Branch, PR and changelog obligations |
-| 6 | [`Testing.md`](./Testing.md) | Which tests the change requires |
+| 2 | [`standards.md`](./docs/development/standards.md) | Coding, naming, commit and documentation rules |
+| 3 | [`architecture.md`](./docs/architecture/architecture.md) | Where things live and what was kept from Dashy |
+| 4 | [`design.md`](./docs/architecture/design.md) | If the task touches anything a user sees |
+| 5 | [`contributions.md`](./docs/development/contributions.md) | Branch, PR and changelog obligations |
+| 6 | [`Testing.md`](./docs/development/Testing.md) | Which tests the change requires |
 | 7 | The surrounding source files | Match the code that is already there |
 
 An agent must **not** begin editing from the task description alone when the task names a file,
@@ -60,8 +60,8 @@ When sources disagree, resolve in this order — highest first:
 | --- | --- | --- |
 | 1 | **The code in this repository** | `src/`, `services/`, `compose.yaml`, `setup.sh` |
 | 2 | **The pinned upstream source** | `Filebrowser/` at `v2.0.9-beta`, the docker-zulip `compose.yaml`, Mailcow's `docker-compose.yml`, OnlyOffice, Authentik, Traefik docs |
-| 3 | **The specification set at the repository root** | `roadmap.md`, `architecture.md`, `design.md`, `OIDC.md`, `production.md`, `integration.md` |
-| 4 | **`docs/`** | Long-form guides; may lag the specification set |
+| 3 | **The specification set** | `roadmap.md` at the repository root, plus `docs/architecture/` (`architecture`, `design`, `integration`, `broker`), `docs/authentication/OIDC.md`, `docs/deployment/production.md`, `docs/development/standards.md`, `docs/development/contributions.md` and `docs/development/Testing.md` |
+| 4 | **The remaining `docs/` guides** | Task-oriented documents under `docs/`; may lag the specification set |
 | 5 | **Upstream documentation websites** | Authoritative for upstream behaviour, not for Workcenter's decisions |
 | 6 | **An agent's prior knowledge** | **Lowest.** Treat as a hypothesis to verify, never as a fact to write down |
 
@@ -90,7 +90,7 @@ When sources disagree, resolve in this order — highest first:
 
 | Ref | Requirement |
 | --- | --- |
-| A-3.7 | **Never reintroduce a removed Workcenter subsystem**: the Default view, the Minimal view, widgets, status/ping monitoring, the tile grid, the view switcher, the in-app config editor. The removal list is in [`architecture.md` §3.3](./architecture.md#33-removed-from-dashy). |
+| A-3.7 | **Never reintroduce a removed Workcenter subsystem**: the Default view, the Minimal view, widgets, status/ping monitoring, the tile grid, the view switcher, the in-app config editor. The removal list is in [`architecture.md` §3.3](./docs/architecture/architecture.md#33-removed-from-dashy). |
 | A-3.8 | **Never modify an upstream application in place.** Mailcow's `docker-compose.yml`, `generate_config.sh` and `update.sh` are read-only; Workcenter changes go in `docker-compose.override.yml`. Bundled applications are pinned and configured, never forked and patched. |
 | A-3.9 | **Never restructure the per-application folders.** Every application owns exactly one top-level folder, and its volumes are bind mounts inside it. |
 | A-3.10 | **Never overwrite a published requirement ID.** IDs in the specification set are stable; a withdrawn requirement is marked `(withdrawn)`, not renumbered or reused. |
@@ -123,7 +123,7 @@ These are the facts most often hallucinated. They are verified against the sourc
 | Route paths | Declared in `src/utils/config/defaults.js`, **not** in `src/router.js` |
 | Config file | `user-data/conf.yml`, loaded by the store, validated by `ConfigSchema.json` |
 | Config schema | `src/utils/config/ConfigSchema.json`, draft-07, `required: ["sections"]` |
-| Workcenter's sidebar width token | `--side-bar-width` — `16rem` expanded, overridden to `--side-bar-width-collapsed` (`3.5rem`) when the rail is collapsed; see [`design.md` §2.2](./design.md#22-layout-tokens) |
+| Workcenter's sidebar width token | `--side-bar-width` — `16rem` expanded, overridden to `--side-bar-width-collapsed` (`3.5rem`) when the rail is collapsed; see [`design.md` §2.2](./docs/architecture/design.md#22-layout-tokens) |
 | Workcenter's header token | `--header-height`, set to `0`: the rail's brand header replaces the inherited page header, so every inherited `calc()` still resolves |
 | i18n | `vue-i18n`, `legacy: false`; templates use `$t('ns.key')`, scripts use `i18n.global.t('ns.key')`; `en.json` is canonical |
 | Package manager | **Yarn**, not npm |
@@ -187,7 +187,7 @@ Confirm the branch. **Never commit directly to `Dev`, `Beta` or `Stable`.**
 ### Step 2 — Understand
 
 Read the named files. Trace the call path. Find the existing test for the behaviour. Find the
-requirement ID that covers it (see [`standards.md` §10](./standards.md#10-requirement-id-convention)).
+requirement ID that covers it (see [`standards.md` §10](./docs/development/standards.md#10-requirement-id-convention)).
 
 ### Step 3 — Plan and state the plan
 
@@ -204,7 +204,7 @@ for confirmation before writing code.
 ### Step 4 — Implement in small, coherent commits
 
 One logical change per commit, Conventional Commits format
-([`standards.md` §8.1](./standards.md#81-commits)). Do not mix a refactor with a behaviour change.
+([`standards.md` §8.1](./docs/development/standards.md#81-commits)). Do not mix a refactor with a behaviour change.
 
 ### Step 5 — Verify
 
@@ -226,13 +226,13 @@ yarn test:e2e             # if a user-visible flow changed
 | If you changed… | You must also update… |
 | --- | --- |
 | Any behaviour | `CHANGELOG.md` under `## [Unreleased]` |
-| A config key | `ConfigSchema.json`, the defaults, `docs/configuring.md`, and the relevant root document |
-| A UI element | [`design.md`](./design.md) and the relevant Playwright spec |
-| An integration | [`integration.md`](./integration.md) and the application's `.env.example` |
-| An OIDC value | [`OIDC.md`](./OIDC.md) **and** the matching `setup.sh` prompt |
-| The deployment | [`production.md`](./production.md) |
-| Folder structure | [`architecture.md`](./architecture.md) |
-| A test or gate | [`Testing.md`](./Testing.md) |
+| A config key | `ConfigSchema.json`, the defaults, `docs/guides/configuring.md`, and the relevant specification document |
+| A UI element | [`design.md`](./docs/architecture/design.md) and the relevant Playwright spec |
+| An integration | [`integration.md`](./docs/architecture/integration.md) and the application's `.env.example` |
+| An OIDC value | [`OIDC.md`](./docs/authentication/OIDC.md) **and** the matching `setup.sh` prompt |
+| The deployment | [`production.md`](./docs/deployment/production.md) |
+| Folder structure | [`architecture.md`](./docs/architecture/architecture.md) |
+| A test or gate | [`Testing.md`](./docs/development/Testing.md) |
 
 ### Step 7 — Report
 
