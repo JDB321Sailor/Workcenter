@@ -5,7 +5,7 @@ configuration: one login for the shell and for the three applications it embeds.
 runs in Docker, speaks OIDC, OAuth 2.0, SAML 2.0 and LDAP, and has an admin UI with MFA and
 per-application group policies.
 
-[`OIDC.md`](../../OIDC.md) is the authoritative document for the whole stack — every provider, every
+[`OIDC.md`](./OIDC.md) is the authoritative document for the whole stack — every provider, every
 application and the `setup.sh` prompts. This page is the Authentik side of it: the objects to create
 and the values Workcenter needs.
 
@@ -21,7 +21,7 @@ and the values Workcenter needs.
 | Proxy provider and application | `traefik-dashboard`, `traefik` | Forward auth for the Traefik dashboard |
 
 The shell needs the first four. The rest make the workspace single-sign-on rather than three separate
-logins; [`OIDC.md` §5](../../OIDC.md) covers them.
+logins; [`OIDC.md` §5](./OIDC.md) covers them.
 
 ## Deploy Authentik
 
@@ -123,7 +123,7 @@ Anyone outside `workspaceusers` is then refused sign-in.
 ## Wire Workcenter to it
 
 The shell reads this block from `user-data/conf.yml`. The client secret never goes in this file: the
-server reads it from the environment. See [`OIDC.md` §6.1](../../OIDC.md).
+server reads it from the environment. See [`OIDC.md` §6.1](./OIDC.md).
 
 ```yaml
 appConfig:
@@ -307,7 +307,7 @@ server-side verification is in
 
 ## Read next
 
-- [`OIDC.md`](../../OIDC.md) — every provider, every application, and the `setup.sh` prompts
-- [`oidc.md`](./oidc.md) — the OIDC client settings in full
+- [`OIDC.md`](./OIDC.md) — every provider, every application, and the `setup.sh` prompts
+- [`oidc-client.md`](./oidc-client.md) — the OIDC client settings in full
 - [`header-auth.md`](./header-auth.md) — forward auth, the pattern behind the Traefik dashboard
-- [`security.md`](../security.md) — the trust boundaries of the deployed stack
+- [`security.md`](../security/security.md) — the trust boundaries of the deployed stack

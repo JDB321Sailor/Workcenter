@@ -104,6 +104,6 @@ untouched, and the message names the reason.
 
 ## Read next
 
-- [`configuring.md`](./configuring.md) — what each configuration key means
-- [`security.md`](./security.md) — how the API is protected, and what to do before exposing it
-- [`management.md`](./management.md) — backups, and the environment variables the server reads
+- [`configuring.md`](../guides/configuring.md) — what each configuration key means
+- [`security.md`](../security/security.md) — how the API is protected, and what to do before exposing it
+- [`management.md`](../guides/management.md) — backups, and the environment variables the server reads

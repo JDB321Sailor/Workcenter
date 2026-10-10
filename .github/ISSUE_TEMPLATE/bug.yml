@@ -103,5 +103,5 @@ body:
           required: true
         - label: I have searched the existing issues for a duplicate
           required: true
-        - label: I have read the troubleshooting guidance in production.md and docs/troubleshooting.md
+        - label: I have read the troubleshooting guidance in production.md and docs/guides/troubleshooting.md
           required: true

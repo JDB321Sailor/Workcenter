@@ -1,7 +1,7 @@
 # Contributing
 
 Thank you for considering a contribution to Workcenter. Contributions of any size are
-welcome, and every one is credited — see [`credits.md`](./credits.md).
+welcome, and every one is credited — see [`credits.md`](../reference/credits.md).
 
 ## Ways to help
 
@@ -12,7 +12,7 @@ welcome, and every one is credited — see [`credits.md`](./credits.md).
 | Translation | A new locale file in `src/assets/locales/` — see below |
 | Theme | A theme partial in `src/styles/themes/` |
 | Deployment improvement | A pull request into `Dev`, with a dry run on a disposable host |
-| A security report | Privately — see [`SECURITY.md`](../.github/SECURITY.md) |
+| A security report | Privately — see [`SECURITY.md`](../../.github/SECURITY.md) |
 
 ## Add a translation
 
@@ -25,13 +25,13 @@ Run `yarn validate-locales` before opening the pull request: it fails if a local
 missing, if a key used in code is absent from `en.json`, or if a locale is registered in
 `src/utils/languages.js` without a file. The i18n requirements the shell must satisfy — the
 user menu's language control among them — are in
-[the design specification](../design.md#8-i18n).
+[the design specification](../architecture/design.md#8-i18n).
 
 ## Submit a pull request
 
 A bug fix, a feature or a documentation correction is welcome. Read
-[`contributions.md`](../contributions.md) for the branch model, the pull-request requirements
-and the review process, and [`standards.md`](../standards.md) for the conventions.
+[`contributions.md`](./contributions.md) for the branch model, the pull-request requirements
+and the review process, and [`standards.md`](./standards.md) for the conventions.
 
 Every pull request targets `Dev`. The short version:
 
@@ -56,16 +56,18 @@ Then open the pull request against `Dev`.
 ## Improve the documentation
 
 Documentation is a deliverable in this repository, so a pull request that improves it is as
-welcome as a code change. The specification set lives at the repository root and the long-form
-guides are under `docs/`. Both ship in the same pull request as the behaviour they describe.
+welcome as a code change. Every document lives under `docs/`, grouped by subject, apart from the four
+files at the repository root: [`Readme.md`](../../Readme.md), [`Agents.md`](../../Agents.md),
+[`roadmap.md`](../../roadmap.md) and [`CHANGELOG.md`](../../CHANGELOG.md). Documentation ships in
+the same pull request as the behaviour it describes.
 
 ## Where to read next
 
 | Document | Contents |
 | --- | --- |
-| [`contributions.md`](../contributions.md) | The PR guide, review process and branch promotion |
-| [`standards.md`](../standards.md) | Coding, naming and documentation standards |
-| [`Testing.md`](../Testing.md) | The test strategy and the merge gates |
-| [`Agents.md`](../Agents.md) | Requirements for AI coding agents |
-| [`architecture.md`](../architecture.md) | Where code lives |
-| [`docs/developing.md`](./developing.md) | Running the app locally |
+| [`contributions.md`](./contributions.md) | The PR guide, review process and branch promotion |
+| [`standards.md`](./standards.md) | Coding, naming and documentation standards |
+| [`Testing.md`](./Testing.md) | The test strategy and the merge gates |
+| [`Agents.md`](../../Agents.md) | Requirements for AI coding agents |
+| [`architecture.md`](../architecture/architecture.md) | Where code lives |
+| [`docs/development/developing.md`](./developing.md) | Running the app locally |

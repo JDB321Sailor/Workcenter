@@ -104,7 +104,7 @@ signed in and still see it, your token is not reaching the server.
 ## Writing the configuration back
 
 Change the file directly, or use the REST API, which is off until `ENABLE_API=true` is set on the server.
-Reads need any authenticated user, writes need an admin. See [`api.md`](./api.md).
+Reads need any authenticated user, writes need an admin. See [`api.md`](../reference/api.md).
 
 | Method | Path |
 | --- | --- |
@@ -149,7 +149,7 @@ read-only: a `:ro` flag, or a Kubernetes ConfigMap volume, which is read-only by
 
 Client-side problems are logged to the browser console tagged `OIDC` or `SSO`; token verification failures
 are logged by the server as `[auth-oidc] token verification failed: <reason>`. The identity setup is in
-[`OIDC.md`](../OIDC.md) and [`authentication/authentik.md`](./authentication/authentik.md).
+[`OIDC.md`](../authentication/OIDC.md) and [`authentication/authentik.md`](../authentication/authentik.md).
 
 **The server reads `appConfig.auth` once, at boot.** Restart the container after changing anything under
 `auth`, including `oidc.clientId`, `oidc.endpoint`, `adminGroup` and `scope`.
@@ -190,9 +190,9 @@ and the user must be in `adminGroup` — `workspaceadmin` for the integrated wor
 | Logout leaves you at the provider | The invalidation flow asks for confirmation | Use a flow without a consent stage, or set `oidc.postLogoutRedirectUri` and register it |
 | `SSO token is encrypted` | The provider encrypted the token as well as signing it | Clear the provider's encryption key and keep only its signing key |
 | A numeric `clientId` is rejected as an unknown client | YAML parsed an unquoted number, and a value past JavaScript's safe-integer range loses precision | Quote it: `clientId: "918756876419824312"` |
-| `Invalid user object` on startup | An all-digit `hash` was parsed by YAML as a number, so the entry looks incomplete | Quote the hash; see [`authentication/built-in.md`](./authentication/built-in.md) |
+| `Invalid user object` on startup | An all-digit `hash` was parsed by YAML as a number, so the entry looks incomplete | Quote the hash; see [`authentication/built-in.md`](../authentication/built-in.md) |
 | Basic auth fails and `auth.users` is also set | `ENABLE_HTTP_AUTH=true` validates against `auth.users`, while `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` are a separate method; the server warns at boot that they do not work together | Keep one method |
-| `Unauthorized - not from trusted proxy` or `Unauthorized - missing user header` | Header auth: the proxy's address is not in `auth.headerAuth.proxyWhitelist`, or the configured `userHeader` is not on the request. In Docker that address is the bridge address | Add the address, check the proxy's forward-auth configuration, and restart; see [`authentication/header-auth.md`](./authentication/header-auth.md) |
+| `Unauthorized - not from trusted proxy` or `Unauthorized - missing user header` | Header auth: the proxy's address is not in `auth.headerAuth.proxyWhitelist`, or the configured `userHeader` is not on the request. In Docker that address is the bridge address | Add the address, check the proxy's forward-auth configuration, and restart; see [`authentication/header-auth.md`](../authentication/header-auth.md) |
 
 ---
 
@@ -220,7 +220,7 @@ no error card. The browser console names the offending header.
 
 | Cause | Fix |
 | --- | --- |
-| `X-Frame-Options` is `DENY`, or `SAMEORIGIN` and Workcenter is on another host. Zulip sends `DENY` at server scope and cannot be configured inside itself, which is why [`integration.md`](../integration.md) sets the policy at the ingress instead | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin (`https://workcenter.example.com`), never `*`, then reload. For another application, set its own `frame-ancestors` to `'self' https://workcenter.example.com` |
+| `X-Frame-Options` is `DENY`, or `SAMEORIGIN` and Workcenter is on another host. Zulip sends `DENY` at server scope and cannot be configured inside itself, which is why [`integration.md`](../architecture/integration.md) sets the policy at the ingress instead | Confirm the `zulip` router carries `security-headers@file` and that the middleware's `frame-ancestors` names the **shell's** origin (`https://workcenter.example.com`), never `*`, then reload. For another application, set its own `frame-ancestors` to `'self' https://workcenter.example.com` |
 | An untrusted certificate on the application's hostname, which the browser will not render inside a frame | Open the host in a new tab, and use a trusted certificate |
 | An expired session in the application itself | The pane shows that application's login page; the shell cannot tell it apart from a working session |
 
@@ -288,7 +288,7 @@ run `yarn cache clean && rm -rf node_modules && yarn install --frozen-lockfile`.
 
 ## Docker and volumes
 
-The container listens on **8080**; the Compose file and [`deployment/docker.md`](./deployment/docker.md)
+The container listens on **8080**; the Compose file and [`deployment/docker.md`](../deployment/docker.md)
 publish it as 4000. The image runs as the `node` user, uid 1000. For status and logs, use
 `docker compose ps` and `docker compose logs -f workcenter`.
 
@@ -332,7 +332,7 @@ refuses the connection. **Fix.** Publish 443, remove the certificates, or set `R
 
 **Cause.** The host side and the container side of the mount disagree about which one is a file. **Fix.**
 Mount a host directory with `conf.yml` in it onto `/app/user-data`, as in
-[`deployment/docker.md`](./deployment/docker.md). A single-file mount needs that file to exist already,
+[`deployment/docker.md`](../deployment/docker.md). A single-file mount needs that file to exist already,
 or Docker creates a directory in its place — and see
 [Edits on the host never reach the container](#edits-on-the-host-never-reach-the-container).
 
@@ -365,7 +365,7 @@ shell then spots an expired session on load, drops the worker and reloads.
 Open issues at
 [github.com/JDB321Sailor/Workcenter/issues](https://github.com/JDB321Sailor/Workcenter/issues/new/choose).
 A security issue goes through the private advisory process instead — see
-[`security.md`](./security.md). **Redact session tokens, password hashes, API tokens and addresses.**
+[`security.md`](../security/security.md). **Redact session tokens, password hashes, API tokens and addresses.**
 
 **Console.** <kbd>F12</kbd> opens DevTools; messages tagged `OIDC`, `SSO` or `Service Worker Status` carry
 the client-side detail, and the **Configuration Load Error** panel quotes the load failure verbatim.
@@ -391,7 +391,7 @@ messages are written there and nowhere else. `curl -s http://localhost:4000/heal
 ## Read next
 
 - [`configuring.md`](./configuring.md) — every key in `user-data/conf.yml`
-- [`api.md`](./api.md) — the REST API for reading and writing the configuration
-- [`deployment/docker.md`](./deployment/docker.md) — running the shell in a container
-- [`authentication/authentik.md`](./authentication/authentik.md) — the supported identity setup
-- [`security.md`](./security.md) — the threat model, and how to report a security issue
+- [`api.md`](../reference/api.md) — the REST API for reading and writing the configuration
+- [`deployment/docker.md`](../deployment/docker.md) — running the shell in a container
+- [`authentication/authentik.md`](../authentication/authentik.md) — the supported identity setup
+- [`security.md`](../security/security.md) — the threat model, and how to report a security issue

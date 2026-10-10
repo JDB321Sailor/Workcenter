@@ -1,7 +1,7 @@
 <!--
 Base branch: Dev. Every pull request targets Dev.
 Beta and Stable receive promotion merges only.
-See contributions.md sections 8 and 11 for the PR guide and the commit format.
+See docs/development/contributions.md sections 8 and 11 for the PR guide and the commit format.
 -->
 
 ## What this changes
@@ -16,7 +16,7 @@ Closes #<issue>. <!-- or: Implements the requirement IDs below -->
 
 <!--
 The specification set numbers its requirements so this PR, its tests and the docs can
-cite each other. See standards.md section 10 for the prefixes.
+cite each other. See docs/development/standards.md section 10 for the prefixes.
 Example: U-2, U-3, U-12, D-A2, I-ZU-9
 -->
 

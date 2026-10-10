@@ -2,7 +2,7 @@
 
 > **Scope:** the GitHub-side repository settings that Phase 0.1 requires and that no local
 > commit can establish. Apply these once, when the repository is first pushed.
-> **Companions:** [`contributions.md`](../contributions.md) §3 and §10 · [`Testing.md`](../Testing.md) §10
+> **Companions:** [`contributions.md`](./contributions.md) §3 and §10 · [`Testing.md`](./Testing.md) §10
 
 ---
 

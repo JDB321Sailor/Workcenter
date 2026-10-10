@@ -19,7 +19,7 @@ it does not protect.
 
 Workcenter is built on open source packages. Their advisories are tracked by Dependabot, which
 opens a pull request against `Dev` when one needs attention. See
-[`release-workflow.md`](./release-workflow.md).
+[`release-workflow.md`](../development/release-workflow.md).
 
 The integrated applications — FileBrowser Quantum, Zulip, Mailcow/SOGo, ONLYOFFICE, Authentik and
 Traefik — carry their own security models. Workcenter deploys them and does not patch them. Each
@@ -29,7 +29,7 @@ is pinned in `.env` and updated deliberately.
 
 | Ref | Practice |
 | --- | --- |
-| S-1 | **Terminate TLS at Traefik for every hostname.** No service is published to the internet except Traefik and Mailcow's mail ports. See [`production.md`](../production.md). |
+| S-1 | **Terminate TLS at Traefik for every hostname.** No service is published to the internet except Traefik and Mailcow's mail ports. See [`production.md`](../deployment/production.md). |
 | S-2 | **Authenticate every application with Authentik.** The shell, FileBrowser Quantum, Zulip and Mailcow each use OIDC. The Traefik dashboard sits behind Authentik forward-auth. |
 | S-3 | **Restrict access by group.** Bind `workspaceusers` to each application so that authenticating is not the same as being authorised. |
 | S-4 | **Generate every secret, and never commit one.** `setup.sh` generates them with `openssl rand`, and they are gitignored. |
@@ -144,7 +144,7 @@ why it cannot help an application that misbehaves.
 | **The session token is in `localStorage`** | Any script on the Workcenter origin can read it. Do not serve third-party scripts from it. |
 | **Embedded applications share the browser** | They are separate origins, so they cannot read each other, but they share the device and its cookie jar. |
 | **The shell cannot see inside a pane** | It cannot enforce anything inside an application, and cannot tell a working session from an expired one except by the pane showing a login page. |
-| **Mailcow's OIDC does not cover mail protocols** | IMAP, SMTP, POP3 and SIEVE authenticate with an app password or LDAP. See [`OIDC.md` §7](../OIDC.md). |
+| **Mailcow's OIDC does not cover mail protocols** | IMAP, SMTP, POP3 and SIEVE authenticate with an app password or LDAP. See [`OIDC.md` §7](../authentication/OIDC.md). |
 | **SOGo has no native OIDC wired by Mailcow** | The Mailcow UI is the authenticated front door, and SOGo is reached through its session. |
 | **No published release yet** | There is no signed image and no SBOM until the first release is cut from `Stable`. |
 | **The Playwright suite is not built yet** | Roadmap Phase 7. Until then, CI runs lint, typecheck, the unit and server suites, locale and config validation, and the build. |
@@ -153,7 +153,7 @@ why it cannot help an application that misbehaves.
 
 Please **do not open a public issue**. Use
 [GitHub's private security advisory](https://github.com/JDB321Sailor/Workcenter/security/advisories/new),
-which is the channel described in [`SECURITY.md`](../.github/SECURITY.md).
+which is the channel described in [`SECURITY.md`](../../.github/SECURITY.md).
 
 Include what you found, how to reproduce it, what you think the impact is, and the version or
 commit you tested. A report about one of the integrated applications belongs with that project,
@@ -162,6 +162,6 @@ unless Workcenter's own configuration is what exposes it.
 ## Read next
 
 - [`privacy.md`](./privacy.md) — what is stored and what is sent
-- [`OIDC.md`](../OIDC.md) — the identity setup
-- [`production.md`](../production.md) — TLS, volumes and the production checklist
-- [`troubleshooting.md`](./troubleshooting.md) — auth, certificates, and what to check first
+- [`OIDC.md`](../authentication/OIDC.md) — the identity setup
+- [`production.md`](../deployment/production.md) — TLS, volumes and the production checklist
+- [`troubleshooting.md`](../guides/troubleshooting.md) — auth, certificates, and what to check first

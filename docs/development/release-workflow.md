@@ -18,7 +18,7 @@ feature branch ──PR──▶ Dev ──promote──▶ Beta ──promote�
 
 Workcenter has not cut a release yet. `Beta` and `Stable` hold the documentation until the
 first promotion. The full model, including the rules enforced, is in
-[`contributions.md`](../contributions.md) and [`branch-protection.md`](./branch-protection.md).
+[`contributions.md`](./contributions.md) and [`branch-protection.md`](./branch-protection.md).
 
 ## Continuous integration
 

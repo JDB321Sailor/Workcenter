@@ -60,7 +60,7 @@ at the firewall.
 ## Forward auth with Traefik and Authentik
 
 Traefik terminates TLS, Authentik's proxy outpost answers the forward-auth check, and the
-authenticated username reaches the upstream service as a header. [`OIDC.md`](../../OIDC.md) creates the
+authenticated username reaches the upstream service as a header. [`OIDC.md`](./OIDC.md) creates the
 proxy provider, the `Traefik` application and the group binding for the Traefik dashboard.
 
 Point the Workcenter router at the forward-auth middleware, set `userHeader` to the header the
@@ -147,5 +147,5 @@ with the whitelist middleware in
 ## Read next
 
 - [`authentik.md`](./authentik.md) — the identity provider and the forward-auth outpost
-- [`oidc.md`](./oidc.md) — signing the shell in directly, instead of through a proxy
-- [`security.md`](../security.md) — trust boundaries and the intended deployment
+- [`oidc-client.md`](./oidc-client.md) — signing the shell in directly, instead of through a proxy
+- [`security.md`](../security/security.md) — trust boundaries and the intended deployment

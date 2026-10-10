@@ -4,8 +4,8 @@
 > **Starting point:** [Dashy](https://github.com/lissy93/dashy). Workcenter keeps Dashy's folder
 > conventions, build pipeline, theming layout and documentation layout, and removes everything that
 > serves the Default and Minimal views.
-> **Companions:** [`roadmap.md`](./roadmap.md) · [`design.md`](./design.md) · [`standards.md`](./standards.md) ·
-> [`integration.md`](./integration.md) · [`production.md`](./production.md) · [`Testing.md`](./Testing.md)
+> **Companions:** [`roadmap.md`](../../roadmap.md) · [`design.md`](./design.md) · [`standards.md`](../development/standards.md) ·
+> [`integration.md`](./integration.md) · [`production.md`](../deployment/production.md) · [`Testing.md`](../development/Testing.md)
 
 ---
 
@@ -140,7 +140,8 @@ Workcenter/                          # repository root == the Workcenter applica
 ├── vitest.config.mjs
 ├── yarn.lock
 ├── CNAME / netlify.toml / render.yaml   # (removed: Workcenter hosting artifacts)
-└── *.md                             # the Workcenter specification set (see §8)
+├── Agents.md                        # AI coding agent requirements
+└── docs/                            # every other document, grouped by subject (see §8)
 ```
 
 ### 2.1 Rules for the top level
@@ -151,9 +152,9 @@ Workcenter/                          # repository root == the Workcenter applica
 | AR-2 | Every **integrated application** gets exactly one top-level folder, named for the application (`Filebrowser/`, `Zulip/`, `Mailcow/`, `OnlyOffice/`, `Authentik/`, `Traefik/`). |
 | AR-3 | Every file an integrated application owns — configuration, secrets, volumes, logs — lives **inside that application's folder**. Nothing is written outside it. |
 | AR-4 | Volumes are **bind mounts** expressed as `./<AppFolder>/<subpath>:<container path>`, never anonymous volumes, for anything Workcenter must back up or inspect. |
-| AR-5 | Workcenter top-level names are preserved where the purpose is unchanged. Renaming a kept entry requires an entry in [`CHANGELOG.md`](./CHANGELOG.md). |
+| AR-5 | Workcenter top-level names are preserved where the purpose is unchanged. Renaming a kept entry requires an entry in [`CHANGELOG.md`](../../CHANGELOG.md). |
 | AR-6 | No generated artifact (`.env`, `node_modules/`, `dist/`, `*.sqlite`, `acme.json`) is committed. |
-| AR-7 | Documentation Markdown lives at the repository root (the specification set) or in `docs/` (the long-form guides). Nothing else may be added to the root. |
+| AR-7 | Documentation Markdown lives under `docs/`, grouped by subject, except the four repository-root files `Readme.md`, `Agents.md`, `roadmap.md` and `CHANGELOG.md`. No other Markdown may be added to the root. |
 | AR-46 | `icons/` holds exactly one SVG per integrated application, named for the application, and is the **single source of truth** for every application mark in the shell. Components reach it through the `@icons` build alias, never by a relative path and never from a remote URL. See [`design.md` D-2I](./design.md#d-2i--switcher-icons). |
 
 ---
@@ -311,7 +312,7 @@ src/
 ### 3.3 Removed from Dashy
 
 Anything that exists only to serve the Default view, the Minimal view, widgets or status monitoring
-is deleted rather than disabled. A lint/test guard (see [`Testing.md`](./Testing.md)) fails the build
+is deleted rather than disabled. A lint/test guard (see [`Testing.md`](../development/Testing.md)) fails the build
 if any of these paths reappear:
 
 ```
@@ -354,7 +355,7 @@ ICMP checks.
 ## 4. The broker
 
 The broker is what makes Workcenter more than an iframe host. It is specified functionally in
-[`roadmap.md` §7](./roadmap.md#7-the-headline-capability-cross-application-file-movement),
+[`roadmap.md` §7](../../roadmap.md#7-the-headline-capability-cross-application-file-movement),
 contractually in [`integration.md`](./integration.md), and **definitively** in
 [`broker.md`](./broker.md) — identity and credentials, the six flows step by step, the appearance
 and language bridges, the security model and the test criteria. This section is the placement
@@ -725,30 +726,26 @@ Workcenter's three-stage Dockerfile is kept and extended:
 
 ## 8. Documentation layout
 
-The specification set lives at the repository root; long-form guides live in `docs/`.
+The repository root holds four Markdown files — `Readme.md`, `Agents.md`, `roadmap.md` and
+`CHANGELOG.md` — and every other document lives under `docs/`, grouped by subject.
 
 ```
 Workcenter/
 ├── Readme.md            # overview + quick start (GitHub landing page)
-├── roadmap.md           # goals, integrations, UI, phased build plan
-├── architecture.md      # this file
-├── design.md            # UI element specification
-├── integration.md       # what each integrated application is and how it is wired in
-├── OIDC.md              # Authentik setup + setup.sh prompt contract
-├── Testing.md           # test strategy, harness and gates
-├── production.md        # deployment, setup.sh contract, upgrades, backups
-├── standards.md         # coding and documentation standards
-├── contributions.md     # PR guide, process, workflow
 ├── Agents.md            # AI coding agent requirements
+├── roadmap.md           # goals, integrations, UI, phased build plan
 ├── CHANGELOG.md         # running log of changes
 └── docs/
     ├── readme.md        # documentation index
-    ├── authentication/  # per-provider notes beyond OIDC.md
-    ├── deployment/      # docker, bare-metal, reverse-proxy specifics
-    ├── management.md    # day-2 operations
-    ├── security.md      # threat model and hardening
-    ├── theming.md       # writing themes
-    └── troubleshooting.md
+    ├── architecture/    # architecture.md, design.md, integration.md, broker.md
+    ├── authentication/  # OIDC.md, authentication.md and the per-provider guides
+    ├── deployment/      # deployment.md, production.md, docker.md, bare-metal.md
+    ├── development/     # developing, contributing, contributions, standards, Testing, branch protection, release workflow
+    ├── guides/          # quick start, configuring, management, theming, troubleshooting
+    ├── reference/       # api.md and credits.md
+    ├── research/        # the feasibility studies
+    ├── security/        # security.md and privacy.md
+    └── assets/          # logos, diagrams and recordings
 ```
 
 | Ref | Requirement |

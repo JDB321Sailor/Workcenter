@@ -3,8 +3,8 @@
 > **Scope:** what each integrated application *is*, why Workcenter integrates it, exactly how it is
 > wired in, and how the cross-application file movement works.
 > **Audience:** implementers and operators.
-> **Companions:** [`roadmap.md`](./roadmap.md) · [`architecture.md`](./architecture.md) ·
-> [`OIDC.md`](./OIDC.md) · [`production.md`](./production.md) · [`Testing.md`](./Testing.md)
+> **Companions:** [`roadmap.md`](../../roadmap.md) · [`architecture.md`](./architecture.md) ·
+> [`OIDC.md`](../authentication/OIDC.md) · [`production.md`](../deployment/production.md) · [`Testing.md`](../development/Testing.md)
 
 ---
 
@@ -623,13 +623,13 @@ single theme stylesheet. There is nothing to switch; the Workcenter palette has 
 | IN-6.22 | **What Workcenter does instead.** A Workcenter stylesheet is bind-mounted through `Mailcow/docker-compose.override.yml` at a **new** path inside SOGo's web resources — `/usr/local/lib/GNUstep/SOGo/WebServerResources/css/workcenter.css` — so it adds a mount rather than replacing one, and a delimited Workcenter block is appended to `custom-sogo.js`, which `sogo.conf` already loads. No new configuration key and no edit to `sogo.conf` is required. |
 | IN-6.23 | **What that block does, and nothing else:** links the stylesheet; sets `data-wc-mode` on `<html>` from the `wc_mode` cookie for a correct first paint; listens for `workcenter:mode` and updates the attribute. It verifies `event.origin` against the Workcenter origin, reads only the literal values `dark` and `light`, and ignores everything else. It never evaluates a received string, never touches mail content and never handles a credential. |
 | IN-6.24 | **Mailcow's own hook must survive.** `custom-sogo.js` already defines `mc_logout()`, called by the Mailcow navbar patch baked into the SOGo image. Workcenter **appends** to that file between markers and never rewrites it. |
-| IN-6.25 | **Update safety.** `data/conf/sogo/*` is tracked in Mailcow's git and `update.sh` merges with `-X theirs`, so an upgrade can revert an appended block. `setup.sh --brand` is idempotent and is listed as a post-upgrade step in [`production.md` §10](./production.md#10-upgrading). By contrast `data/web/css/build/0081-custom-mailcow.css`, `data/web/inc/vars.local.inc.php`, `docker-compose.override.yml` and `data/conf/nginx/*.custom` are untracked upstream and survive an update unaided — Workcenter prefers those wherever a choice exists. |
+| IN-6.25 | **Update safety.** `data/conf/sogo/*` is tracked in Mailcow's git and `update.sh` merges with `-X theirs`, so an upgrade can revert an appended block. `setup.sh --brand` is idempotent and is listed as a post-upgrade step in [`production.md` §10](../deployment/production.md#10-upgrading). By contrast `data/web/css/build/0081-custom-mailcow.css`, `data/web/inc/vars.local.inc.php`, `docker-compose.override.yml` and `data/conf/nginx/*.custom` are untracked upstream and survive an update unaided — Workcenter prefers those wherever a choice exists. |
 | IN-6.26 | **The container must be restarted** after a theme, script or logo change: `bootstrap-sogo.sh` rsyncs SOGo's web resources into the nginx volume at start, so a changed file is not served until `sogo-mailcow` restarts. |
 | IN-6.27 | **Mailcow UI.** Its own dark mode is a `<link id="dark-mode-theme">` injected from `localStorage['mailcow_theme']`, with `prefers-color-scheme` as the fallback — a different origin's `localStorage`, which the shell cannot and must not write. Workcenter therefore brands the Mailcow UI (custom CSS, the `$UI_THEME` Bootswatch theme in `vars.local.inc.php`, light and dark logos) but leaves its mode to the user. It is an admin surface reached in a new tab, not a pane. |
 | IN-6.28 | Mailcow's light and dark logos are stored in **Redis** (`MAIN_LOGO`, `MAIN_LOGO_DARK`) and are uploaded through **Configuration → Customize** in the admin UI. There is no API for it, so this is a documented manual step, not a silent `setup.sh` failure. |
 | IN-6.29 | **Language, SOGo.** The per-user key is `SOGoLanguage` and its values are SOGo language *names* (`English`, `German`, `BrazilianPortuguese`), not tags. Resolution is: the user's own `SOGoLanguage` → the first `Accept-Language` value present in `SOGoSupportedLanguages` → the system default. Because the browser fallback already follows the user, Workcenter does **not** drive it; `sogo-tool user-preferences set defaults <user> SOGoLanguage …` exists but is a per-user shell command, not an API, and is out of scope for a shell control. |
 | IN-6.30 | **Language, Mailcow UI.** `?lang=<tag>` sets and persists it in the `mailcow_locale` cookie; tags are Mailcow's own (`en-gb`, `de-de`), with `Accept-Language` autodetection otherwise. Not driven by the shell, for the same reason as IN-6.27. |
-| IN-6.31 | **Mailcow's nginx refuses cross-origin framing.** `data/conf/nginx/templates/sites-default.conf.j2` sets `add_header X-Frame-Options "SAMEORIGIN" always;` at server scope, and the `location ^~ /SOGo` proxy defines no `add_header` of its own, so the header is inherited and the Mail pane is blocked in the shell's frame. The supported fix is an nginx snippet under `Mailcow/data/conf/nginx/*.custom` (untracked upstream, so it survives `update.sh`) declaring a `/SOGo` location whose own `add_header Content-Security-Policy "frame-ancestors 'self' https://<workcenter-host>"` replaces the inherited set — nginx inherits `add_header` only when the current level defines none. Roadmap Phase 3 adds it ([`roadmap.md` R14](./roadmap.md#15-risks-and-mitigations)). Until it is deployed, the Mail pane shows its `blocked` diagnostic card: never a blank frame.  Note the scope precisely: the header is set at **server scope**, so the main `/SOGo` location inherits it, while the nested regex location for `/SOGo/so/*.(xml|js|html|xhtml)` sets its own `add_header` and therefore drops it. Framing policy is about the HTML shell, not about every resource under `/SOGo/so/` ([`broker.md` §12](./broker.md#12-upstream-verification)). |
+| IN-6.31 | **Mailcow's nginx refuses cross-origin framing.** `data/conf/nginx/templates/sites-default.conf.j2` sets `add_header X-Frame-Options "SAMEORIGIN" always;` at server scope, and the `location ^~ /SOGo` proxy defines no `add_header` of its own, so the header is inherited and the Mail pane is blocked in the shell's frame. The supported fix is an nginx snippet under `Mailcow/data/conf/nginx/*.custom` (untracked upstream, so it survives `update.sh`) declaring a `/SOGo` location whose own `add_header Content-Security-Policy "frame-ancestors 'self' https://<workcenter-host>"` replaces the inherited set — nginx inherits `add_header` only when the current level defines none. Roadmap Phase 3 adds it ([`roadmap.md` R14](../../roadmap.md#15-risks-and-mitigations)). Until it is deployed, the Mail pane shows its `blocked` diagnostic card: never a blank frame.  Note the scope precisely: the header is set at **server scope**, so the main `/SOGo` location inherits it, while the nested regex location for `/SOGo/so/*.(xml|js|html|xhtml)` sets its own `add_header` and therefore drops it. Framing policy is about the HTML shell, not about every resource under `/SOGo/so/` ([`broker.md` §12](./broker.md#12-upstream-verification)). |
 
 ---
 
@@ -678,7 +678,7 @@ services:
 | IN-7.7 | Health endpoints: `/-/health/live/` and `/-/health/ready/` on the server; `ak healthcheck` for the worker; `/outpost.goauthentik.io/ping` on port 9300 for the outpost. |
 | IN-7.8 | Forward auth through Traefik needs **two routers** — one for `/outpost.goauthentik.io/` at a **higher priority** than the application's router — plus `maxResponseBodySize: 4194304` on the middleware. |
 
-The full provider walkthrough is in [`OIDC.md`](./OIDC.md).
+The full provider walkthrough is in [`OIDC.md`](../authentication/OIDC.md).
 
 ---
 
@@ -740,7 +740,7 @@ certificatesResolvers:
 | IN-8.1 | **Traefik's image has no `HEALTHCHECK`.** Workcenter's compose defines one against `/ping` on the `traefik` entrypoint. |
 | IN-8.2 | In v3, `traefik.http.routers.<name>.tls=true` is still required even when using labels; the old `sslRedirect`/`sslForceHost` options were **removed** in v3. |
 | IN-8.3 | `providers.docker.network` is mandatory here because Mailcow containers are attached to more than one network. |
-| IN-8.4 | Detecting whether Traefik is already running is part of `setup.sh`; see [`production.md`](./production.md). If one exists, Workcenter adopts it rather than deploying a second proxy. |
+| IN-8.4 | Detecting whether Traefik is already running is part of `setup.sh`; see [`production.md`](../deployment/production.md). If one exists, Workcenter adopts it rather than deploying a second proxy. |
 
 ### 8.4 Middleware contracts
 
@@ -780,9 +780,9 @@ anything an application needs to keep has to be expressed in a middleware of its
 
 ## 9. The cross-application file broker
 
-The broker is specified functionally in [`roadmap.md` §7](./roadmap.md#7-the-headline-capability-cross-application-file-movement),
+The broker is specified functionally in [`roadmap.md` §7](../../roadmap.md#7-the-headline-capability-cross-application-file-movement),
 architecturally in [`architecture.md` §4](./architecture.md#4-the-broker), and tested in
-[`Testing.md`](./Testing.md). This section covers only **how it talks to each application**.
+[`Testing.md`](../development/Testing.md). This section covers only **how it talks to each application**.
 
 ### 9.1 Flow F1 — SOGo attachment → Files
 
@@ -910,7 +910,7 @@ Workcenter/
 
 ## 12. Integration verification matrix
 
-Each row is asserted by the Playwright suite (see [`Testing.md`](./Testing.md)) or by a documented
+Each row is asserted by the Playwright suite (see [`Testing.md`](../development/Testing.md)) or by a documented
 manual check.
 
 | # | Integration | Assertion | Automated |

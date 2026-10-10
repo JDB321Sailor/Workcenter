@@ -2,7 +2,7 @@
 
 Day-2 operation of a self-hosted instance: where state lives, how to update it, how to back it up,
 and how it is exposed on the network. The full stack's own runbook — Traefik, Authentik, FileBrowser
-Quantum, ONLYOFFICE, Zulip and Mailcow — is [`production.md`](../production.md).
+Quantum, ONLYOFFICE, Zulip and Mailcow — is [`production.md`](../deployment/production.md).
 
 ## Contents
 
@@ -29,7 +29,7 @@ Workcenter has no database. Its state is one directory, `user-data/`, mounted in
 | --- | --- |
 | `user-data/conf.yml` | The configuration: `pageInfo` and `appConfig`, including the address of each embedded application. |
 | `user-data/config-backups/` | Timestamped copies written before each configuration write. |
-| `user-data/broker/` | The broker's token store and audit log in a full-stack deployment. See [`privacy.md`](./privacy.md). |
+| `user-data/broker/` | The broker's token store and audit log in a full-stack deployment. See [`privacy.md`](../security/privacy.md). |
 
 | Deployment | Host directory | Container path |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ services:
 | M-1 | The container creates `config-backups/` if it is missing, so the directory that contains it must be writable when it does not exist yet. |
 | M-2 | If the pre-write backup cannot be written, the whole save is refused with `Unable to backup conf.yml`. Point `BACKUP_DIR` at a writable path, or set `DISABLE_CONFIG_BACKUPS=true`. |
 | M-3 | A read-only mount (`-v …:/app/user-data:ro`) still serves the configuration; every write fails. |
-| M-4 | On bare metal the process runs as the user that starts it, and that user must own `user-data/`. The systemd unit in [`deployment/bare-metal.md`](./deployment/bare-metal.md) does this. |
+| M-4 | On bare metal the process runs as the user that starts it, and that user must own `user-data/`. The systemd unit in [`deployment/bare-metal.md`](../deployment/bare-metal.md) does this. |
 
 ## Environment variables
 
@@ -105,8 +105,8 @@ Every one of these is optional. The defaults below are the values in the contain
 
 **OIDC is configured in `conf.yml`, not in an environment variable.** The client ID, issuer, scopes
 and administrative group live under `appConfig.auth.oidc`; see [`configuring.md`](./configuring.md)
-and [`OIDC.md`](../OIDC.md). The OIDC client secrets belong to the stack's gitignored `.env` files,
-listed in [`OIDC.md` §9](../OIDC.md#9-environment-variable-reference).
+and [`OIDC.md`](../authentication/OIDC.md). The OIDC client secrets belong to the stack's gitignored `.env` files,
+listed in [`OIDC.md` §9](../authentication/OIDC.md#9-environment-variable-reference).
 
 `VITE_APP_*` and `WORKCENTER_*` are read by the client at build time, so changing one needs a
 rebuild. An operator-facing setting belongs in `conf.yml`.
@@ -150,7 +150,7 @@ application is reported as `healthy`, `degraded`, `unhealthy` or `unknown`.
 
 **A failed poll leaves every application `unknown`.** That is a state, not an error: it means the
 check did not run. The per-application checks the broker composes in the full stack are listed in
-[`integration.md` §10](../integration.md#10-health-model).
+[`integration.md` §10](../architecture/integration.md#10-health-model).
 
 ## Logs
 
@@ -180,7 +180,7 @@ The log carries the start-up banner, the configuration validation result, the TL
 warning for each rejected token.
 
 The broker's audit log — who moved which file — is a file rather than a stream, at
-`user-data/broker/audit.log`; see [`privacy.md`](./privacy.md).
+`user-data/broker/audit.log`; see [`privacy.md`](../security/privacy.md).
 
 `docker stats workcenter` reports CPU, memory and network use per container.
 
@@ -208,7 +208,7 @@ docker run -d -p 4000:8080 \
 ```
 
 **The configuration survives**, because `user-data/` is a mount: recreating the container does not
-touch it. Read [`CHANGELOG.md`](../CHANGELOG.md) before updating, then check the result:
+touch it. Read [`CHANGELOG.md`](../../CHANGELOG.md) before updating, then check the result:
 
 ```bash
 docker compose ps
@@ -216,7 +216,7 @@ docker compose exec workcenter node services/utils/config-validator
 ```
 
 In the full stack, upgrade Workcenter last and follow the order in
-[`production.md` §10](../production.md#10-upgrading). To roll back, check out the previous commit and
+[`production.md` §10](../deployment/production.md#10-upgrading). To roll back, check out the previous commit and
 rebuild the image.
 
 ## Backing up and restoring
@@ -250,7 +250,7 @@ rsync -aHAX /srv/workcenter/user-data/ /backup/workcenter/user-data/
 ```
 
 In the full stack, `user-data/` is one row of a larger backup. Databases, secrets and certificates
-are covered in [`production.md` §11](../production.md#11-backup-and-restore).
+are covered in [`production.md` §11](../deployment/production.md#11-backup-and-restore).
 
 ### Restoring
 
@@ -327,8 +327,8 @@ OnlyOffice's callbacks (`/health`, `/public/*`, `/api/office/callback`, `/api/re
 forward-auth middleware.
 
 The middleware contracts and the per-application traps are in
-[`integration.md` §8.4](../integration.md#84-middleware-contracts) and
-[`production.md` §7.2](../production.md#72-traefik-roles).
+[`integration.md` §8.4](../architecture/integration.md#84-middleware-contracts) and
+[`production.md` §7.2](../deployment/production.md#72-traefik-roles).
 
 ## TLS
 
@@ -342,9 +342,9 @@ when a private key and certificate are mounted at the paths in the
 [environment table](#environment-variables), which suits a deployment without a proxy. Service-to-
 service TLS inside the stack is opt-in with `ENABLE_INTERNAL_TLS=true`.
 
-See [`production.md` §7.3](../production.md#73-tls) and
-[§12](../production.md#12-internal-tls-between-backend-services). **Never disable certificate
-verification to work around a failing certificate**; see [`security.md`](./security.md).
+See [`production.md` §7.3](../deployment/production.md#73-tls) and
+[§12](../deployment/production.md#12-internal-tls-between-backend-services). **Never disable certificate
+verification to work around a failing certificate**; see [`security.md`](../security/security.md).
 
 ## Scheduling backups
 
@@ -405,7 +405,7 @@ systemctl enable --now workcenter-backup.timer
 
 Keep at least three generations, one of them off the host. In the full stack, the same timer can run
 the database dumps and the `rsync` from
-[`production.md` §11](../production.md#11-backup-and-restore).
+[`production.md` §11](../deployment/production.md#11-backup-and-restore).
 
 ## Network exposure
 
@@ -437,7 +437,7 @@ The Workcenter container does not need the Docker socket, and must not be given 
 
 ## Read next
 
-- [`production.md`](../production.md) — the full stack, TLS and upgrades
-- [`security.md`](./security.md) — the threat model and hardening
-- [`privacy.md`](./privacy.md) — what is stored and what is sent
-- [`api.md`](./api.md) — the REST API
+- [`production.md`](../deployment/production.md) — the full stack, TLS and upgrades
+- [`security.md`](../security/security.md) — the threat model and hardening
+- [`privacy.md`](../security/privacy.md) — what is stored and what is sent
+- [`api.md`](../reference/api.md) — the REST API

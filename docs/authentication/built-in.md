@@ -137,7 +137,7 @@ set; with no users, authentication is off entirely and the workspace is open to 
 
 With guest access on, an unauthenticated request for `conf.yml` receives the full file rather than
 the bootstrap subset. Guests can therefore read the addresses of the three applications. Do not put a
-secret in `conf.yml`; secrets belong in the environment. See [`configuring.md`](../configuring.md).
+secret in `conf.yml`; secrets belong in the environment. See [`configuring.md`](../guides/configuring.md).
 
 ## Roles
 
@@ -153,7 +153,7 @@ a guest when guest access is on.
 A signed-in user of either type gets the same workspace: there is no configuration interface to be
 admin of, and nothing in the shell is admin-only. Administrative privilege is decided server-side,
 from the token's claims when OIDC or Keycloak is the mechanism, or by the REST API's `API_TOKEN`
-bearer. See [`api.md`](../api.md).
+bearer. See [`api.md`](../reference/api.md).
 
 ## Ending a session
 
@@ -188,6 +188,6 @@ appConfig:
 ## Read next
 
 - [`header-auth.md`](./header-auth.md) — trust an upstream proxy instead of a password
-- [`oidc.md`](./oidc.md) — the identity mechanism that covers the whole workspace
+- [`oidc-client.md`](./oidc-client.md) — the identity mechanism that covers the whole workspace
 - [`authentik.md`](./authentik.md) — OIDC against Authentik, end to end
-- [`configuring.md`](../configuring.md) — the configuration file and the schema
+- [`configuring.md`](../guides/configuring.md) — the configuration file and the schema

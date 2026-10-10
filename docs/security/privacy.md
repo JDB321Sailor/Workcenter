@@ -70,7 +70,7 @@ them, and they are not shared with it.
 
 ## Sign-in
 
-Authentication is delegated to **Authentik**. See [`OIDC.md`](../OIDC.md).
+Authentication is delegated to **Authentik**. See [`OIDC.md`](../authentication/OIDC.md).
 
 Workcenter never sees a password when OIDC is used. It receives a signed token that states the
 user's name, email and group membership. The token is verified against Authentik's published
@@ -141,5 +141,5 @@ The audit log is in `user-data/broker/`. It is yours, it is on your host, and de
 ## Read next
 
 - [`security.md`](./security.md) — the threat model and hardening
-- [`OIDC.md`](../OIDC.md) — how sign-in works
-- [`configuring.md`](./configuring.md) — every configuration option
+- [`OIDC.md`](../authentication/OIDC.md) — how sign-in works
+- [`configuring.md`](../guides/configuring.md) — every configuration option

@@ -4,8 +4,8 @@ The shortest path from nothing to a running Workcenter: build the image, edit on
 
 Workcenter is the shell. It embeds three applications that are deployed separately, so until their
 addresses are configured and those applications are reachable, the panes report themselves as
-unavailable. Deploying the whole stack is covered by [`production.md`](../production.md) and
-[`integration.md`](../integration.md).
+unavailable. Deploying the whole stack is covered by [`production.md`](../deployment/production.md) and
+[`integration.md`](../architecture/integration.md).
 
 ## Prerequisites
 
@@ -83,7 +83,7 @@ yarn start
 The build has to run before the start: the server serves the compiled bundle from `dist/` and does
 not build at start-up. It listens on port 4000 by default, which `PORT` overrides. The full
 walkthrough, including a systemd unit, is in
-[`deployment/bare-metal.md`](./deployment/bare-metal.md).
+[`deployment/bare-metal.md`](../deployment/bare-metal.md).
 
 ## 4. What you should see
 
@@ -108,8 +108,8 @@ browser cannot reach and an application that refuses to be embedded in a frame. 
 
 Workcenter authenticates against Authentik over OIDC, and the same identity provider serves the
 applications it embeds: `workspaceusers` for general access and `workspaceadmin` for
-administration. The contract is in [`OIDC.md`](../OIDC.md), and
-[`authentication/authentik.md`](./authentication/authentik.md) walks through the provider setup.
+administration. The contract is in [`OIDC.md`](../authentication/OIDC.md), and
+[`authentication/authentik.md`](../authentication/authentik.md) walks through the provider setup.
 
 The shell renders no sign-out control. End the session at the identity provider, or set
 `appConfig.auth.logoutRedirectUrl` so that signing out lands on the provider's end-session
@@ -117,7 +117,7 @@ endpoint.
 
 ## Read next
 
-- [`deployment.md`](./deployment.md) — the deployment options
+- [`deployment.md`](../deployment/deployment.md) — the deployment options
 - [`configuring.md`](./configuring.md) — every option in `user-data/conf.yml`
 - [`management.md`](./management.md) — updating, backing up and monitoring an instance
-- [`production.md`](../production.md) — the full stack and `setup.sh`
+- [`production.md`](../deployment/production.md) — the full stack and `setup.sh`

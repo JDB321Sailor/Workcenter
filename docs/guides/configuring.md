@@ -126,11 +126,11 @@ later; until then, treat them as reserved names rather than as settings.
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
-| `language` | `string` | auto-detected | An ISO 639-1 code, for example `en` or `en-GB`. Must be one of the bundled locales. It sets the shell's starting language; a user changes it afterwards from the user menu's language control, see [`design.md` §8](../design.md#8-i18n). |
+| `language` | `string` | auto-detected | An ISO 639-1 code, for example `en` or `en-GB`. Must be one of the bundled locales. It sets the shell's starting language; a user changes it afterwards from the user menu's language control, see [`design.md` §8](../architecture/design.md#8-i18n). |
 
 ### `appConfig.auth` — signing in
 
-Authentik is the identity provider. The full setup is in [`OIDC.md`](../OIDC.md).
+Authentik is the identity provider. The full setup is in [`OIDC.md`](../authentication/OIDC.md).
 
 | Key | Type | Description |
 | --- | --- | --- |
@@ -208,7 +208,7 @@ An operator-facing setting belongs in `conf.yml`, not in an environment variable
 variable is baked in when the bundle is built, so it cannot be changed without rebuilding.
 
 Secrets never go in `conf.yml`. The OIDC client secret is read from the environment by the
-server. See [`OIDC.md`](../OIDC.md).
+server. See [`OIDC.md`](../authentication/OIDC.md).
 
 ## A complete example
 
@@ -245,7 +245,7 @@ appConfig:
 ## Read next
 
 - [`theming.md`](./theming.md) — themes, colour variables and custom styles
-- [`authentication.md`](./authentication.md) — how sign-in works
-- [`OIDC.md`](../OIDC.md) — the Authentik setup
-- [`deployment.md`](./deployment.md) — deploying Workcenter
-- [`production.md`](../production.md) — the full stack and `setup.sh`
+- [`authentication.md`](../authentication/authentication.md) — how sign-in works
+- [`OIDC.md`](../authentication/OIDC.md) — the Authentik setup
+- [`deployment.md`](../deployment/deployment.md) — deploying Workcenter
+- [`production.md`](../deployment/production.md) — the full stack and `setup.sh`
