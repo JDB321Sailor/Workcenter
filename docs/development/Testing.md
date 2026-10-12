@@ -263,17 +263,18 @@ CI always uses `-v` so every run starts clean.
 
 ### 6.5 The manual verification harness
 
-The Playwright suite ([§8](#8-the-playwright-suite)) is roadmap Phase 7 work; until it exists,
+The Playwright suite ([§8](#8-the-playwright-suite)) is roadmap Phase 6 work; until it exists,
 `scripts/e2e.sh` is the end-to-end entry point and a person is the runner. **From Phase 3 it deploys the
 real deployment**: it builds the Workcenter image, brings the whole stack up with Docker behind Traefik,
 checks everything a machine can check without a browser, and prints the checks only a person can judge.
 It is a verification aid, not a gate of its own: it reports no pass/fail result to CI.
 
 ```bash
-./scripts/e2e.sh                 # validate deps → pull what is missing → build → deploy → check
+sudo ./scripts/setup-testing.sh  # FIRST, once: the certificate, /etc/hosts, the trust store, ownership
+./scripts/e2e.sh                 # then: validate deps → pull what is missing → build → deploy → check
 ./scripts/e2e.sh --no-build      # reuse the image already built
-./scripts/e2e.sh --hosts         # also map the six hostnames to 127.0.0.1 for a browser
-./scripts/e2e.sh --trust-cert    # just (re)trust the certificate in this machine's browsers
+./scripts/e2e.sh --hosts         # report whether a browser on this machine can reach the stack
+./scripts/e2e.sh --trust-cert    # ensure the local certificate exists and say how to trust it
 ./scripts/e2e.sh --shell-only    # no Docker: serve the built shell on this host (the Phase 2 path)
 ./scripts/e2e.sh --down          # stop everything and leave only the images
 ./scripts/e2e.sh --clean         # --down, then remove dist/, the run directory and the images
@@ -281,15 +282,61 @@ It is a verification aid, not a gate of its own: it reports no pass/fail result 
 ./scripts/e2e.sh --help          # print the full option list
 ```
 
+**The order matters, and `e2e.sh` enforces it.** The harness exists so that a person
+can open the result in a browser; a deploy nobody can open has not been verified.
+So a normal run begins with a **preflight** and refuses to build anything until the
+machine is prepared — naming the one command that prepares it. `--no-browser` drops
+that requirement for a machine that will never open the result.
+
+The preflight checks exactly two things, both of which are system state the harness
+has no business changing:
+
+| Prerequisite | Why it is not optional |
+| --- | --- |
+| The **seven** hostnames in `/etc/hosts`, resolving to the loopback ingress | The stack answers by name, never by `localhost` plus a port (see [the ingress rule](#the-ingress-rule)). A browser that cannot resolve `auth.` never completes an OIDC redirect. |
+| The local **certificate authority** in a trust store | A frame whose certificate does not validate is **not rendered at all**, so the Files and Chat panes stay blank while both applications are healthy. |
+
+`e2e.sh` **never runs as root, and refuses to**. Everything it creates — the
+generated `.env` files, the runtime state the containers then fill — would otherwise
+belong to root, and the next run would need root just to replace its own files. What
+does need privilege is one-time machine setup and lives in
+[`setup-testing.sh`](#the-privileged-half-setup-testingsh):
+
+```bash
+sudo ./scripts/setup-testing.sh              # all three
+sudo ./scripts/setup-testing.sh --hosts      # only the /etc/hosts entries
+sudo ./scripts/setup-testing.sh --trust-cert # only the certificate authority
+sudo ./scripts/setup-testing.sh --ownership  # only the file ownership
+sudo ./scripts/setup-testing.sh --remove     # undo the entries and the certificate
+```
+
+Run it as the user who will run `e2e.sh`, through `sudo`, so the files land on
+their account and never on root's.
+
+The setup is meant to be done **once** and kept: the certificate it installs is the
+one the stack serves, so re-running it is a no-op that reports the state it found.
+`--remove` is the end of testing rather than part of it, and it is the inverse of
+everything above:
+
+| `--remove` takes out | From |
+| --- | --- |
+| every host entry this script ever wrote — the marked block **and** any line naming one of the deployment's hostnames, which is the shape an older version wrote before the markers existed | `/etc/hosts` |
+| the certificate | whichever system anchor directory this distribution uses, any other one an earlier script may have used, `p11-kit` if that is what the machine has, and every browser profile database it can find |
+
+Matching the marked block alone is not enough to undo it: the block only ever
+replaced itself, so a machine that ran an older version kept its five-name line for
+ever — resolving a subset of the deployment, with `auth.` and `traefik.` among the
+missing — while `--remove` reported success.
+
 | Option | Effect |
 | --- | --- |
 | `--shell-only` | Do not use Docker: build the shell and serve it on this host. Kept because a UI change is often worth a look without a stack. |
 | `--port <port>`, `--host <host>` | Where `--shell-only` serves. Default `4180` / `0.0.0.0`, or `$PORT` / `$HOST`. |
 | `--no-build` | Reuse the existing Workcenter image; warns when it is absent. |
 | `--no-pull` | Never pull an application image, even when the tag is missing: fails instead of reaching the network. |
-| `--no-mailcow` | Skip Mailcow, which needs its own bootstrap (Phase 4) and is the slowest service to start. |
-| `--hosts` | Make the stack usable from a browser: add the six hostnames to `/etc/hosts` pointing at `127.0.0.1`, and trust the local test certificate — in the distribution's system store **and** in every browser profile of the invoking user, because they are different stores (see [the ingress rule](#the-ingress-rule)). Both are removed on `--down`. Needs root. |
-| `--trust-cert` | The certificate half on its own: install it into the system store and the browser profiles, then exit without touching a container. Use it when a browser still reports the certificate as untrusted, or after the certificate was regenerated. Only the system store needs root; the browser databases are written as their owner. |
+| `--no-mailcow` | Skip Mailcow, which needs its own bootstrap and is the slowest service to start. |
+| `--hosts` | Report whether a **browser** on this machine can reach the stack: the hostnames in `/etc/hosts`, and the local test certificate in a trust store (see [the ingress rule](#the-ingress-rule)). It changes neither. Every automated check runs either way — they reach the stack with `curl --resolve` and the CA file in the checkout, which needs no privilege at all. |
+| `--trust-cert` | Ensure the local certificate exists and print where it is and how to trust it, then exit without touching a container. |
 | `--keep` | Leave the stack and the logs in place when the run finishes. |
 | `--wait <seconds>` | How long to wait for services to report healthy. Default `600`. |
 | `--down` | Stop the compose stack, Mailcow and any shell server of this checkout, remove everything the run created, then verify it. |
@@ -302,7 +349,7 @@ It is a verification aid, not a gate of its own: it reports no pass/fail result 
 | Stage | Behaviour |
 | --- | --- |
 | **Dependencies** | Requires `node`, `docker` and the **compose v2 plugin, 2.20 or newer** — the stack uses `include:`, so an older plugin is refused with the version that was found rather than a parse error. The daemon must be reachable; a `vfs` storage driver is called out because builds then copy every layer. |
-| **Configuration** | Copies `.env.example` to `.env` when the operator has not, and generates the local certificate the test profile serves — a **CA and a leaf it signs**, not one self-signed certificate (see [the ingress rule](#the-ingress-rule)). Both are recorded in a manifest so `--down` can remove exactly them. |
+| **Configuration** | Copies `.env.example` to `.env` when the operator has not. The local certificate the test profile serves — a **CA and a leaf it signs**, not one self-signed certificate (see [the ingress rule](#the-ingress-rule)) — is generated by `scripts/lib/localca.sh`, which `setup-testing.sh` runs **first**; this step only creates one on a machine where nobody ran the setup script. Both are recorded in a manifest so `--down` can remove exactly them. |
 | **Application configuration** | Copies each application folder's `.env.example` to `.env` when it is absent, and exports the test hostnames the composed files interpolate. `SETTING_EXTERNAL_HOST` follows `CHAT_HOST`, because Zulip answers on that host — its nginx `server_name`, its links, and its Traefik router rule. It also exports the two test logins — `FILEBROWSER_ADMIN_PASSWORD=admin` (IN-3.26) and `ZULIP_ADMIN_EMAIL=admin@<shell host>` with `ZULIP_ADMIN_PASSWORD=admin1234` (IN-5.31) — so both are deterministic and can be asserted and printed. |
 | **Shell configuration** | Writes the two overrides `compose.test.yaml` mounts over the operator's own files: `user-data/conf.test.yml` — the committed `user-data/conf.yml` with its three example.com application addresses mapped to this run's hostnames — and `Traefik/dynamic/middlewares.test.yml`, with `frame-ancestors` naming this run's shell origin. Without the first, the shell embeds hosts that do not resolve here and the broker reports every application unreachable; without the second, the browser blocks every pane, because Traefik *sets* that header from the middleware and would name `https://example.com`. The second is also the whole of Zulip framing: the image is upstream and unmodified (`integration.md` §5.4, IN-5.27). |
 | **Zulip secrets** | Generates the seven `Zulip/secrets/*` files from their `*.example` templates, `0600`, and hands the two a non-root container reads to the uid that reads them: `zulip__memcached_password` to uid 11211 (`USER memcache`) and `zuliprc` to uid 1000 (the Workcenter image's `USER node`), because Compose mounts a `file:` secret as a bind mount and ignores the long syntax's `uid`/`gid`/`mode` outside Swarm. A harness that is not root leaves the file readable and says so. |
@@ -321,9 +368,12 @@ It is a verification aid, not a gate of its own: it reports no pass/fail result 
 
 Nothing but Traefik is published to the host, and in the test profile Traefik itself binds to
 **`127.0.0.1` only** — so the unauthenticated phase is reachable by this machine and nothing else, which
-is what makes it safe to run before identity exists (Phase 5). A browser needs the hostnames to
-resolve: `--hosts` writes a marked block into `/etc/hosts` and removes it on `--down`, and without it
-the checks use `curl --resolve` and never touch the host file at all.
+is what makes it safe to run before identity exists (Phase 4). A browser needs the hostnames to
+resolve: the automated checks never touch `/etc/hosts` at all, because `curl --resolve` sends the
+right hostname to the loopback ingress without a system change. A **browser** has no such option, so
+reaching the stack from one needs the marked block in `/etc/hosts` that
+[`setup-testing.sh --hosts`](#the-privileged-half-setup-testingsh) writes, and `./scripts/e2e.sh --hosts`
+reports whether it is there.
 
 Because ACME needs DNS that a test host does not have, the test profile serves a certificate generated
 for the run into `Traefik/certs/` as Traefik's default. It must name **every** hostname the run serves —
@@ -337,31 +387,67 @@ trusted — the shell then shows its "untrusted certificate" page and both panes
 what Traefik serves and that it chains to the local authority, so that mistake cannot come back
 quietly.
 
-The certificate also has to be **trusted**, and `--hosts` does that too. An untrusted certificate is
+The certificate also has to be **trusted**, and that is
+[`setup-testing.sh --trust-cert`](#the-privileged-half-setup-testingsh)'s job — the harness only
+reports whether it has been done. An untrusted certificate is
 enough for `curl --insecure`, but a browser does not render a frame whose certificate fails
 validation — the frame is simply blank — so the Files and Chat panes stay empty while both
 applications are healthy, routed and correctly framed. **Two different stores have to be written**,
 because the browser's is not the system's:
 
-| Store | Who reads it | Where the harness puts it |
+| Store | Who reads it | Where setup-testing.sh puts it |
 | --- | --- | --- |
 | **System** | `curl`, and every tool that reads the distribution's bundle | The **authority** (`local-ca.crt`), **detected, never assumed**: `/usr/local/share/ca-certificates` with `update-ca-certificates` on Debian/Ubuntu, `/etc/ca-certificates/trust-source/anchors` with `update-ca-trust` on Arch (CachyOS, Manjaro, EndeavourOS), `/etc/pki/ca-trust/source/anchors` on Fedora/RHEL, `/etc/pki/trust/anchors` on openSUSE, or p11-kit's `trust anchor --store` when none of those exists |
 | **Each browser profile** | Firefox, Chromium, Chrome, Brave, Vivaldi | Every NSS database belonging to the **invoking user**, through `certutil`: Firefox profiles under `~/.config/mozilla/firefox/` (Firefox 129 and later), `~/.mozilla/firefox/` (older), the Snap and Flatpak trees, and Chromium's shared `~/.pki/nssdb` |
 
 The system store is never created: it belongs to the distribution's `ca-certificates` package, and
 writing into a directory nothing reads would look like success — which is exactly what happened when
-this step assumed Debian's path on Arch. When the install cannot be done (no root, or no recognisable
-store) the script prints the exact command for the machine it detected.
+this step assumed Debian's path on Arch. When no recognisable store exists, the script says so rather
+than pretending to have installed the authority.
 
 **Firefox does not read the system store.** That is why the panes stayed blank on a machine where
 `trust list` showed the certificate, the consolidated bundle contained it and `curl` verified every
 hostname: the profile's own database reported none of it, and a frame whose TLS fails is never
-rendered. So the harness writes the profile databases as their owner — under `sudo` the user comes
-from `SUDO_USER`, because `$HOME` is root's — and says so when a browser is running, since a database
-written while the browser is up is not re-read until it restarts.
+rendered. So `setup-testing.sh` writes the profile databases **as their owner** — it takes the user
+from `SUDO_USER`, because under `sudo` `$HOME` is root's — and says so when a browser is running,
+since a database written while the browser is up is not re-read until it restarts.
 `security.enterprise_roots.enabled` is the alternative, and it is a choice made in the browser's
-profile rather than by the deployment. `--down` removes the certificate from every store it might be
-in: any distribution's system store, and every browser profile it can find.
+profile rather than by the deployment. `setup-testing.sh --remove` takes the certificate out of every
+store it might be in: any distribution's system store, and every browser profile it can find.
+
+#### The privileged half: `setup-testing.sh`
+
+Three things about the test environment are system state and cannot be changed by the person running
+the harness without privilege:
+
+| What | Why it cannot be done by `e2e.sh` |
+| --- | --- |
+| `/etc/hosts` | Owned by root. Only a browser needs it; the checks use `curl --resolve`. |
+| The certificate authority in the trust stores | The system store is root-owned, and the per-user NSS databases have to be written as their owner. |
+| Ownership of the state the containers leave behind | A bind mount makes a container's writes the **container's** uid on the host — Authentik's PostgreSQL data directory is uid `65534` mode `0700` — so the user cannot read, replace or delete it. |
+
+The authority is on that list because it has to be **installed**, not because it has to be *made*: one
+generator, `scripts/lib/localca.sh`, serves both scripts. That sharing is not tidiness. A certificate
+generated by two different programs is two certificates — the browser trusts whichever one the setup
+script installed and the stack serves the other — so one generator is what makes "the authority the
+trust store received is the authority Traefik serves" true by construction. The setup script runs it
+first; the harness calls it only as a fallback, for a machine where nobody ran the setup script and
+nobody is going to open a browser.
+
+Each is genuinely one-time, and each is in `scripts/setup-testing.sh` rather than in a test run. That
+is a deliberate split rather than a convenience: a harness that asks for root teaches people to run it
+as root, and then every file it generates belongs to root and the *next* run needs root again. So
+`e2e.sh` refuses to run as root and refuses to run under `sudo`, and the two guards are cheap to state
+and expensive to live without.
+
+`--ownership` is also what repairs a checkout that an earlier `sudo` run left root-owned: it hands the
+generated files and the runtime state back to the user who will run the harness, and never to root.
+
+Nothing about removing generated state needs privilege. `e2e.sh --down` deletes directories that
+containers own by running the removal in a throwaway container — root **in its own namespace**, with
+the checkout bind-mounted, so the same inodes are removed and the host never escalates. The image is
+one the stack already deploys, so a cleanup downloads nothing.
+
 Inside the network the same problem has the same shape — Docker's resolver knows service names, not
 `*.workcenter.local` — so `compose.test.yaml` attaches the test hostnames to Traefik as **network
 aliases**, and a lookup from the shell lands on the ingress, which routes by the `Host` header exactly
@@ -425,16 +511,16 @@ same entry point:
 | Phase | What the script does |
 | --- | --- |
 | **Phase 2** | Served the **shell and the broker** on the host, with no Docker. Still available as `--shell-only`, because a UI change is often worth a look without a stack. |
-| **Phase 3** (current) | Builds the Workcenter image, deploys the whole stack with Docker behind Traefik, and checks it: every service healthy, every application answering on its own hostname over TLS, the framing policy of each pane, and the shared source directory the broker and FileBrowser must both see. Mailcow joins as soon as its own bootstrap has run (Phase 4). |
-| **Phase 5+** | OIDC is configured, so the checks stop being unauthenticated: the loopback-only binding can be relaxed and the checklist gains the sign-in steps. |
-| **Phase 7** | Runs the Playwright suite against the same stack; the printed checklist is retired and the suite takes over the same checks. |
+| **Phase 3** (current) | Builds the Workcenter image, deploys the whole stack with Docker behind Traefik, and checks it: every service healthy, every application answering on its own hostname over TLS, the framing policy of each pane, and the shared source directory the broker and FileBrowser must both see. Mailcow joins as soon as its own bootstrap has run. |
+| **Phase 4** (current) | Deploys Authentik with the stack and **configures it**: the groups, the scope mappings, the four OIDC providers and applications and the dashboard proxy provider are provisioned through Authentik's API by `scripts/lib/authentik.sh`, and the three fixture accounts below are created. The checks are no longer unauthenticated — they sign in through the provider for each application and assert the `groups` claim, prove a member is refused the Traefik dashboard while an administrator reaches it, and prove that signing out ends the provider session. The loopback-only binding still stands: the test profile has no public DNS. |
+| **Phase 6** | Runs the Playwright suite against the same stack; the printed checklist is retired and the suite takes over the same checks. |
 
 > **Rule T-6.7:** `scripts/e2e.sh` is the **manual** stand-in for the deferred Playwright gate
 > (T-10.3). It never replaces an automated gate: a change still carries the unit, component and
 > server tests of [§4](#4-unit-and-component-tests) and [§5](#5-server-and-broker-tests).
 >
 > **Rule T-6.8:** the script must keep working at every phase. A phase adds its deployment step to
-> this entry point instead of forking a second script, and Phase 7 replaces the checklist with the
+> this entry point instead of forking a second script, and Phase 6 replaces the checklist with the
 > Playwright run inside the same `./scripts/e2e.sh` invocation.
 
 ---
@@ -673,7 +759,7 @@ A convenience script wraps all of it:
 ./scripts/e2e.sh --down     # tear down afterwards
 ```
 
-That is the Phase 7 shape of the script. Until then it stops at the manual checklist: it seeds no
+That is the Phase 6 shape of the script. Until then it stops at the manual checklist: it seeds no
 fixtures and runs no suite, and `--clean` and `--down` tear down and exit. See
 [§6.5](#65-the-manual-verification-harness) for the options, the files it writes and the
 phase-by-phase contract.
@@ -762,14 +848,14 @@ jobs:
 > **Rule T-10.2:** a red E2E gate on `Dev` blocks **every** other merge until it is fixed.
 >
 > **Rule T-10.3 (deferred gate):** gate 9 is **deferred, not waived**. The Playwright suite,
-> `compose.test.yaml` and the `e2e.yml` workflow are roadmap Phase 7 work
+> `compose.test.yaml` and the `e2e.yml` workflow are roadmap Phase 6 work
 > ([`roadmap.md` §12](../../roadmap.md#12-step-by-step-build-plan)). Until they exist, the automated
 > gates are lint, typecheck, unit/component/server tests, the locale check, config validation and
 > the build, with the conditional gates (ShellCheck, compose validity, Docker build, dependency
 > audit, secret scanning) unchanged. The user-visible behaviour at the current phase gate is covered
 > by the **manual checklist** in [`scripts/e2e.sh`](../../scripts/e2e.sh)
 > ([§6.5](#65-the-manual-verification-harness)), which a person walks in a browser. This is a
-> **temporary state, not a permanent exemption**: the Phase 7 change that adds the suite **must**
+> **temporary state, not a permanent exemption**: the Phase 6 change that adds the suite **must**
 > restore gate 9 as a required check and delete this rule. T-10.1 and T-10.2 apply unchanged from
 > the moment gate 9 exists.
 
@@ -914,7 +1000,7 @@ A change is tested when **all** of the following hold:
 - [ ] If the change touches `setup.sh` or a compose file, the three-run idempotency check passes.
 - [ ] If the change touches appearance, language or branding, the assertion is made **inside the pane**, against the embedded application's own DOM (T-8.4).
 
-> **Deferred gate:** the two Playwright items above are roadmap Phase 7 work and are **deferred, not
+> **Deferred gate:** the two Playwright items above are roadmap Phase 6 work and are **deferred, not
 > dropped** (T-10.3). At the current phase gate the user-visible behaviour is verified with the
 > manual checklist in [`scripts/e2e.sh`](../../scripts/e2e.sh)
 > ([§6.5](#65-the-manual-verification-harness)).

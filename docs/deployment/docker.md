@@ -3,7 +3,7 @@
 Workcenter deploys as a container. This page covers running the shell on its own.
 
 For the full stack — Traefik, Authentik, FileBrowser Quantum, ONLYOFFICE, Zulip and
-Mailcow/SOGo — use the root `compose.yaml`, or `setup.sh` once Phase 3 and Phase 4 land. See
+Mailcow/SOGo — use the root `compose.yaml`, or `setup.sh` once Phase 3 and Phase 8 land. See
 [`production.md`](./production.md).
 
 ## There is no published image yet

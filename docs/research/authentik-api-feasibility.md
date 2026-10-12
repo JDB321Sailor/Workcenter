@@ -1,6 +1,6 @@
 # Feasibility — automating Authentik providers and applications
 
-> **Status:** analysis for the `setup.sh` design (roadmap Phase 4). This file is not part of the
+> **Status:** analysis for the `setup.sh` design (roadmap Phase 8). This file is not part of the
 > specification set; `OIDC.md`, `production.md` and `integration.md` remain authoritative.
 >
 > **Question.** `production.md` §5.5 and `OIDC.md` §5/§8 record "exactly one manual step": after
@@ -109,10 +109,13 @@ Resolving the objects the spec references by name/slug:
 
 Field semantics worth recording:
 
-* **`redirect_uris` is version-dependent.** In the current schema each item is an *object*
-  (`{url, matching_mode}`); Authentik 2026.5 made this a breaking change and it was an array of
-  **strings** before that — including at the pinned 2024.12. The automation must emit the shape the
-  pinned tag accepts. Matching is strict (or `regex` on the newer shape).
+* **`redirect_uris` is an array of objects.** Each item is `{url, matching_mode}`, both required
+  (`RedirectURIRequest` in the instance's own `/api/v3/schema/`), with `matching_mode` one of `strict`
+  or `regex`. This study originally recorded it as an array of **strings** at the pinned 2024.12, with
+  objects arriving in 2026.5; **the pinned 2024.12.3 instance rejects a string** with
+  `Invalid data. Expected a dictionary, but got str.`, so the object form is what the automation emits
+  and what §7 now records. The lesson is the one §7 draws: the instance's schema is the authority.
+
 * **`grant_types`** was added in 2026.5. The model/serializer default is an **empty list**, and the
   authorize view rejects any grant not in it, so a provider created by API on a 2026.5+ instance must
   send `grant_types: [authorization_code, refresh_token]` explicitly even though the WebUI's "all
@@ -155,8 +158,8 @@ into objects. Verified properties:
 * **Idempotency is built in:** `state: present` creates or updates the listed attrs; `identifiers`
   locate the object.
 
-A representative rendering of one provider (placeholders, and **string-form `redirect_uris` to match
-the pinned 2024.12** — see §7):
+A representative rendering of one provider (placeholders, and **object-form `redirect_uris` to match
+the pinned 2024.12.3 instance** — see §7):
 
 ```yaml
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
@@ -197,9 +200,11 @@ entries:
       client_type: confidential
       client_id: workcenter
       client_secret: !Env WORKCENTER_OIDC_CLIENT_SECRET
-      redirect_uris:            # string form for the pinned 2024.12; object form from 2026.5
-        - https://example.com
-        - https://example.com/
+      redirect_uris:            # object form on the pinned 2024.12.3 — measured, see §7
+        - url: https://example.com
+          matching_mode: strict
+        - url: https://example.com/
+          matching_mode: strict
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
@@ -325,14 +330,26 @@ Redirect URIs were taken from the applications' own behaviour, not guessed:
 ## 7. Risks and version sensitivity
 
 1. **Version drift is the dominant risk.** Endpoint paths and model names are stable, but:
-   * `redirect_uris` changed from an array of **strings** to an array of **objects**
-     (`{url, matching_mode}`) in **2026.5** — a documented breaking API change.
+   * `redirect_uris` is an array of **objects** (`{url, matching_mode}`, both required) — **confirmed
+     against the pinned 2024.12.3 instance, not merely inferred.** This study originally predicted the
+     opposite for that train (an array of plain strings, with objects arriving in 2026.5); the running
+     instance rejects a string with `Invalid data. Expected a dictionary, but got str.`, and the
+     `/api/v3/schema/` it serves describes `RedirectURIRequest` with `matching_mode` drawn from
+     `["strict", "regex"]`. Treat the published schema as the authority and this table as a lead.
    * `grant_types` was added in **2026.5** (default empty in source), so it must be sent explicitly.
    * The built-in `email` mapping changed `email_verified` `true` → **`false`** in **2025.10**.
    * The `profile` scope's group expression changed at **2026.8** (`groups` vs `ak_groups`).
    * `sub_mode` gained `user_upn`; Redis was removed in 2025.10 (compose-only).
    The automation must query the pinned instance's `/api/v3/schema/` (or be pinned to a verified tag)
-   rather than assume the published schema.
+   rather than assume the published schema. Four more shapes were measured on the pinned instance while
+   building the automation, and each one fails silently or confusingly if assumed:
+   * the OAuth2/OIDC scope mappings are at **`/propertymappings/provider/scope/`**; the shorter
+     `/propertymappings/scope/` answers 404 rather than redirecting;
+   * `/core/applications/` returns only what the **caller** may see unless
+     **`superuser_full_list=true`** is passed — and the `traefik` application is bound to
+     `workspaceadmin` alone, so an automation without the flag concludes it does not exist;
+   * the application detail route is keyed by **slug**, not by the `pk` the list returns;
+   * the outpost's `providers` field takes **provider** pks (integers), not application pks.
 2. **No upsert in the API.** Create-or-`PATCH` by a unique key (`client_id` for providers — `name` is
    not unique — `slug` for applications, `name` for groups, `managed` for built-in mappings). A naive
    `POST` on a re-run fails with a uniqueness error. Blueprints avoid this.

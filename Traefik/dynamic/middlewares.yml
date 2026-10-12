@@ -34,7 +34,7 @@ http:
         accessControlAllowOriginList:
           - "*"
         contentSecurityPolicy: "frame-ancestors *"
-    # --- Phase 5 — forward-auth for the dashboard (roadmap.md §5.7) ---------------------------
+    # --- Phase 4 — forward-auth for the dashboard (roadmap.md §5.7) ---------------------------
     # Not enabled: it needs a deployed Authentik, the `traefik-dashboard` proxy provider
     # (OIDC.md §5.8) and an outpost reachable over the `proxy` network. setup.sh writes the
     # outpost's address into this file as the middleware's `address` (OIDC.md §5.8), taking it

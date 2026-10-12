@@ -90,6 +90,13 @@ user-data/e2e/
 # The tracked files are the operator's.
 user-data/conf.test.yml
 Traefik/dynamic/middlewares.test.yml
+# The identity configuration the harness generates for a run, mounted over
+# Filebrowser/config.yaml and Traefik/dynamic/dashboard.yml. These carry the
+# run's OIDC client secret in plain text, so ignoring them is not tidiness: an
+# untracked-looking `config.test.yaml` in a commit would publish a credential
+# that Authentik still honours (P-16, O-13.1).
+Filebrowser/config.test.yaml
+Traefik/dynamic/dashboard.test.yml
 
 # ---------------------------------------------------------------------------
 # Test and tooling artefacts
@@ -120,3 +127,7 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Generated per run by scripts/e2e.sh: the local test CA mounted into Mailcow's
+# php-fpm, which is where the OIDC exchange happens. Never committed.
+Mailcow/docker-compose.test.yml

@@ -592,7 +592,7 @@ CHAT_URL=https://chat.example.com
 TRAEFIK_URL=https://traefik.example.com
 
 # --- Image pins -------------------------------------------------------------
-FILEBROWSER_IMAGE=gtstef/filebrowser:2.0.9-beta
+FILEBROWSER_IMAGE=gtstef/filebrowser:2.0.0-stable
 ZULIP_IMAGE=ghcr.io/zulip/zulip-server:12.3-0
 ONLYOFFICE_IMAGE=onlyoffice/documentserver:8.2
 AUTHENTIK_TAG=2024.12
@@ -655,12 +655,12 @@ The keys above are the whole contract: `ConfigSchema.json` sets `additionalPrope
 silently ignored line. Three things deliberately are **not** configuration:
 
 - **The appearance mode.** Dark is the default and the user chooses in the user menu; the choice is
-  remembered per browser (`localStorage` and the `wc_mode` cookie) and, from roadmap Phase 6, in the
+  remembered per browser (`localStorage` and the `wc_mode` cookie) and, from roadmap Phase 5, in the
   broker's per-user store (`design.md` D-6.1).
 - **Accent colours.** Each application's accent is a shell token derived from FileBrowser Quantum's
   palette, so there is one place a Workcenter colour is decided (`design.md` §4.3.1).
 - **The broker's own settings.** Transfer size caps, timeouts and audit retention belong in the
-  broker's `.env` when the transfer engine lands (roadmap Phase 6); they are not shell configuration.
+  broker's `.env` when the transfer engine lands (roadmap Phase 5); they are not shell configuration.
 
 | Ref | Requirement |
 | --- | --- |
@@ -677,7 +677,7 @@ silently ignored line. Three things deliberately are **not** configuration:
 | Container | Built from | Exposure | Network |
 | --- | --- | --- | --- |
 | `workcenter` | `Dockerfile` (Workcenter's multi-stage, extended) | Traefik → `:8080` | `proxy`, `internal` |
-| `filebrowser` | `gtstef/filebrowser:2.0.9-beta` | Traefik → `:80` | `proxy`, `internal` |
+| `filebrowser` | `gtstef/filebrowser:2.0.0-stable` | Traefik → `:80` | `proxy`, `internal` |
 | `onlyoffice` | `onlyoffice/documentserver` | `internal` only (or Traefik if public editing is required) | `internal`, `proxy` |
 | `zulip` `database` `memcached` `rabbitmq` `redis` | docker-zulip images | `zulip` via Traefik → `:80`; the rest internal | `internal` |
 | `postgresql` `redis` `server` `worker` `ldap` (Authentik) | Authentik images | `server` via Traefik → `:9000` | `proxy`, `internal` |
@@ -786,7 +786,7 @@ Workcenter is deliberately closed to arbitrary tiles but open in three controlle
 | AD-7 | Traefik as the only ingress | Single TLS termination point, one ACME resolver, uniform label contract |
 | AD-8 | Authentik as the only IdP, with a unified two-group model | One login, one authorisation model, one place to revoke |
 | AD-9 | Bind mounts, never anonymous volumes, for anything backed up | Operators can see, back up and restore state without Docker archaeology |
-| AD-10 | FileBrowser Quantum pinned to v2.0.9-beta with a recorded digest | The v2 config/API surface is what Workcenter is written against |
+| AD-10 | FileBrowser Quantum pinned to v2.0.0-stable with a recorded digest | The v2 config/API surface is what Workcenter is written against |
 
 ---
 

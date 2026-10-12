@@ -90,11 +90,10 @@ import {
   checkCredentials,
   login,
   isLoggedIn,
-  logout,
   isGuestAccessEnabled,
-  getLogoutRedirectUrl,
 } from '@/utils/auth/Auth';
 import { isOidcEnabled, oidcSignIn } from '@/utils/auth/OidcAuth';
+import { signOut } from '@/utils/auth/Logout';
 
 export default {
   name: 'login',
@@ -199,15 +198,14 @@ export default {
     },
     /* Calls logout, shows status message, and refreshed page */
     getOut() {
-      logout();
+      // The same single action the user menu performs (roadmap A-7, design.md
+      // D-6). This used to clear only the shell's own state, which left the
+      // Authentik session alive: signing out here and then signing in again
+      // silently returned the *same* identity, and the applications that follow
+      // the provider session were never signed out at all.
       this.status = 'success';
       this.message = 'Logging out...';
-      const redirectUrl = getLogoutRedirectUrl();
-      if (redirectUrl) {
-        setTimeout(() => { window.location.href = redirectUrl; }, 250);
-      } else {
-        this.refreshPage();
-      }
+      signOut(this.$store);
     },
     /* Logged in user redirects to home page */
     stayLoggedIn() {

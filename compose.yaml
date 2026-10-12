@@ -25,6 +25,11 @@ include:
   # first in the list because the `proxy` network it creates must exist before
   # the applications try to join it.
   - path: Traefik/compose.yaml
+  # Authentik is the identity provider the whole stack authenticates against
+  # (roadmap.md Phase 4.1, I-AK-1). Like the applications below it owns its folder,
+  # its compose file and its `.env`; unlike them it also has to be reachable by
+  # every other service, which is why it joins `internal` as well as `proxy`.
+  - path: Authentik/compose.yaml
   # The applications that are cheap to compose inline. Zulip ships its own
   # compose file upstream and Workcenter keeps it that way, so a version bump is a
   # one-file change: the pinned tag in Zulip/.env.
@@ -64,7 +69,7 @@ services:
       # The base URL the shell serves from, and the three applications' own
       # addresses. These are read by the health probe and by the preference
       # bridge (broker.md §3.4, §6, §7); the shell reads the same values from
-      # user-data/conf.yml, which the operator writes with setup.sh (Phase 4).
+      # user-data/conf.yml, which the operator writes with setup.sh (Phase 8).
       WORKCENTER_BASE_URL: https://${WORKCENTER_HOST:?set WORKCENTER_HOST in .env}
       # The broker reaches the FileBrowser source directory by path, and asserts
       # at startup that it is the same directory FileBrowser serves
@@ -113,10 +118,12 @@ services:
       - traefik.http.routers.workcenter.entrypoints=websecure
       - traefik.http.routers.workcenter.tls=true
       - traefik.http.routers.workcenter.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}
-      # One certificate for all six names rather than one per router (P-25):
-      # Let's Encrypt allows five per distinct identifier set per week.
+      # One certificate for all seven names rather than one per router (P-25):
+      # Let's Encrypt allows five per distinct identifier set per week. Authentik's
+      # hostname is in the set because every OIDC redirect crosses between it and an
+      # application, and a browser that trusts one end must trust the other.
       - traefik.http.routers.workcenter.tls.domains[0].main=${BASE_DOMAIN:?set BASE_DOMAIN in .env}
-      - traefik.http.routers.workcenter.tls.domains[0].sans=${WORKCENTER_HOST},${FILEBROWSER_HOST},${CHAT_HOST},${MAIL_HOST},${OFFICE_HOST}
+      - traefik.http.routers.workcenter.tls.domains[0].sans=${WORKCENTER_HOST},${FILEBROWSER_HOST},${CHAT_HOST},${MAIL_HOST},${OFFICE_HOST},${TRAEFIK_HOST},${AUTHENTIK_HOST}
       - traefik.http.routers.workcenter.service=workcenter
       - traefik.http.services.workcenter.loadbalancer.server.port=8080
       # The shell is the one surface that must never be framed by another site.

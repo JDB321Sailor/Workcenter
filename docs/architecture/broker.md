@@ -8,9 +8,9 @@
 
 | | |
 | --- | --- |
-| **Status** | Specified (Phase 6 target). The health and preference routes are implemented; the transfer engine is not yet built — [§12](#13-implementation-status) marks exactly what exists |
+| **Status** | Specified (Phase 5 target). The health and preference routes are implemented; the transfer engine is not yet built — [§12](#13-implementation-status) marks exactly what exists |
 | **Owner** | `services/utils/broker/` (runtime), `services/broker-server.js` (entry), `src/broker/` (shell client) |
-| **Contractual siblings** | [`architecture.md`](./architecture.md) §4 (placement and decisions AR-46…AR-49), [`integration.md`](./integration.md) §9 (integrity rules IN-9.1…IN-9.8), [`design.md`](./design.md) D-6/D-8 (the UI the broker answers to), [`roadmap.md`](../../roadmap.md) §7 and Phase 6 (the flows) |
+| **Contractual siblings** | [`architecture.md`](./architecture.md) §4 (placement and decisions AR-46…AR-49), [`integration.md`](./integration.md) §9 (integrity rules IN-9.1…IN-9.8), [`design.md`](./design.md) D-6/D-8 (the UI the broker answers to), [`roadmap.md`](../../roadmap.md) §7 and Phase 5 (the flows) |
 | **Requirement family** | `BR-<section>.<n>` — this document. It **references** `AR-*`, `IN-*`, `D-*`, `U-*`, `I-*` and `T-*`; it never restates or overrides them |
 
 ---
@@ -127,9 +127,9 @@ security defect, not a feature (BR-2.8).
 | Entry | `services/broker-server.js` | Builds the router, wires the adapters, resolves credentials per request |
 | Router | `services/utils/broker/index.js` | Route table, input validation, authorisation, error mapping |
 | Transport | `services/utils/broker/transport.js` | Outbound HTTP with timeouts and TLS verification; the only place a socket is opened |
-| Adapters | `services/utils/broker/adapters/` | One module per application per capability: `preferences.js`, and (Phase 6) `files.js`, `mail.js`, `chat.js` |
-| Engines | `services/utils/broker/engine/` | `preferences.js` (fan-out), and (Phase 6) `transfer.js`, `naming.js`, `audit.js` |
-| Vault | `services/utils/broker/vault.js` (Phase 6) | Encrypted per-user credentials |
+| Adapters | `services/utils/broker/adapters/` | One module per application per capability: `preferences.js`, and (Phase 5) `files.js`, `mail.js`, `chat.js` |
+| Engines | `services/utils/broker/engine/` | `preferences.js` (fan-out), and (Phase 5) `transfer.js`, `naming.js`, `audit.js` |
+| Vault | `services/utils/broker/vault.js` (Phase 5) | Encrypted per-user credentials |
 | Shell client | `src/broker/client.js`, `src/broker/preferences.js` | Typed fetch wrapper, bearer token, timeouts, typed results |
 
 The broker runs **in the Workcenter process**, behind the same TLS terminator, on the same origin as
@@ -720,7 +720,7 @@ worked. The shell's job is to repaint itself instantly, tell the panes, and say 
 ([D-6.1](./design.md)).
 
 Dark is the default ([`design.md` D-6.1](./design.md)), and the mode is stored per browser today
-(`localStorage` + the `wc_mode` cookie) with a per-user profile as the Phase 6 target.
+(`localStorage` + the `wc_mode` cookie) with a per-user profile as the Phase 5 target.
 
 ### 6.2 The exact call for each application
 
@@ -852,7 +852,7 @@ broker holding anything (BR-7.3).
 
 ### 7.4 Persistence
 
-| Layer | Today | Phase 6 target |
+| Layer | Today | Phase 5 target |
 | --- | --- | --- |
 | Shell | `localStorage` mirror + `wc_lang` cookie, so the first paint is correct and never flashes | Unchanged |
 | Per user, across browsers | Not yet | The broker's per-user profile: the same write path, stored per subject, restored on any browser the user signs in from. The mode and the language share it, and it is subject-scoped exactly like a credential (BR-4.1) |
@@ -1004,7 +1004,7 @@ that keeps it honest:
 | **Route** | The real Express app with `supertest`: auth, validation, the envelope, status codes, the closed reason vocabulary, secret redaction on captured output | `tests/server/broker.test.js` and successors ([`Testing.md` §5](../development/Testing.md)) |
 | **Adapter** | Each adapter against a **fake upstream** that speaks the real protocol (an HTTP fake for FileBrowser and Zulip, an IMAP fake for Mailcow) | `tests/server/adapters/` |
 | **End-to-end (manual, today)** | The six flows by hand against the deployed stack | [`Testing.md` §6.5](../development/Testing.md), `scripts/e2e.sh` |
-| **End-to-end (automated, Phase 7)** | Playwright drives each flow against seeded fixtures | [`Testing.md` §10](../development/Testing.md) |
+| **End-to-end (automated, Phase 6)** | Playwright drives each flow against seeded fixtures | [`Testing.md` §10](../development/Testing.md) |
 
 Fakes are not mocks of the broker's own code: they are minimal servers that implement the *upstream*
 contract (status codes, body shapes, IMAP responses) as verified in [§12](#12-upstream-verification),
@@ -1071,7 +1071,7 @@ so a change in the broker that would break against the real application breaks t
 | Upstream unreachable | `unavailable`, reason `unreachable`, others still applied (partial success) |
 | A mode switch while the Files editor is open | Broker reports `ok` + `reload: files`; the **shell** defers and says so ([D-T7](./design.md)) |
 
-### 9.5 Exit criteria for Phase 6
+### 9.5 Exit criteria for Phase 5
 
 The broker is done when all of the following are true, and each is a test rather than a claim:
 
@@ -1095,7 +1095,7 @@ The broker is done when all of the following are true, and each is a test rather
 
 | Key | Where | Default | Purpose |
 | --- | --- | --- | --- |
-| `BROKER_VAULT_KEY` | `.env` | — (required for Phase 6) | 32-byte base64 key for the credential vault |
+| `BROKER_VAULT_KEY` | `.env` | — (required for Phase 5) | 32-byte base64 key for the credential vault |
 | `BROKER_FILES_ROOT` | `.env` | — (required for the by-path flows) | The FileBrowser source directory as the broker sees it |
 | `BROKER_MAX_TRANSFER_MIB` | `.env` | `512` | Maximum size of one transfer |
 | `BROKER_MAX_FILENAME` | `.env` | `200` | Filename length cap in bytes |
@@ -1131,7 +1131,7 @@ appear in `.env`, because the shell needs them too.
 | `user-data/broker/credentials.json` | Encrypted per-user credentials | Yes — it is user configuration | Until the user revokes |
 | `user-data/broker/audit.log` | Transfer records ([§5.11](#514-the-audit-record)) | Optional | Owner's policy; the default is no rotation, and rotation is an operator decision |
 | `user-data/broker/spool/` | Nothing, at rest | No | Swept at startup and after every transfer |
-| `user-data/broker/profile.json` (Phase 6) | Per-user mode and language | Yes | Until the user changes them |
+| `user-data/broker/profile.json` (Phase 5) | Per-user mode and language | Yes | Until the user changes them |
 
 Losing the vault key makes the credentials unreadable — by design. The recovery path is re-entering
 them, never recovering them (BR-10.1).
@@ -1150,7 +1150,7 @@ them, never recovering them (BR-10.1).
 | [§3.2](#32-route-table) route table | [`architecture.md` §4.3](./architecture.md), AR-15 |
 | [§3.4](#34-get-apibrokerhealth) health | AR-49, [`integration.md` IN-10.4](./integration.md), [`design.md` D-2S](./design.md) |
 | [§4](#4-identity-credentials-and-the-vault) identity and vault | IN-9.5, [`OIDC.md`](../authentication/OIDC.md), [`roadmap.md` U-20](../../roadmap.md) |
-| [§5.4–§5.8](#54-f1--mail--files) the six flows | [`roadmap.md` §7.2](../../roadmap.md) F1–F6, Phase 6 steps 6.2–6.6, [`design.md` D-8](./design.md), BR-5.11 and BR-5.19 |
+| [§5.4–§5.8](#54-f1--mail--files) the six flows | [`roadmap.md` §7.2](../../roadmap.md) F1–F6, Phase 5 steps 5.2–5.6, [`design.md` D-8](./design.md), BR-5.11 and BR-5.19 |
 | [§5.8](#511-progress-cancellation-and-retry) progress and cancellation | D-8.3, IN-9.2 |
 | [§5.9](#512-naming-collisions-and-de-duplication) naming and de-duplication | [`roadmap.md` F3 step 3](../../roadmap.md), D-8.1 |
 | [§5.11](#514-the-audit-record) audit | IN-9.4 |
@@ -1170,7 +1170,7 @@ its source, so a future reader can re-check it rather than trusting it. The pins
 
 | Application | Pin | What was verified for this document |
 | --- | --- | --- |
-| FileBrowser Quantum | `v2.0.9-beta` (`gtsteffaniak/filebrowser`, commit `7a06fb1e…`) — see the tag caveat below | **Preferences:** the user-record patch (`PATCH /api/users?username=…` with `{which,data}` → `204`; `darkMode` and `locale` are non-admin-editable), and the absence of any inbound message channel, so a preference change needs a frame reload ([IN-3.19](./integration.md), IN-3.20). **Files:** download is `GET /api/resources/download?source=&file=` and honours `Range` (single files are served through `http.ServeContent`); listing is `GET /api/resources` (with metadata) or `GET /api/resources/items` (names only); a write is `POST /api/resources?path=&override=` with a **raw body**, and a chunked variant (`X-File-Chunk-Offset`, `X-File-Total-Size`, `X-File-Upload-Session`) that stages a `.uploading.tmp`, verifies the total and moves it into place. **Automation:** `POST /api/auth/token` mints a long-lived per-user token (it requires the user's `api` permission); tokens are validated against a server-side registry, so one cannot be forged. **Indexing:** there is **no filesystem watcher and no rescan endpoint** — a scheduled poller runs on tiers from five minutes to twelve hours, and the only way to bring a directory up to date on demand is to read it (`GET /api/resources?path=<dir>`, which re-stats that level unless `skipExtendedAttrs=true`). **Traversal:** the API rejects a residual `..`, joins client paths to the user's scope so a leading `/` cannot discard it, and resolves symlinks before a containment check that answers `403`. **Errors:** a `403` may carry an empty body, so the broker must not assume JSON when it maps an upstream refusal |
+| FileBrowser Quantum | `v2.0.0-stable` (`gtsteffaniak/filebrowser`, commit `7a06fb1e…`) — see the tag caveat below | **Preferences:** the user-record patch (`PATCH /api/users?username=…` with `{which,data}` → `204`; `darkMode` and `locale` are non-admin-editable), and the absence of any inbound message channel, so a preference change needs a frame reload ([IN-3.19](./integration.md), IN-3.20). **Files:** download is `GET /api/resources/download?source=&file=` and honours `Range` (single files are served through `http.ServeContent`); listing is `GET /api/resources` (with metadata) or `GET /api/resources/items` (names only); a write is `POST /api/resources?path=&override=` with a **raw body**, and a chunked variant (`X-File-Chunk-Offset`, `X-File-Total-Size`, `X-File-Upload-Session`) that stages a `.uploading.tmp`, verifies the total and moves it into place. **Automation:** `POST /api/auth/token` mints a long-lived per-user token (it requires the user's `api` permission); tokens are validated against a server-side registry, so one cannot be forged. **Indexing:** there is **no filesystem watcher and no rescan endpoint** — a scheduled poller runs on tiers from five minutes to twelve hours, and the only way to bring a directory up to date on demand is to read it (`GET /api/resources?path=<dir>`, which re-stats that level unless `skipExtendedAttrs=true`). **Traversal:** the API rejects a residual `..`, joins client paths to the user's scope so a leading `/` cannot discard it, and resolves symlinks before a containment check that answers `403`. **Errors:** a `403` may carry an empty body, so the broker must not assume JSON when it maps an upstream refusal |
 | Zulip | **12.3** — `ghcr.io/zulip/zulip-server:12.3-0` (server commit `b3198225…`, API feature level 500). The concrete pin lives in [`architecture.md`](./architecture.md); the `<version>` placeholders in [`integration.md`](./integration.md) and [`roadmap.md` I-ZU-1](../../roadmap.md) are not pins | **Upload:** `POST /api/v1/user_uploads` is multipart (one part), authenticated with **HTTP Basic `email:api_key` only** — a session cookie is *not* accepted on `/api/…` — and answers `{url, filename}`; `uri` is a deprecated alias of `url`. The multipart endpoint is capped by **nginx at 25 MiB** even though the realm default is 100 MiB, so larger files use `/api/v1/tus` (`Tus-Resumable`, `Upload-Length`, `Upload-Metadata`, `PATCH` + `Upload-Offset`, `{url, filename}` on completion), which nginx does not size-cap and which does not consume the API rate budget. **Send:** `POST /api/v1/messages` has **no `file` parameter** in this version or in main — an attachment is carried by a Markdown link to the upload in `content`, and the server claims the path to the message; the broker builds the deep link itself because no message URL is returned before Zulip 13. **Settings:** `PATCH /api/v1/settings` takes `color_scheme` 1/2/3 and applies it live through a `user_settings` event; `default_language` must be a code the server has translations for, and the settings UI itself tells the user a **reload** is required. The endpoint is `@human_users_only`, so a bot key cannot call it. **Rate limit:** 200 requests/minute per user (`api_by_user`), `X-RateLimit-*` advertised, `429` with `Retry-After`. **Attachments:** `GET /api/v1/messages/<id>?apply_markdown=false` returns raw content with upload links but no attachment metadata; `GET /api/v1/attachments` lists only the caller's own uploads. **Framing:** the nginx header at server scope, with no supported way to relax it ([IN-5.26](./integration.md)) |
 | Mailcow / SOGo | Mailcow `2026-09` (server `master`), with **Dovecot 2.3.21** and **SOGo 5.12.11** | **IMAP:** the service is `dovecot-mailcow`, reachable on the compose network as `dovecot:993`; plaintext auth is refused except from SOGo's own address, so TLS is mandatory. The generated certificate is self-signed with **CN only and no SAN**, so it verifies for `MAILCOW_HOSTNAME` and for nothing else — a deployment fix, not a reason to skip verification. Credentials: the mailbox password, an **app password with `imap_access`** (the broker's choice), or a Dovecot **master user** (refused). Mailboxes use the `/` separator and carry `\Drafts`, `\Sent`, `\Trash`, `\Junk`, `\Archive` SPECIAL-USE flags, so the broker resolves them by flag rather than name. **Appending:** `APPEND "Drafts" (\Draft) {n}` returns `APPENDUID`; there is no Dovecot message-size limit (the 100 MB figure is Postfix and governs SMTP, not APPEND), and the mailbox quota does apply. **SOGo's draft detection is folder membership, not the `\Draft` flag**; editing an appended draft can leave the appended message behind as a stale copy, because SOGo keeps its own spool. **Fetching:** `UID FETCH (BODYSTRUCTURE)` then `BODY.PEEK[part]`, which returns the part transfer-encoded, so the broker decodes it; `BINARY` exists but is unevenly supported; RFC 9394 `PARTIAL` is absent, so long reads are sliced with the classic `<start.length>` form; a malformed message can disconnect the session by design. **No API:** SOGo's JSON surface covers calendars and contacts, with only folder actions and UID listing for mail — the message endpoints are undocumented internals. Mailcow's own `/api/v1` is **admin-scoped** and cannot read a mailbox. **Appearance:** there is **no custom-CSS setting** in SOGo 5.12.11; the hook is a JS file in `SOGoUIAdditionalJSFiles`, and any change needs a `sogo-mailcow` restart because the container regenerates its defaults and rsyncs the web volume. **Language:** per-user `SOGoLanguage` (a language name) is written only by `sogo-tool` inside the container — there is no HTTP route. **Framing:** `add_header X-Frame-Options "SAMEORIGIN" always;` at server scope, inherited by `/SOGo` but **not** by the nested `/SOGo/so/*.(xml\|js\|html\|xhtml)` location, which sets its own `add_header` and therefore drops it |
 | Authentik | the pin in [`roadmap.md` §6](../../roadmap.md) | The `groups` claim requires the `profile` scope; per-user credentials for downstream applications are issued by those applications, not by Authentik |
@@ -1188,12 +1188,24 @@ tree.
 
 ### 12.1 One pin caveat, recorded
 
-The FileBrowser Quantum tag `v2.0.9-beta` and the tag `v2.0.8-beta` point at the **same commit**
-(`7a06fb1e5fb3063dd34d9a62f1bfe14a890a144f`, whose subject reads `Beta/v2.0.8 (#2992)`). Workcenter
-pins `v2.0.9-beta` because it is the newest 2.x beta tag, and gets that tree: the tag is a re-tag, not
-a release. No behaviour in this document may be justified by the *tag name*; every fact above was read
-from the tree. The relationship is recorded as [`integration.md` IN-3.25](./integration.md) so the next
-person to move the pin starts from the commit, not the label.
+The pin is `v2.0.0-stable` — the **stable** series, which upstream maintains alongside the betas. The
+beta numbers run ahead of it (`2.0.9-beta`, `2.0.10-beta`, `2.1.1-beta`) without being newer releases:
+the stable line was cut on its own branch, so the version number goes **down** when the pin moves from
+a beta to a stable tag. `v2.0.0-stable` was published 2026-10-09, after `2.0.10-beta` (2026-10-04), and
+its image digest is the one `2.0-stable`, `2-stable`, `stable` and `latest` all resolve to.
+
+The previous pin's caveat is kept, because it is why this section exists: `v2.0.9-beta` and
+`v2.0.8-beta` pointed at the **same commit** (`7a06fb1e…`, subject `Beta/v2.0.8 (#2992)`) — a re-tag,
+not a release. No behaviour in this document may be justified by the *tag name*; every fact above was
+read from the tree, and that rule applies to the stable tag too. The relationship is recorded as
+[`integration.md` IN-3.25](./integration.md) so the next person to move the pin starts from the commit,
+not the label.
+
+**Unverified, and worth settling before the pin moves again:** upstream's `v2.0.0-stable` release notes
+do not list two High-severity advisories that appear only in the beta and 1.5.x notes
+(`GHSA-6gr6-5qpq-888p`, API-token session renew; `GHSA-qx86-4v5r-26g5`, TOTP re-enrolment). Sloppy
+note-taking and a genuinely missing fix look identical from the changelogs — read the `staging/v2.0.0`
+source if either matters to a deployment.
 
 ---
 
@@ -1207,8 +1219,8 @@ person to move the pin starts from the commit, not the label.
 | Transfer engine, naming, audit | **Specified** — not built | [§5](#5-file-movement) |
 | `files`, `mail`, `chat` adapters | **Specified** — not built | [§5](#5-file-movement) |
 | Per-user profile (mode/language across browsers) | **Specified** — not built | [§7.4](#74-persistence) |
-| Mail stylesheet hook | **Specified** — deployment artefact, Phase 4 | [§6.3](#63-mail-the-stylesheet-hook) |
-| Playwright coverage of the six flows | **Specified** — Phase 7 | [§9](#9-testing) |
+| Mail stylesheet hook | **Specified** — deployment artefact, Phase 8 | [§6.3](#63-mail-the-stylesheet-hook) |
+| Playwright coverage of the six flows | **Specified** — Phase 6 | [§9](#9-testing) |
 
 The transfer routes in [`architecture.md` §4.3](./architecture.md) are deliberately **absent rather
 than stubbed**: a route that exists but does nothing invites a caller to depend on it

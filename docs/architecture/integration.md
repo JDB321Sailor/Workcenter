@@ -57,13 +57,24 @@ applied at the layer that can express it, not a modified application
 
 | Application | Version pin | Subdomain | Presentation | Identity | Data path | Health |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Workcenter shell + broker** | built from this repo | `example.com` | — | OIDC client | — | `/healthz` |
-| **FileBrowser Quantum** | `2.0.9-beta` | `filebrowser.example.com` | pane (iframe) | OIDC client | REST `/api/` + shared bind mount | image `HEALTHCHECK` → `/health` |
-| **ONLYOFFICE Docs** | pinned tag | `office.example.com` (or internal) | inside the Files pane | none (JWT) | JWT-signed callbacks | `/healthcheck` |
+| **Workcenter shell + broker** | built from this repo | `example.com` | — | OIDC client (public, PKCE) | — | `/healthz` |
+| **FileBrowser Quantum** | `2.0.0-stable` | `filebrowser.example.com` | pane (iframe) | OIDC client | REST `/api/` + shared bind mount | image `HEALTHCHECK` → `/health` |
+| **ONLYOFFICE Docs** | `9.4.0` | `office.example.com` (or internal) | inside the Files pane | none (JWT) | JWT-signed callbacks | `/healthcheck` |
 | **Zulip** (5 services) | `ghcr.io/zulip/zulip-server:12.3-0` | `chat.example.com` | pane (iframe, framed by the ingress) | OIDC client | REST `/api/v1/` | `/health` (IP-restricted) |
 | **Mailcow** (18 services) | upstream `master` | `mail.example.com` | pane (iframe, SOGo) | **Generic-OIDC IdP** | IMAP/SMTP from the broker | override healthchecks + Mailcow API |
-| **Authentik** | pinned tag | `auth.example.com` | — | the IdP | JWKS / discovery | `/-/health/live/`, `/-/health/ready/` |
-| **Traefik** | `v3` | `traefik.example.com` | — | forward-auth (proxy provider) | — | `/ping` |
+| **Authentik** | `2026.8.3` | `auth.example.com` | — | the IdP | JWKS / discovery | `/-/health/live/`, `/-/health/ready/` |
+| **Traefik** | `v3.7.14` | `traefik.example.com` | — | forward-auth (proxy provider) | — | `/ping` |
+
+Every pin is a **full release tag**, never `latest` and never a floating minor (S-CF-6).
+The current set, and why each one is where it is:
+
+| Pin | Value | Note |
+| --- | --- | --- |
+| `TRAEFIK_TAG` | `v3.7.14` | Newest v3 release. Pinned to the patch, not to `v3.7`: a patch that ships tomorrow must not reach a running deployment without a decision. |
+| `AUTHENTIK_TAG` | `2026.8.3` | Current stable train. Redis is **gone** (2025.10) and the media mount moved to `/data` (2025.12) — see [§7](#7-authentik-identity). |
+| `FILEBROWSER_IMAGE` | `2.0.0-stable` | The **stable** series, not the beta line. Beta numbers run ahead (`2.0.0-stable`, `2.1.1-beta`) without being newer *releases*, so the version number goes **down** when this pin moves to a stable tag. |
+| `ONLYOFFICE_IMAGE` | `9.4.0` | Current stable. `/healthcheck` still answers there, so the probe is unchanged. |
+| `ZULIP_IMAGE` | `ghcr.io/zulip/zulip-server:12.3-0` | The newest Zulip release, and the pin `docker-zulip`'s own compose carries at tag `12.3-0` — **including** its four supporting images (`zulip/zulip-postgresql:14`, `memcached:alpine`, `rabbitmq:4.2`, `redis:alpine`). Those are not free choices: they are the versions docker-zulip guarantees against this server release, so they move with it and not before it. |
 
 ---
 
@@ -74,7 +85,7 @@ applied at the layer that can express it, not a modified application
 [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser) is the actively maintained fork of
 the original FileBrowser — which is **deprecated** and is *not* used by Workcenter. Quantum adds
 real-time indexing, search, previews, shares, WebDAV, an office-integration stack and a per-user
-sidebar. **Workcenter targets the v2 line (2.0.9-beta) exclusively**, because v2 changed the
+sidebar. **Workcenter targets the v2 line (2.0.0-stable) exclusively**, because v2 changed the
 configuration schema, the database engine (SQLite rather than BoltDB) and the sidebar model.
 
 ### 3.2 Why Workcenter uses it
@@ -89,7 +100,7 @@ transfer in Workcenter ultimately writes into, or reads from, a FileBrowser sour
 ```yaml
 services:
   filebrowser:
-    image: ${FILEBROWSER_IMAGE}          # gtstef/filebrowser:2.0.9-beta
+    image: ${FILEBROWSER_IMAGE}          # gtstef/filebrowser:2.0.0-stable
     # ghcr.io/gtsteffaniak/filebrowser is an equivalent registry
     expose: ["80"]
     volumes:
@@ -107,7 +118,7 @@ services:
 
 | Ref | Note |
 | --- | --- |
-| IN-3.1 | Image tags strip the leading `v`: git tag `v2.0.9-beta` → `2.0.9-beta`. There is **no `latest`** on the beta line, so the pin is mandatory. |
+| IN-3.1 | Image tags strip the leading `v`: git tag `v2.0.0-stable` → `2.0.0-stable`. The pin is mandatory — there is no floating tag to fall back on. **The stable series is the one to pin.** Upstream publishes betas and stables side by side, and the beta numbers run ahead (`2.0.9-beta`, `2.1.1-beta`) without being newer *releases*: the stable line is cut on its own branch, so moving from a beta to a stable tag takes the version number **down**. Verified: `v2.0.0-stable` was published 2026-10-09, after `2.0.10-beta` (2026-10-04), and its digest is what `2.0-stable`, `2-stable`, `stable` and `latest` all resolve to. |
 | IN-3.2 | `FILEBROWSER_DATABASE_PATH` does **not** override `server.database.path` — if the YAML sets the path, the YAML wins. Set it in exactly one place. |
 | IN-3.3 | The image runs as uid/gid `1000:1000`; the bind-mounted source must be writable by that user. |
 
@@ -168,12 +179,12 @@ integrations:
 
 | Ref | Note |
 | --- | --- |
-| IN-3.4 | **`config.defaultEnabled: true` on the source is mandatory.** Set it explicitly: a user created via OIDC sees no files until a source is enabled for them, and relying on the implied case (exactly one source) is a trap. The generated reference for `2.0.9-beta` documents `true` as the default, but the setting is written out so the behaviour does not depend on which way that default falls. |
+| IN-3.4 | **`config.defaultEnabled: true` on the source is mandatory.** Set it explicitly: a user created via OIDC sees no files until a source is enabled for them, and relying on the implied case (exactly one source) is a trap. The generated reference for `2.0.0-stable` documents `true` as the default, but the setting is written out so the behaviour does not depend on which way that default falls. |
 | IN-3.5 | **`http.trustProxyHeaders: true` is mandatory.** FileBrowser builds its OIDC redirect URI from the **incoming request** (`https://<host><baseURL>api/auth/oidc/callback`), never from `externalUrl`. Traefik must send `X-Forwarded-Proto` and `X-Forwarded-Host` with `passHostHeader`. Register exactly the derived URI in Authentik. |
 | IN-3.6 | Provider discovery runs **at startup**, and failure is fatal. If Authentik is unreachable when FileBrowser starts, FileBrowser will not start. Order the stack accordingly. |
 | IN-3.7 | Valid v2 keys are `http.disableWebDAV` (not `server.disableWebDAV` — the latter fails startup), and `integrations.office` (not a root `office:`). There is **no** `disableVerifyTLS` for OnlyOffice; it exists only for auth methods. |
 | IN-3.8 | `userGroups` blocks sign-in for anyone outside `workspaceusers` (HTTP 403). Remove it to allow any Authentik user. |
-| IN-3.26 | **The built-in admin's username is always `admin`; its password is `FILEBROWSER_ADMIN_PASSWORD`** — the only admin setting FileBrowser Quantum reads from the environment (`auth.methods.password.adminPassword`; verified against `2.0.9-beta`). There is no username environment variable, and `config.yaml` sets no `adminPassword`, so an empty value leaves the pinned version's own default, which is also `admin`. With `auth.methods.password.enabled` false and no other method configured, the pinned version still reports `Auth Methods: [password]` and creates the admin account, which is what keeps a first boot without Authentik usable. Workcenter never commits a value: a deployment sets its own (`Filebrowser/.env`), and `scripts/e2e.sh` sets `admin` for a test run and prints the resulting login (`Testing.md` §6.5). |
+| IN-3.26 | **The built-in admin's username is always `admin`; its password is `FILEBROWSER_ADMIN_PASSWORD`** — the only admin setting FileBrowser Quantum reads from the environment (`auth.methods.password.adminPassword`; verified against `2.0.0-stable`). There is no username environment variable, and `config.yaml` sets no `adminPassword`, so an empty value leaves the pinned version's own default, which is also `admin`. With `auth.methods.password.enabled` false and no other method configured, the pinned version still reports `Auth Methods: [password]` and creates the admin account, which is what keeps a first boot without Authentik usable. Workcenter never commits a value: a deployment sets its own (`Filebrowser/.env`), and `scripts/e2e.sh` sets `admin` for a test run and prints the resulting login (`Testing.md` §6.5). |
 
 **Traefik labels**
 
@@ -236,7 +247,7 @@ other applications derive from ([`design.md` §4.3.1](./design.md#431-where-the-
 | IN-3.22 | Unknown keys inside a valid `config.yaml` section are **fatal** — the parser rejects them. Every key `setup.sh` writes must exist in the pinned version; a branding key is verified before it is written, not after the container fails to start. Unknown **top-level** keys are the opposite: they are silently dropped, so a misspelled section looks as though it were accepted. |
 | IN-3.23 | **The outbound navigation message carries a path, not an address.** `frontend/src/router/index.ts` posts `{type: "filebrowser:navigation", url: to.fullPath}` to the parent after **every** navigation, with `targetOrigin` `"*"`, and only while the SPA is framed (`window.self !== window.top`). A host page must therefore verify `event.origin` and `event.source` itself and resolve the reported path against the application's origin before reusing it. The message never identifies a document editor: the OnlyOffice editor is selected from the `onlyOfficeId` field of an `/api/resources` response and carries no URL marker, so a host can detect only the SPA's own text editor (`#edit`) and Markdown preview (`#preview`) hashes ([`design.md` D-T7](./design.md#442-the-mode-cookie)). |
 | IN-3.24 | **A host page may frame FileBrowser Quantum.** The image ships no nginx and the served document's CSP restricts `script-src` only — there is no `X-Frame-Options` and no `frame-ancestors`, and no configuration key adds one. The practical constraint is the session cookie: `filebrowser_quantum_jwt` is `SameSite=Strict` for a password login and `Lax` for the OIDC callback, and `HttpOnly`, so a frame on the **same registrable domain** works while a cross-site frame renders logged out. The health probe in `services/utils/broker/health/integrations.js` reports a framing refusal when it sees one, and the Files pane shows its `blocked` state rather than a blank frame. |
-| IN-3.25 | **The `v2.0.9-beta` tag and `v2.0.8-beta` point at the same commit** (`7a06fb1e5fb3063dd34d9a62f1bfe14a890a144f`, subject `Beta/v2.0.8 (#2992)`). Workcenter pins `v2.0.9-beta` because it is the newest 2.x beta tag, and the tree is what it is: a re-tag, not a new beta. Anything that claims a *behaviour* difference between the two tag names is wrong. Re-verify this whenever the pin moves, and record the digest alongside the tag ([`broker.md` §12](./broker.md#12-upstream-verification)). |
+| IN-3.25 | **Never justify behaviour by a tag name — read the tree.** The pin's predecessor is why this is a requirement: `v2.0.9-beta` and `v2.0.8-beta` pointed at the *same commit* (`7a06fb1e…`, subject `Beta/v2.0.8 (#2992)`), so any claim of a behaviour difference between those two names was necessarily false. The current pin is `v2.0.0-stable` (revision `a29573e7…`, digest `sha256:9d42f635…`), and every fact recorded in this section was read from that tree. Re-verify the digest whenever the pin moves and record it alongside the tag ([`broker.md` §12](./broker.md#12-upstream-verification)). |
 
 ---
 
@@ -332,7 +343,7 @@ Workcenter deploys the **full docker-zulip stack** — the five services from
 | IN-5.2 | `DISABLE_HTTPS` and `SSL_CERTIFICATE_GENERATION` are legacy and now cause a **hard startup failure**. Do not set them. |
 | IN-5.3 | Secrets are file-based (`/run/secrets/zulip__*`). `setup.sh` generates them into `Zulip/secrets/`. |
 | IN-5.4 | All persistent state is bind-mounted under `Zulip/`: `/data`, the PostgreSQL data directory, RabbitMQ and Redis. |
-| IN-5.30 | **A Zulip server has no organization until one is created, and Workcenter creates it.** With none, every page on the Chat host answers 404 "There is no Zulip organization at <host>" — the pane renders nothing and the broker's chat integration has no realm to talk to, however healthy everything else is. The pinned image creates none of its own, so the deployment does: `setup.sh` asks whether to create one and what to call it, writes `ZULIP_ORGANIZATION_NAME` into `Zulip/.env`, and runs `manage.py create_realm <name> "$SETTING_ZULIP_ADMINISTRATOR" ... --automated` inside the container after health (P-36); `scripts/e2e.sh` runs the same command for a test run (`Testing.md` §6.5). The owner is the deployment's administrator, its password is **disabled** — Zulip's production create path generates none and none is written down, so signing in is OIDC (Phase 5) or a password reset — and an existing organization is left alone, which is what makes a re-run idempotent. An empty `ZULIP_ORGANIZATION_NAME` means "deploy none" deliberately. |
+| IN-5.30 | **A Zulip server has no organization until one is created, and Workcenter creates it.** With none, every page on the Chat host answers 404 "There is no Zulip organization at <host>" — the pane renders nothing and the broker's chat integration has no realm to talk to, however healthy everything else is. The pinned image creates none of its own, so the deployment does: `setup.sh` asks whether to create one and what to call it, writes `ZULIP_ORGANIZATION_NAME` into `Zulip/.env`, and runs `manage.py create_realm <name> "$SETTING_ZULIP_ADMINISTRATOR" ... --automated` inside the container after health (P-36); `scripts/e2e.sh` runs the same command for a test run (`Testing.md` §6.5). The owner is the deployment's administrator, its password is **disabled** — Zulip's production create path generates none and none is written down, so signing in is OIDC (Phase 4) or a password reset — and an existing organization is left alone, which is what makes a re-run idempotent. An empty `ZULIP_ORGANIZATION_NAME` means "deploy none" deliberately. |
 | IN-5.31 | **A Zulip test administrator exists for the harness, and only the harness creates it.** Docker-zulip exposes no environment variable that creates an account — `SETTING_*` maps to `settings.py`, `CONFIG_*` to `zulip.conf`, `SECRET_*` to secrets, and `SETTING_ZULIP_ADMINISTRATOR` only names the realm owner's address — so `scripts/e2e.sh` uses Zulip's own management commands inside the container: `manage.py create_user <email> "<full name>" -r <realm> --password-file <file> --automated`, then `manage.py change_user_role <email> owner -r <realm> --automated`. The password is fed to `--password-file` on stdin, so it never reaches the container's command line or the run log, and `User already exists.` / `User already has this role.` are treated as the idempotent case rather than failures. Two Zulip facts shape the credentials. It authenticates by **email**, so there is no username and the login is `admin@<shell host>`. And `UserProfile.set_password` enforces `PASSWORD_MIN_LENGTH = 8` with `PASSWORD_MIN_GUESSES = 10000` (`zproject/default_settings.py`, `zproject.backends.check_password_strength`), so `admin` is refused with `PasswordTooWeakError` however it is set; `admin1234` is the shortest obvious extension that passes. This account is separate from the organization owner IN-5.30 describes, whose password stays disabled, and `setup.sh` creates none: it exists for the testing walk only (`Testing.md` §6.5). |
 
 **Configuration mechanism**

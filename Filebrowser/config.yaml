@@ -59,15 +59,51 @@ http:
 
 auth:
   methods:
-    # Phase 5: setup.sh adds `oidc` here — enabled, issuerUrl, clientId,
-    # clientSecret (from FILEBROWSER_OIDC_CLIENT_ID/_SECRET), scopes,
-    # groupsClaim, userIdentifier, adminGroup, userGroups and
-    # logoutRedirectUrl (I-FB-5, IN-3.5) — and turns local password login off.
-    # It is absent until then because provider discovery runs at startup and a
-    # failure there stops the application (IN-3.6); with no method configured,
-    # the pinned version falls back to password auth, so the container starts on
-    # a host where Authentik does not exist yet. That fallback is a development
-    # and first-boot state, never the deployed one.
+    # Authentik is the only way in (A-1, I-FB-5). The block is present but inert
+    # here for one reason: provider discovery runs **at startup** and a failure
+    # stops the application (IN-3.6), so a committed `enabled: true` would make
+    # every container start depend on an identity provider being up and correctly
+    # configured. `setup.sh` flips `enabled`, and `scripts/e2e.sh` writes a copy
+    # carrying the test run's issuer and client credentials.
+    #
+    # The values it writes are the ones below, all of which OIDC.md §6.2 fixes:
+    #
+    #   issuerUrl          the **bare per-application issuer**, trailing slash
+    #                      included. A client appends the discovery path itself;
+    #                      naming `/.well-known/openid-configuration` here is the
+    #                      classic redirect loop (O-4.1).
+    #   scopes             must contain `groups`, which is the only reason the
+    #                      claim arrives at all (O-6.1, IN-7.6)
+    #   groupsClaim        the claim the `groups` scope mapping emits
+    #   userIdentifier     `preferred_username`, which OIDC.md §4.2's mapping and
+    #                      Authentik's `profile` scope both supply
+    #   adminGroup         the group that grants administrative rights (A-5)
+    #   userGroups         **who may sign in at all.** O-3.3 keeps access control
+    #                      and privilege apart: this list is the first, adminGroup
+    #                      is the second. A user outside it is refused with 403
+    #                      (IN-3.8)
+    #   logoutRedirectUrl  Authentik's end-session endpoint for this provider,
+    #                      so signing out here ends the session everywhere (A-7)
+    #
+    # FILEBROWSER_OIDC_CLIENT_ID and _SECRET reach the container as environment
+    # variables (Filebrowser/compose.yaml) and never live in this file (AR-19,
+    # S-CF-5); the generated copy names them through its own substituted values.
+    oidc:
+      enabled: false
+      issuerUrl: "https://auth.example.com/application/o/filebrowser/"
+      clientId: "filebrowser"
+      clientSecret: ""
+      scopes: "openid email profile groups"
+      groupsClaim: "groups"
+      userIdentifier: "preferred_username"
+      adminGroup: "workspaceadmin"
+      userGroups:
+        - "workspaceusers"
+      logoutRedirectUrl: "https://auth.example.com/application/o/filebrowser/end-session/"
+    # Local password login is off in a deployment and off here. It stays declared
+    # because the *key* is the contract: with no method enabled the pinned version
+    # falls back to password authentication, which is what lets a container start
+    # on a host where Authentik does not exist yet.
     password:
       enabled: false
 

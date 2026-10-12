@@ -209,8 +209,8 @@ For each OIDC provider, record four values. `setup.sh` asks for exactly these.
 | Setting | Value | Why |
 | --- | --- | --- |
 | **Authorization flow** | `default-provider-authorization-implicit-consent` | Avoids a consent screen on every sign-in. Use `…explicit-consent` if you want users to confirm each time. |
-| **Invalidation flow** | `default-provider-invalidation-flow` | Required on Authentik 2024.10 and newer. |
-| **Client type** | `Confidential` for every Workcenter client | All of them are server-side and can hold a secret. **Zulip in particular requires `Confidential`** — it sends both client_id and secret. |
+| **Invalidation flow** | `default-provider-invalidation-flow` | Required on Authentik 2024.10 and newer. **Bind its logout stage.** The flow ships with *no* stage bindings, so a provider that names it shows the "you have been signed out" screen without `logout()` ever running: the browser is told the session ended, the session is still valid, and the next authorization request issues a fresh code without asking for credentials. Nothing on screen distinguishes the two outcomes. `scripts/lib/authentik.sh` binds the built-in `default-invalidation-logout` stage to this flow, which is what makes sign-out single-action (§11, roadmap A-7). |
+| **Client type** | `Confidential` for the three applications; **`Public` for Workcenter itself** | FileBrowser, Zulip and Mailcow exchange the authorization code **server-side** and can hold a secret. Workcenter cannot: the shell performs the exchange in the browser (`src/utils/auth/OidcAuth.js` via oidc-client-ts) and holds no secret, so PKCE is what protects it. Registered `Confidential`, the token endpoint answers `invalid_client` — verified against the pinned instance — and the only way to satisfy it would be to ship the secret to every browser. **Zulip in particular requires `Confidential`** — it sends both client_id and secret. |
 | **Signing Key** | **A certificate-key pair — never leave this empty** | **Critical.** With no signing key, Authentik signs with HS256 using the client secret and **publishes no public key through JWKS**. Zulip (python-social-auth) verifies the id_token against `jwks_uri` and fails; FileBrowser and the Workcenter broker verify against JWKS too. Generate one at **System → Certificates** if none exists. |
 | **Encryption Key** | **Leave empty** | **Critical.** An encryption key makes Authentik return an encrypted JWE, which Workcenter's client rejects with *"Workcenter needs signed JWT tokens, not encrypted JWE tokens"*. |
 | **Selected Scopes** | `openid`, `profile`, `email-verified` (custom — see §4.5), `groups` (+ `offline_access` if you enable silent renewal) | `groups` is mandatory, and it is the **`profile`** scope that emits it |
@@ -268,9 +268,41 @@ acceptable: it signs tokens, and is unrelated to the TLS certificate terminating
 
 | Fact | Consequence |
 | --- | --- |
-| The `groups` claim is emitted only by the **`profile`** scope | A provider whose Selected Scopes omit `profile` never delivers groups, and every `adminGroup` check silently fails |
+| The `groups` claim comes from the **custom `groups` mapping** (§4.2) | A provider without that mapping attached never delivers groups, and every `adminGroup` check silently fails |
+| On **2026.8** the built-in `profile` scope *also* emits `groups` | Attaching both is not belt and braces: a claim two mappings write is **concatenated**, so the token arrives as `["workspaceusers","workspaceadmin","workspaceusers",…]`. Membership tests pass anyway, so it is invisible in every application and wrong in the token |
+| …but **`preferred_username` is not optional either** | Dropping `profile` to avoid the duplicate costs it, and **FileBrowser refuses to sign anyone in**: `500 {"message":"no valid username found for identifier 'preferred_username'"}`. The shell falls back to the email address (`preferred_username \|\| email \|\| sub`); FileBrowser does not. Workcenter therefore supplies its **own** `profile` mapping — the standard claims, without `groups` — so exactly one mapping owns each claim |
+| **`openid` is not optional and not implied** | Authentik intersects the requested scopes with the ones the provider is *configured* for and silently drops the rest (`Application requested scopes not configured, setting to overlap`). A provider with no `openid` mapping issues a token that verifies perfectly and that `/userinfo/` refuses with `403 Scope mismatch` |
 | Zulip 13+ reads a claim named **`zulip_groups`**, not `groups` | Group sync in Zulip needs its own scope mapping; `groups` alone is not enough |
 | Role sync needs a **`zulip_role`** claim plus `extra_attrs` | And it is Zulip 13+ only — see [§6.3](#63-zulip-zulipcomposeyaml--zulipsecrets) |
+
+#### Why the `openid` and `preferred_username` rows are not footnotes
+
+Both failures are **invisible to a server-side test**, and that is worth stating plainly because each
+cost a full green run that shipped a stack nobody could sign in to. The authorization code exchange
+succeeds, the id_token verifies against JWKS, the groups are right — every check passes. What breaks is
+one request later, inside the application:
+
+* **`openid`** — a browser client sets `loadUserInfo`, so its first act after the exchange is a
+  cross-origin `GET` to `/userinfo/`, which the missing scope refuses with `403`. A refusal carries no
+  `Access-Control-Allow-Origin`, so the browser reports a *CORS failure* rather than the 403 underneath,
+  and the shell's only symptom is "Authentication failed (OIDC)".
+* **`preferred_username`** — FileBrowser identifies users by it. The shell has a fallback chain;
+  FileBrowser has none, and answers a `500` from its OIDC callback.
+
+A Node client enforces neither rule. So `scripts/lib/oidc-login.mjs` calls `/userinfo/` with an `Origin`
+header and requires both a `200` and the CORS header, `scripts/e2e.sh` asserts the claim is unique and
+that `openid` is present — and, the check that was missing entirely, the harness now drives **each
+application's own sign-in entry** and requires a redirect to the authorize endpoint carrying that
+application's `client_id`. That last one is what the earlier green run lacked.
+
+#### Two more reasons an application fails *after* a valid token
+
+Both are network problems rather than identity ones, and neither is visible from the provider:
+
+| Symptom | Cause |
+| --- | --- |
+| `/login/` answers **500**; the log shows `ProxyError … 407 Request rejected by proxy` | Zulip's supervisor starts the Django process with `HTTP_proxy`/`HTTPS_proxy` pointing at its own **go-camo** image proxy on `localhost:4750`, and go-camo refuses anything that is not an image fetch. Provider discovery is not an image. `NO_PROXY`/`no_proxy` must name the identity host — and it belongs in the **base** composition, because the camo proxy is Zulip's own design, not a test artefact |
+| Mailcow: `Login failed`, with nothing in its log | The OIDC exchange happens in **php-fpm**, not nginx. php-fpm sits on `mailcow-network` alone, where the identity host — an alias on Traefik — does not resolve. It needs `proxy` for *egress* (nginx has it for ingress, which is why this is easy to miss) plus the local authority mounted for a test run (`CURL_CA_BUNDLE`) |
 
 ### 4.7 Endpoint shapes
 
@@ -342,7 +374,7 @@ As described in [§4.2](#42-the-groups-scope-mapping).
 3. **Authorization flow:** `default-provider-authorization-implicit-consent`
 4. **Invalidation flow:** `default-provider-invalidation-flow`
 5. **Protocol settings:**
-   * **Client type:** `Confidential`
+   * **Client type:** `Confidential` (the shell is the exception — it is `Public`, see §4.4)
    * **Client ID:** `workcenter` (or accept the generated value and copy it)
    * **Client Secret:** copy the generated value
    * **Redirect URIs** (matching mode **Strict**), one per line:

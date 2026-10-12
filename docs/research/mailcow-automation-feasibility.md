@@ -1,6 +1,6 @@
 # Feasibility — automating the Mailcow deployment and its post-boot configuration
 
-> **Status:** analysis for the `setup.sh` design (roadmap Phase 4). This file is not part of the
+> **Status:** analysis for the `setup.sh` design (roadmap Phase 8). This file is not part of the
 > specification set; `production.md`, `integration.md`, `OIDC.md` and `roadmap.md` remain authoritative.
 >
 > **Scope.** Two independent questions:

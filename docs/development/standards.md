@@ -438,7 +438,7 @@ Yarn is the package manager; the scripts below are invoked as `yarn <script>`.
 >
 > **Not yet available.** `test:e2e`, `lint:fix`, `lint:sh` and a `check-all` aggregate are documented
 > in parts of this repository but do not exist as scripts: the Playwright suite and its
-> `e2e/` configuration arrive with roadmap Phase 7, the shell lint tools with the commit that adds
+> `e2e/` configuration arrive with roadmap Phase 6, the shell lint tools with the commit that adds
 > them. `yarn lint` currently covers `src/**/*.{js,vue}` only; widening it to `services/`, `tests/`
 > and `e2e/` is its own change, because the inherited `services/` code has never been linted and
 > would fail on the first run. Do not report a check as run because a script for it is documented

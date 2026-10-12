@@ -66,6 +66,6 @@ http:
       # is the deployment specification and supersedes it.)
       #
       # Unused while ENABLE_INTERNAL_TLS=false (architecture.md §6.1), so the CA file need not
-      # exist yet. Its name is the contract Phase 4's setup.sh has to satisfy.
+      # exist yet. Its name is the contract Phase 8's setup.sh has to satisfy.
       rootCAs:
         - /certs/internal-ca.pem

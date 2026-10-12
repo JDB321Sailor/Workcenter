@@ -41,6 +41,11 @@ services:
           - chat.workcenter.local
           - mail.workcenter.local
           - office.workcenter.local
+          - auth.workcenter.local
+          # The dashboard's own hostname. Its router lives in the file provider
+          # rather than in labels, but it still has to resolve here, because the
+          # forward-auth check is a request to this name like any other.
+          - traefik.workcenter.local
     volumes:
       # The framing allow-list — the only thing that makes the Chat pane
       # embeddable, since Zulip itself ships `X-Frame-Options: DENY` and Workcenter
@@ -55,6 +60,15 @@ services:
       - type: bind
         source: ./Traefik/dynamic/middlewares.test.yml
         target: /etc/traefik/dynamic/middlewares.yml
+        bind:
+          create_host_path: false
+      # The dashboard router, with forward auth attached. The committed
+      # `dashboard.yml` keeps the `authentik@file` middleware commented out so a
+      # stack with no identity provider still serves the dashboard; this run
+      # generates the copy that names it (IN-7.8, P-20).
+      - type: bind
+        source: ./Traefik/dynamic/dashboard.test.yml
+        target: /etc/traefik/dynamic/dashboard.yml
         bind:
           create_host_path: false
   workcenter:
@@ -85,3 +99,44 @@ services:
         target: /app/user-data/conf.yml
         bind:
           create_host_path: false
+
+  # The Files pane's identity client. FileBrowser runs provider discovery at
+  # **startup** and stops the container when it fails (IN-3.6), so this copy has to
+  # carry a real issuer and a real client secret before the first `up` — which is
+  # why `scripts/e2e.sh` writes it in its configuration stage rather than after the
+  # stack is healthy.
+  filebrowser:
+    environment:
+      # The local profile's certificate authority, for the OIDC provider
+      # discovery FileBrowser runs **at startup** (IN-3.6). Go reads
+      # SSL_CERT_FILE from the environment, so this is all a container needs to
+      # trust a private authority — and disabling verification instead is
+      # explicitly forbidden (O-6.4: never `disableVerifyTLS: true`).
+      SSL_CERT_FILE: /certs/local-ca.crt
+    volumes:
+      - ./Traefik/certs/local-ca.crt:/certs/local-ca.crt:ro
+      - type: bind
+        source: ./Filebrowser/config.test.yaml
+        target: /home/filebrowser/data/config.yaml
+        bind:
+          create_host_path: false
+
+  # The Chat pane's identity client. It has no startup discovery — Zulip is
+  # SP-initiated only (O-4.4) — so unlike FileBrowser this section could be added
+  # after the fact, and it was missing for exactly that reason: nothing failed until
+  # somebody clicked the SSO button, and then it failed as a `500` from a traceback
+  # rather than as anything the stack reported.
+  #
+  # Zulip fetches the discovery document through `requests` (python-social-auth does
+  # the same), and Python's trust store is not Go's: `SSL_CERT_FILE` covers `ssl`,
+  # while `requests` reads `REQUESTS_CA_BUNDLE`. Both are set. `REQUESTS_CA_BUNDLE`
+  # *replaces* the bundled certificate list rather than adding to it, which is
+  # acceptable only because every outbound TLS connection this profile makes is to
+  # the stack itself — and it belongs in the test profile rather than the base
+  # composition, because a deployment terminates TLS with a real certificate.
+  zulip:
+    environment:
+      REQUESTS_CA_BUNDLE: /certs/local-ca.crt
+      SSL_CERT_FILE: /certs/local-ca.crt
+    volumes:
+      - ./Traefik/certs/local-ca.crt:/certs/local-ca.crt:ro

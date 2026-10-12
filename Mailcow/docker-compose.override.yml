@@ -199,6 +199,27 @@ services:
       retries: 3
       start_period: 15s
 
+  # ---------------------------------------------------------------------------
+  # php-fpm — the process that actually performs the OIDC exchange.
+  # ---------------------------------------------------------------------------
+  # The Mail pane's sign-in runs here, not in nginx: the callback lands on
+  # `/index.php` and PHP does the token exchange and the userinfo call. That needs
+  # two things nginx is already given for a different reason, and PHP had neither.
+  #
+  #   * **`proxy`**, so `auth.<domain>` resolves. The identity host is an alias on
+  #     Traefik (IN-7.8), and a Docker alias is only visible to containers on that
+  #     network — `php-fpm-mailcow` sat on `mailcow-network` alone and answered
+  #     `Could not resolve host: auth.example.com`. nginx is on `proxy` for ingress;
+  #     this is the same network used for **egress**, which is why it was easy to
+  #     miss.
+  #   * **The certificate authority**, which cannot live here: the local test
+  #     authority does not exist in a deployment. `docker-compose.test.yml` mounts
+  #     it, and `scripts/e2e.sh` adds that file for a test run.
+  php-fpm-mailcow:
+    networks:
+      - mailcow-network
+      - proxy
+
 # --- the shared proxy network ----------------------------------------------
 networks:
   # Mailcow runs as its own Compose project (started from inside Mailcow/ with no

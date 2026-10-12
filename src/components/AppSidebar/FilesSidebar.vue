@@ -38,7 +38,7 @@ import SidebarMixin from '@/mixins/SidebarMixin';
  * `tools/advancedSearch`, `tools/sizeViewer`, `tools/duplicateFinder`,
  * `tools/fileWatcher` and `tools/activityViewer`.
  *
- * The source list belongs to the broker's FileBrowser adapter (roadmap Phase 6,
+ * The source list belongs to the broker's FileBrowser adapter (roadmap Phase 5,
  * design.md D-4.1): the shell cannot read the user's sources without the user's
  * own FileBrowser session, so it is not invented here.
  */

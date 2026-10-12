@@ -147,7 +147,7 @@ why it cannot help an application that misbehaves.
 | **Mailcow's OIDC does not cover mail protocols** | IMAP, SMTP, POP3 and SIEVE authenticate with an app password or LDAP. See [`OIDC.md` §7](../authentication/OIDC.md). |
 | **SOGo has no native OIDC wired by Mailcow** | The Mailcow UI is the authenticated front door, and SOGo is reached through its session. |
 | **No published release yet** | There is no signed image and no SBOM until the first release is cut from `Stable`. |
-| **The Playwright suite is not built yet** | Roadmap Phase 7. Until then, CI runs lint, typecheck, the unit and server suites, locale and config validation, and the build. |
+| **The Playwright suite is not built yet** | Roadmap Phase 6. Until then, CI runs lint, typecheck, the unit and server suites, locale and config validation, and the build. |
 
 ## Reporting a security issue
 
