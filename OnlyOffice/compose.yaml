@@ -9,13 +9,12 @@
 
 services:
   onlyoffice:
-    # A concrete patch release under the `8.2` minor the docs pin
-    # (architecture.md §6.1 pins `onlyoffice/documentserver:8.2`) and the value
-    # the root `.env.example` carries. Verified upstream: 8.2.2 exists, published
-    # 2024-11-28, index digest
-    # sha256:3489a54c581414055dd9bfa3890435e5e6fc8c4ce0ffdd65cf3c7869f680cf81.
+    # The current stable release of the line `architecture.md` §6.1 pins
+    # (`onlyoffice/documentserver`). Verified upstream: 9.4.0 exists, published
+    # 2026-05-18, digest
+    # sha256:e3da62a847b9a5d51a11f73cfea1d9c13c3be3809614490d4edddcf01dcf919b.
     # `latest` is never used (S-CF-6).
-    image: ${ONLYOFFICE_IMAGE:-onlyoffice/documentserver:8.2.2}
+    image: ${ONLYOFFICE_IMAGE:-onlyoffice/documentserver:9.4.0}
     restart: unless-stopped
     # Nothing is published: Traefik reaches this port over the `proxy` network.
     expose:

@@ -4,9 +4,9 @@
 # compose.yaml publishes nothing on :8080. The rule matches the dashboard and the API both, and
 # the service is Traefik's own api@internal (P-20).
 #
-# Phase 5 (roadmap.md §5.7) puts Authentik forward-auth in front of it. Until then this router is
+# Phase 4 (roadmap.md §5.7) puts Authentik forward-auth in front of it. Until then this router is
 # unauthenticated, which is exactly why the committed compose.yaml binds :80/:443 to the loopback
-# interface only (Testing.md §6.3). Do not publish the proxy beyond loopback before Phase 5 lands.
+# interface only (Testing.md §6.3). Do not publish the proxy beyond loopback before Phase 4 lands.
 http:
   routers:
     dashboard:
@@ -38,9 +38,9 @@ http:
               - chat.example.com
               - traefik.example.com
       # middlewares:
-      #   - authentik@file   # Phase 5 — see the placeholder at the end of this file.
+      #   - authentik@file   # Phase 4 — see the placeholder at the end of this file.
 
-# --- Phase 5 — the forward-auth chain (roadmap.md §5.7, OIDC.md §5.8, P-20) ---------------------
+# --- Phase 4 — the forward-auth chain (roadmap.md §5.7, OIDC.md §5.8, P-20) ---------------------
 # Three things have to land together, and none of them work before Authentik exists:
 #   1. `authentik@file` in middlewares.yml, with maxResponseBodySize: 4194304 — the commented
 #      placeholder there shows the shape, and setup.sh writes the outpost address into it.

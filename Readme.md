@@ -267,7 +267,7 @@ docker compose -f compose.yaml -f compose.test.yaml up -d --wait
 ./scripts/e2e.sh --hosts     # same stack, plus the checks and the hostnames a browser needs
 ```
 
-`setup.sh` (Phase 4) automates the same steps from a bare host: it provisions each application folder,
+`setup.sh` (Phase 8) automates the same steps from a bare host: it provisions each application folder,
 derives the six hostnames from your base URL, generates the secrets, walks you through the one step that
 needs you — creating the OIDC applications in Authentik — and brings the stack up.
 
@@ -410,7 +410,7 @@ yarn validate-config
 yarn build
 ```
 
-> The Playwright suite arrives with roadmap Phase 7. Until then `scripts/e2e.sh` is the
+> The Playwright suite arrives with roadmap Phase 6. Until then `scripts/e2e.sh` is the
 > user-visible verification path, and unit, component and server tests cover the behaviour
 > (`Testing.md` §6.5 and rule T-10.3).
 

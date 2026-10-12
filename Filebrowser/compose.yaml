@@ -14,11 +14,19 @@ services:
   filebrowser:
     # The v2 line only: v2 changed the configuration schema, the database engine
     # and the sidebar model, and Workcenter's integration is written against v2
-    # (I-FB-1, IN-3.1). ghcr.io/gtsteffaniak/filebrowser is an equivalent
-    # registry for the same tag, and the beta line has no `latest` tag, so the
-    # pin is mandatory. Verified upstream 2.0.9-beta: index digest
-    # sha256:66969254ed56c62e83d729168fe50e965ada030602d6fc2cec1a0b83a0357040.
-    image: ${FILEBROWSER_IMAGE:-gtstef/filebrowser:2.0.9-beta}
+    # (I-FB-1, IN-3.1). ghcr.io/gtsteffaniak/filebrowser is an equivalent registry
+    # for the same tag.
+    #
+    # **`2.0.0-stable`, not the beta line.** Upstream now publishes a stable series
+    # alongside the betas, and the stable tag is the supported one: the beta numbers
+    # run ahead of it (2.0.9-beta, 2.1.1-beta) without being newer releases, which is
+    # exactly the confusion a floating tag invites — the version *number* goes down
+    # when the pin moves here, and that is correct.
+    #
+    # Verified upstream 2.0.0-stable: image version v2.0.0-stable, revision
+    # a29573e7068a4a682f199b64bec3e206159f535c, digest
+    # sha256:9d42f635e32913d7daf05259428b6c70061cfdca3affc9602b4c31717e0a4bae.
+    image: ${FILEBROWSER_IMAGE:-gtstef/filebrowser:2.0.0-stable}
     restart: unless-stopped
     # Nothing is published: Traefik reaches this port over the `proxy` network.
     expose:
@@ -34,7 +42,7 @@ services:
       FILEBROWSER_CONFIG: /home/filebrowser/data/config.yaml
       # Secrets arrive through the environment and never through config.yaml
       # (AR-19, S-CF-5). The OIDC pair is inert while config.yaml leaves
-      # `auth.methods.oidc` out; Phase 5 enables that block and supplies both
+      # `auth.methods.oidc` out; Phase 4 enables that block and supplies both
       # values, and from then on an empty pair is a fatal startup error because
       # provider discovery runs at startup (IN-3.6).
       FILEBROWSER_OIDC_CLIENT_ID: ${FILEBROWSER_OIDC_CLIENT_ID:-}
@@ -78,6 +86,19 @@ services:
     networks:
       - proxy
       - internal
+    # IN-3.6: provider discovery runs at **startup**, and a failure stops the
+    # container outright. Authentik's first boot is minutes of migrations, so
+    # without this ordering FileBrowser asks Traefik for a route that does not
+    # exist yet, gets a 404, and crash-loops until the identity provider happens to
+    # come up — which reads as "FileBrowser is broken" rather than "it started
+    # first". Compose waits on the server's own healthcheck, `ak healthcheck`,
+    # which answers only once migrations have finished and the worker is up.
+    #
+    # There is deliberately no `service_started` fallback: started is not the same
+    # as answering, and that difference is the whole reason this dependency exists.
+    depends_on:
+      authentik-server:
+        condition: service_healthy
     healthcheck:
       # The image's own probe: /health answers {"message":"ok"} on the port
       # http.port names, and it is kept explicit because every service owns a

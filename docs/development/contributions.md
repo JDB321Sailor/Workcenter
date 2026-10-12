@@ -300,13 +300,13 @@ The full strategy is in [`Testing.md`](./Testing.md). The minimum for any PR:
 | Shell logic (store, utils, broker client) | Unit test (`tests/unit/**`) |
 | Vue component behaviour | Component test (`tests/components/**`) |
 | Server or broker route | Server test (`tests/server/**`, `// @vitest-environment node` + `supertest`) |
-| Any user-visible flow | Playwright spec (`e2e/specs/**`) — **deferred until roadmap Phase 7**; until then, unit/component/server coverage plus the manual checklist in `scripts/e2e.sh` (`Testing.md` T-10.3, §6.5) |
+| Any user-visible flow | Playwright spec (`e2e/specs/**`) — **deferred until roadmap Phase 6**; until then, unit/component/server coverage plus the manual checklist in `scripts/e2e.sh` (`Testing.md` T-10.3, §6.5) |
 | A bug fix | The regression test that fails before your fix |
 | Deployment or `setup.sh` | Idempotency run plus the compose validity check |
 | Documentation only | `yarn validate-locales` (if locale keys changed) and a link check |
 
 > **Note:** the Playwright row is the target state, not today's gate. `e2e/`, `compose.test.yaml` and
-> `yarn test:e2e` arrive with the Phase 7 harness; a Phase 2-era pull request demonstrates its
+> `yarn test:e2e` arrive with the Phase 6 harness; a Phase 2-era pull request demonstrates its
 > user-visible behaviour with unit/component/server tests and the `scripts/e2e.sh` checklist.
 
 ```bash

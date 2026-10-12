@@ -421,7 +421,7 @@ readable from the shell itself.
 | State | `aria-pressed` is **not** used: the button performs an action rather than exposing a toggle state. The accessible name states the action and `title` repeats it |
 | Default | **Dark.** A user who has never chosen lands in `workcenter-dark` |
 | Scope | Changes the shell **and** every embedded application, through the theme bridge in [§4.4](#44-the-theme-bridge-forwarding-the-mode-switch) |
-| Persistence | Written to a `localStorage` mirror and to the `wc_mode` cookie, so the first paint after a reload is already correct and never flashes. A server-side per-user profile is the target — the mode should follow the user to another browser — and arrives with the broker's per-user store (roadmap Phase 6); until then the choice is per browser, and the shell does not claim otherwise |
+| Persistence | Written to a `localStorage` mirror and to the `wc_mode` cookie, so the first paint after a reload is already correct and never flashes. A server-side per-user profile is the target — the mode should follow the user to another browser — and arrives with the broker's per-user store (roadmap Phase 5); until then the choice is per browser, and the shell does not claim otherwise |
 | Feedback | The switch is instant for the shell. Each pane reports back through the bridge; a pane that does not confirm within 3 s is listed in a quiet inline note: `Chat is still switching…`, replaced by `Chat could not switch — open Zulip to change it there` on failure |
 | Reduced motion | The colour transition is suppressed under `prefers-reduced-motion: reduce`; the change is still instant |
 
@@ -446,7 +446,7 @@ readable from the shell itself.
 | Menu keyboard | `↑`/`↓` move, `Home`/`End` jump, typing filters by endonym or English name, `Enter` selects, `Esc` closes and returns focus to the button |
 | Filter field | Present: the registry holds 32 languages, well past the twelve that would let it be omitted |
 | On selection | The shell swaps its strings immediately, sets `document.documentElement.lang` (D-A9), re-formats dates, sizes and numbers through `Intl`, and forwards the choice to the panes through the language bridge in [§8.2](#82-the-language-bridge) |
-| Persistence | Identical to the mode: the `localStorage` mirror plus the `wc_lang` cookie, and the same Phase 6 profile |
+| Persistence | Identical to the mode: the `localStorage` mirror plus the `wc_lang` cookie, and the same Phase 5 profile |
 | First run | With no stored preference the shell uses the browser's preferred language when a translation exists, and English otherwise |
 | Not translated | Application names (`Files`, `Chat`, `Mail` are labels and *are* translated; `FileBrowser Quantum`, `Zulip`, `Mailcow`, `SOGo` are proper nouns and are not — D-I3) |
 
@@ -532,7 +532,7 @@ The right-hand group is read as one object, so its spacing is not two separate d
 > reports whether the response refuses framing (`X-Frame-Options`, CSP `frame-ancestors`) and whether
 > the application's own session is intact. The pane consults that before it waits on a frame and
 > again whenever the health state changes. Until the broker has a credential to check a session with
-> (roadmap Phase 6), a pane that lands on a login page is caught by the load timeout instead, which
+> (roadmap Phase 5), a pane that lands on a login page is caught by the load timeout instead, which
 > reports `timeout` and offers the same **Open in new tab** escape — the shell therefore never shows a
 > login form nested inside itself, but it may take the timeout to say so.
 > **Rule D-7.2:** **Open in new tab** is always available from the pane's overflow menu, so the user
@@ -673,7 +673,7 @@ configurable. Workcenter therefore adopts FileBrowser Quantum's own values as th
 derives everything else — its own tokens, and the branding it pushes into the other applications —
 from them.
 
-The reference values, read from the pinned FileBrowser Quantum 2.0.9-beta image (its palette is
+The reference values, read from the pinned FileBrowser Quantum 2.0.0-stable image (its palette is
 emitted into `:root` and `.dark-mode` in the served `index.html`):
 
 | FileBrowser variable | Light | Dark | Workcenter token |

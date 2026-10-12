@@ -68,6 +68,45 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    validates.
 
 ### Improvements
+ - **Every application pin moved to its current stable release, and the whole stack was re-verified
+   against them.** Traefik `v3.7` → `v3.7.14` (a full patch tag, so a release that ships tomorrow is a
+   decision rather than a surprise), Authentik `2024.12.3` → `2026.8.3`, FileBrowser Quantum
+   `2.0.9-beta` → `2.0.0-stable`, ONLYOFFICE Docs `8.2.2` → `9.4.0`. Zulip was already current at
+   `12.3-0`, which is also the pin `docker-zulip`'s own compose carries — including its four supporting
+   images, which are compatibility-bound to that release rather than free choices.
+
+   **FileBrowser moves to the stable series, and the version number goes *down*.** Upstream publishes
+   betas and stables side by side and the beta numbers run ahead (`2.0.9-beta`, `2.1.1-beta`) without
+   being newer releases; the stable line is cut on its own branch. `v2.0.0-stable` was published
+   2026-10-09, after `2.0.10-beta`, and is what `stable` and `latest` resolve to. Anyone reading the pin
+   as a downgrade should read [IN-3.1](docs/architecture/integration.md#3-filebrowser-quantum-files)
+   first.
+
+   Each upgrade was verified by running the harness against it, not by reading release notes: all 15
+   identity checks pass, every pane is routed, and the provisioning library creates every object on the
+   new API.
+
+ - **The test environment needs no `sudo` at all, and `scripts/e2e.sh` refuses it.** A harness that
+   asks for root teaches people to run it as root, and then everything it generates belongs to root
+   and the *next* run needs root to replace its own files. The three things that genuinely need
+   privilege are one-time machine setup and now live in a separate script:
+
+   ```bash
+   sudo ./scripts/setup-testing.sh              # /etc/hosts, the trust store, file ownership
+   sudo ./scripts/setup-testing.sh --remove     # undo the first two
+   ```
+
+   `scripts/e2e.sh` fails immediately when it is run as root or under `sudo`, and `--hosts` and
+   `--trust-cert` now *report* whether the machine is ready for a browser instead of changing system
+   state. Nothing was lost: the checks reach the stack with `curl --resolve` and the CA in the
+   checkout, so a machine that has never run the setup script still gets every automated check.
+
+   Removing state that containers own no longer needs privilege either. A bind mount makes a
+   container's writes the *container's* uid on the host — Authentik's PostgreSQL data directory is
+   uid 65534 mode 0700 — so `--down` runs the removal in a throwaway container, which is root in its
+   own namespace and needs nothing from the host. The image is one the stack already deploys, so a
+   cleanup downloads nothing.
+
  - The switcher is a proper `tablist`, each pane is its `tabpanel`, and the indicators sit in a
    labelled group that announces changes politely. The active application is signalled by an
    accent underline, an accent icon and label, `aria-selected` and the roving `tabindex`, never by
@@ -107,6 +146,85 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    application, plus the admin surfaces, with an Authentik OIDC block.
 
 ### Notes
+
+
+
+ - **`--down` reported the operator's own `.env` as a leftover.** `.env` is the one generated file an
+   operator is invited to edit, so its existence proves nothing; it is a leftover only when a manifest
+   says a run created it. The check was bare existence, so every teardown of a checkout the harness had
+   ever bootstrapped warned about a file whose recording manifest belonged to a run directory long since
+   deleted. It now consults the manifests and says which case it is:
+
+   ```
+   ℹ .env was not created by a run: kept
+   ```
+
+
+
+ - **A test now fails when an icon the application asks for is not there.**
+   `public/manifest.json`, `index.html` and `vite.config.mjs` each name icon files by path, and nothing
+   between them and a 404 checked that the path resolved: a missing favicon is a blank tab icon, and a
+   missing manifest icon is a browser that quietly declines to install the app. The files *were* deleted
+   while every reference stayed behind, and nothing failed — not the build, not the suite, not the
+   console. `tests/unit/app-icons.test.js` checks that each named icon exists, that it is the size its
+   manifest entry claims (an overstated size installs a blurry app icon), and that it carries an alpha
+   channel, which is what an icon still holding its white corners would not.
+
+
+ - **The harness now signs in the way an application starts it, and asserts where it lands.**
+   `oidc-login.mjs` gained `--sso-entry`, `--expect` and `--print-body`: it begins at the application's
+   own sign-in link, carries the session cookie the application stored its `state` in, runs the provider's
+   flow, and follows the callback back. A verifier that starts at the provider exercises neither half of
+   that, which is exactly the gap that let this ship.
+
+   The assertion is the **landing URL**, not the status code. Mailcow sends a signed-in user to
+   `/SOGo/so/<address>/Mail/view`, so the address appearing there is proof the session belongs to that
+   account; "we got a 200" is equally satisfied by the application's own login page, which is what the
+   failure looked like. The run now reports:
+
+   ```
+   ✔ Mail SSO: admin@wc.test landed inside SOGo (/SOGo/so/admin@wc.test/Mail/view)
+   ✔ Mail SSO: user@wc.test landed in their own mailbox
+   ```
+
+
+
+ - **Both admin links in the user menu pointed at the wrong thing.** The dashboard link was the bare
+   `traefik.` host, and the ingress routes only `/dashboard` and `/api` there — so it matched no router
+   and returned a **404**, which reads exactly like the dashboard being down. It now carries
+   `/dashboard/`. The Mail link labelled "Mail admin" pointed at the **Mail pane** (`/SOGo`, the user's
+   own mail) rather than `/admin`, where the deployment is actually administered; it now derives the
+   mail host and appends `/admin`.
+
+ - **`--force-recreate` was applied to the project instead of to the services it is about, and the cost
+   was measurable.** `up -d` already recreates any service whose *configuration* changed — image,
+   environment, labels, mounts. The flag exists for the one case it cannot detect: a mounted file whose
+   **contents** changed under an identical configuration, which is the secret case. Applied to
+   everything, it also recreated **Traefik and all three Authentik services**, none of which read a
+   per-run secret — their own values are persistent and were written before they first started.
+
+   Ten seconds, measured. Worse, recreating Traefik changes its address on `proxy`, which fired the
+   harness's own re-point branch and left **Zulip started three times in one run**: created,
+   force-recreated, then recreated again for the new proxy address. It is now scoped to the six services
+   that actually read a per-run secret (`zulip`, `database`, `memcached`, `rabbitmq`, `redis`, and
+   `workcenter` for the bind-mounted `zuliprc` — a bind-mounted *file* is resolved when the container is
+   created, so a regenerated secret is a new inode a running shell cannot see).
+
+   Zulip now starts twice, Traefik and Authentik never go down, and no re-point happens.
+
+ - **The application stack is announced as its own stage.** The containers coming up are a different
+   operational area from the identity provider being configured, and the output used to read as though
+   they were still part of the provisioning: Authentik's last line was followed immediately by
+   `Container traefik Creating`. There is now a section title and a line saying what is being started, in
+   the same form as every other stage.
+
+
+
+ - **`compose exec` inside a `while read` loop eats the loop.** Both new provisioning loops are fed by a
+   heredoc, and `compose exec` **inherits the loop's stdin** and consumes it: the first account is created
+   and the loop then ends — silently, with no error and no second identity. Every such call now redirects
+   `</dev/null`. It was found by counting the accounts rather than trusting the output.
+
  - Workcenter has not published a release, a Docker image or a GHCR package. Documentation
    that referred to one, or to the upstream project's image, now says so explicitly.
  - The client environment prefix is `WORKCENTER_`. The inherited `DASHY_` prefix was removed:
@@ -149,6 +267,29 @@ as described in [`contributions.md`](./docs/development/contributions.md).
 
 ## [Unreleased]
 ### New Features
+ - **Identity: Authentik everywhere.** One login now reaches all four surfaces, and the group model
+   decides what it reaches. `Authentik/` deploys Authentik itself (server, worker, PostgreSQL, Redis,
+   pinned to `2024.12.3`), and `scripts/lib/authentik.sh` provisions everything `OIDC.md` §4.1 lists
+   through Authentik's API — the two groups, the `groups`, `email-verified` and `mailcow_template`
+   scope mappings, the four OIDC providers and applications, the `traefik-dashboard` proxy provider and
+   the embedded-outpost membership. It is idempotent by construction: every object is looked up by its
+   unique key before it is created (P-40), so a second run creates nothing.
+
+   The applications are wired to it: the shell's own client with `adminGroup`, FileBrowser's
+   `auth.methods.oidc` (and password login **off**), Zulip's `GenericOpenIdConnectBackend`, and
+   Mailcow's Generic-OIDC identity provider with a mailbox on that identity source. The Traefik
+   dashboard sits behind Authentik forward auth, bound to `workspaceadmin` alone.
+
+   `scripts/e2e.sh` configures the provider itself in the testing environment and proves the model at
+   the protocol level: an administrator signs in to every application and the dashboard, a
+   `workspaceusers` member signs in to every application and is **refused** the dashboard, and an
+   account in no group is refused everywhere.
+
+ - **Single sign-out.** `workspaceadmin` is not a separate account anywhere: signing out of Workcenter
+   ends the local session and then Authentik's, which is what signs out every application that follows
+   the provider session (A-7). FileBrowser carries the provider's `logoutRedirectUrl` and the shell
+   carries `postLogoutRedirectUri`, so the browser lands back at the shell's own sign-in page.
+
  - **The Zulip organization is provisioned with the deployment.** A Zulip server has no organization
    until one is created, and with none every page on the Chat host answers 404 "There is no Zulip
    organization at <host>" — the Chat pane rendered a Zulip error page and the broker's chat
@@ -178,7 +319,7 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    Every pin and every key is traceable to `integration.md`; nothing was invented.
  - **`compose.test.yaml`**, the local profile: Traefik binds to `127.0.0.1` only and serves the generated
    local certificate instead of using ACME, because a test host has no DNS name for Let's Encrypt to
-   validate. That is what makes an unauthenticated stack safe to run before identity exists (Phase 5).
+   validate. That is what makes an unauthenticated stack safe to run before identity exists (Phase 4).
  - The Workcenter shell (roadmap Phase 2). The rail now carries a brand header, the three-button
    application switcher with one status indicator beneath each button and a centred `STATUS` label, a
    filter row, the active application's own navigator and the user menu, in that order
@@ -313,6 +454,237 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    build, pin, retag, cache or rebuild on an upgrade — and no deviation from upstream to track.
 
 ### Notes
+ - **Three applications could not sign anyone in, for three unrelated reasons, and every automated check
+   passed.** The missing check was the same in all three cases: nothing drove an **application's own
+   sign-in entry**, so a green run proved only that the *provider* issues a good token.
+
+   * **FileBrowser** — `500 {"message":"no valid username found for identifier 'preferred_username'"}`.
+     Its identity client identifies users by `preferred_username`, and the fix for the duplicate-`groups`
+     defect below had removed the built-in `profile` scope that carried it. The shell has a fallback
+     chain (`preferred_username || email || sub`); FileBrowser has none. The resolution is Workcenter's
+     **own** `profile` mapping — the standard claims, without `groups` — so exactly one mapping owns each
+     claim and no claim is missing.
+   * **Zulip** — `/login/` answered `500`, and the traceback named a proxy:
+     `ProxyError … 407 Request rejected by proxy`. This is Zulip's own design rather than a
+     misconfiguration: its supervisor starts the Django process with `HTTP_proxy`/`HTTPS_proxy` pointing
+     at Zulip's bundled **go-camo** image proxy on port 4750, and go-camo refuses anything that is not an
+     image fetch. Provider discovery is not an image. `NO_PROXY`/`no_proxy` now name the identity host —
+     in the base composition, because every deployment reaching an IdP through that proxy needs the same
+     bypass. The sign-in button also read "Log in with Workcenter"; `display_name` is now `SSO`.
+   * **Mailcow** — `Login failed`, with nothing in its own log. The OIDC exchange happens in **php-fpm**
+     rather than nginx, and `php-fpm-mailcow` sat on `mailcow-network` alone, where the identity host — an
+     alias on Traefik — does not resolve. nginx is on `proxy` for *ingress*, which is why the egress need
+     was easy to miss. php-fpm now joins `proxy`, and the test profile mounts the local authority into it
+     (`CURL_CA_BUNDLE`), because PHP's curl performs the exchange.
+
+   `scripts/e2e.sh` now drives each application's sign-in entry and requires a redirect to the authorize
+   endpoint carrying that application's `client_id`. That one check would have caught all three.
+
+ - **The browser sign-in path is now exercised rather than assumed.** Two defects, found in sequence,
+   both invisible to anything that talks to the provider directly:
+
+   * the providers carried no **`openid`** scope mapping, so Authentik dropped `openid` from every token
+     (`Application requested scopes not configured, setting to overlap`) and `/userinfo/` refused it with
+     `403 Scope mismatch`. A browser reports that as a **CORS failure** — a refusal carries no
+     `Access-Control-Allow-Origin` — so the shell's only symptom was "Authentication failed (OIDC)".
+   * attaching the built-in `profile` to restore `preferred_username` made two mappings write `groups`,
+     and a claim two mappings write is **concatenated**:
+     `["workspaceusers","workspaceadmin","workspaceusers","workspaceadmin"]`. Membership tests pass
+     either way, so it is invisible in every application and visible only in the token.
+
+   `oidc-login.mjs` calls `/userinfo/` with an `Origin` header and requires both a `200` and the CORS
+   header; the harness asserts the token carries `openid` and that its `groups` claim is unique. It also
+   gained `--print-tokens`, because telling "the provider issues a bad token" apart from "the application
+   rejects a good one" needs the token in hand.
+
+ - **The providers had no `openid` scope mapping, so a browser could not sign in — and every automated
+   check passed anyway.** Authentik intersects the scopes a client asks for with the ones the provider
+   is *configured* for and silently drops the rest:
+
+   ```
+   "Application requested scopes not configured, setting to overlap"
+     scope_allowed: {groups, email, mailcow_template}
+     scope_given:   {openid, groups, email, profile}
+   → "Scope mismatch."  required: {openid}   token_has: {groups, email}
+   ```
+
+   The provisioning attached only the three **custom** mappings. The built-ins (`openid`, `profile`)
+   were never attached, because a built-in cannot be found by name — it is called
+   `authentik default OAuth Mapping: OpenID 'openid'` — and the lookup used the short word, matched
+   nothing, and skipped it in silence.
+
+   The id_token still verified and the groups were still correct, so nothing server-side noticed. What
+   broke is one request later: a browser client sets `loadUserInfo`, so its first act after the exchange
+   is a cross-origin `GET` to `/userinfo/`, which the missing scope refuses with `403`. A refusal carries
+   no `Access-Control-Allow-Origin`, so the browser reports a **CORS failure** rather than the 403
+   underneath, and the shell's only symptom is *"Authentication failed (OIDC)"*.
+
+   The fix is the built-in `openid` mapping, found by its `managed` id. The check that would have caught
+   it is now in the verifier: it calls `/userinfo/` with an `Origin` header and requires both a `200`
+   **and** the CORS header — neither of which a Node client enforces on its own.
+
+ - **Two mappings writing one claim are concatenated, not merged.** Attaching the built-in `profile` to
+   get the standard claims back produced
+   `["workspaceusers","workspaceadmin","workspaceusers","workspaceadmin"]`, because on 2026.8 its
+   expression emits `groups` too. Membership tests pass either way, so the defect is invisible in every
+   application and visible only in the token. The custom `groups` mapping wins — it is the documented,
+   version-independent source, and the built-in's group expression is the part recorded as changing
+   between trains — and the harness now asserts the claim is unique and that `openid` is present.
+
+   The cost is `preferred_username` and `name`, which the built-in `profile` carried: the shell reads
+   `preferred_username || email || sub`, so the email address stands in for the display name.
+
+ - **Mailcow is configured by Mailcow, and the test run leaves it exactly as it found it.** The harness
+   used to start Mailcow and hope a `mailcow.conf` existed — and when one did not, the first failure was
+   `failed to bind host port 127.0.0.1:8080`, which says nothing about the real cause. It now runs
+   **Mailcow's own configurator**, `generate_config.sh`, which is what an operator does and what
+   `setup.sh` will do for production, with its four prompts answered from the environment.
+
+   `generate_config.sh` writes `mailcow.conf` from an inline heredoc — it never reads
+   `mailcow.conf.example`, which is documentation — and it refuses to run while a config already exists.
+   So the harness moves any existing one aside, generates, and adds the keys the configurator cannot
+   know: the seven hostnames `docker-compose.override.yml` interpolates, `TRUSTED_PROXIES` and
+   `API_ALLOW_FROM` so Mailcow believes the address Traefik forwards, and an `API_KEY`, which is what
+   makes the OIDC provisioning possible at all.
+
+ - **The port collision was a timing bug, not a port choice.** Mailcow publishes its own web ports and an
+   override cannot unpublish them (IN-6.4), so the harness now reserves free loopback ports — and the
+   trap is *when* it asks. Mailcow is configured before Traefik starts, so 80 and 443 are genuinely free
+   at that moment and taken a minute later. A "is anything listening" check therefore picks exactly the
+   two ports the stack itself is about to bind, and the failure surfaces much later as
+   `failed to bind host port`. Ports below 1024 are now refused outright, and Traefik's three are
+   reserved by name.
+
+ - **`--down` restores what a run overwrote, and nothing else.** A new backup manifest records the files
+   a run modifies — Mailcow's configurator rewrites `mailcow.conf` in place — and `--down` puts them
+   back, alongside the existing manifest of what a run created. A test run must leave the checkout as it
+   found it, or the next run starts from a half-configured Mailcow.
+
+   `Mailcow/data` is deliberately **not** treated as state a run created. It looks like the other
+   bind-mount targets and is not: the clone ships configuration templates, the web tree and the
+   `ssl-example` assets under it, and the configurator writes into all three. Recording it for removal
+   leaves a Mailcow that can never be configured again, and it stays silent until the next
+   `generate_config.sh` fails on `data/assets/ssl-example/key.pem`. The teardown also no longer depends
+   on the configuration it is about to remove: Compose cannot parse the override without a readable
+   `mailcow.conf`, so anything left behind is removed by project label instead.
+
+ - **The setup script is the preflight, and it now runs first in both directions.** Two defects, one
+   shape: the certificate the browser has to trust was *generated* by `scripts/e2e.sh` but *installed*
+   by `scripts/setup-testing.sh`, so the setup script refused to do its job until the harness had run —
+   which is backwards for a script whose entire purpose is to run beforehand. And `HOSTS_MARKER_BEGIN`
+   was used but never defined, so the first thing it did was die with `unbound variable`.
+
+   The certificate is now generated by `scripts/lib/localca.sh`, shared by both. That is not tidiness:
+   a certificate generated by two programs is two certificates, the browser trusts whichever one the
+   setup script installed, and the stack serves the other. One generator makes those the same file.
+   `setup-testing.sh` creates it, installs it, writes the hostnames and fixes ownership, in that order,
+   and needs nothing to have run before it.
+
+   In the other direction, `e2e.sh` now begins with a **preflight** and refuses to build anything until
+   the machine is prepared — naming the one command that prepares it, and offering `--no-browser` for a
+   machine that will never open the result. The harness exists so a person can open what it produces; a
+   deploy nobody can open has not been verified, and finding that out after ten minutes of building is
+   the failure the gate prevents.
+
+ - **The stack is reached by hostname, not by `localhost` plus a port, and the browser prerequisites were two
+   hostnames short.** Both halves of that sentence cost someone an afternoon, so both are recorded.
+
+   Traefik is the only container that publishes anything, and it publishes exactly two sockets —
+   `127.0.0.1:80` and `127.0.0.1:443`. Everything else, Workcenter included, is `expose`d on the internal
+   networks and routed by a `Host(...)` rule. So a request to `https://localhost/` matches **no router**
+   and gets a bare 404 from Traefik, while `https://workcenter.local/` answers 200. That is not a
+   misconfiguration to be worked around: the OIDC redirect URIs, the session cookies and the
+   `frame-ancestors` policy are all per-host, so a stack reachable at an arbitrary port would have to
+   give up the framing that makes the panes work. `./scripts/e2e.sh --hosts` now says this in as many
+   words before reporting on the prerequisites.
+
+   The prerequisite check was also too lenient, and `setup-testing.sh` was wrong. Its `/etc/hosts` block
+   named **five** hostnames — the list was written before Phase 4 added the identity provider and the
+   dashboard — and it was write-once: an existing block was reported "already present" and never
+   refreshed, so a machine that had ever run an older harness would resolve five of the seven names for
+   ever. The two missing ones are the two a sign-in cannot do without, since a browser that cannot
+   resolve `auth.` never completes the redirect, and the only symptom is a page that never comes back.
+   It now writes all seven, compares the block against what the deployment serves and **replaces** it
+   when they differ.
+
+ - **A clean deployment is not the same test as an incremental one, and four defects only appeared on
+   a checkout that had been torn down and rebuilt.** All four are fixed; they are recorded because
+   each one presents as something other than what it is.
+
+   * **The build context is read by the Docker daemon's user, not yours.** `.dockerignore` listed
+     every application's runtime state except `Authentik/data`, which Phase 4 introduced. PostgreSQL's
+     data directory is uid 65534 mode 0700, so the build stopped before it compiled anything with
+     `error from sender: … permission denied`. The file's own comment had warned about exactly this
+     for `OnlyOffice/db`; adding an application without adding its line is how it recurs.
+   * **FileBrowser cannot start before the provider it authenticates against exists.** Its discovery
+     runs at startup and a failure stops the container (IN-3.6), and on a fresh instance the provider
+     does not exist until it has been provisioned — so bringing the whole stack up at once deadlocks:
+     FileBrowser crash-loops on a 404 for an application nobody has created yet, the health wait never
+     passes, and the provisioning that would fix it never runs. The stack is now built in order:
+     Traefik, then Authentik alone, then provisioning, then everything else. `Filebrowser/compose.yaml`
+     also declares `depends_on: authentik-server: condition: service_healthy`, because *started* is
+     not the same as *answering*.
+   * **Docker creates a missing bind-mount source itself — as a root-owned directory.** The harness
+     never created `Authentik/data/*`, so the server died during its tenant migration with
+     `PermissionError: [Errno 13] Permission denied: '/media/public'`. Every application's mount
+     points are now created before the first `up`, and the Authentik image's own uid (1000) is
+     checked, since it writes `/media`, `/certs` and `/templates` directly.
+   * **One password had two values.** Compose interpolates `${AUTHENTIK_BOOTSTRAP_PASSWORD}` from the
+     **shell environment first** and only then from `.env`, so a default left exported by an earlier
+     step overrode the file: the provider was bootstrapped with one password while the console check
+     read the other from the file. The only symptom was a sign-in that asked for the password again,
+     forever. The file is now the single source of truth and is re-exported once it is final.
+
+ - **A readiness probe that does not test the thing you are about to do is not a readiness probe.**
+   `authentik_wait_ready` polled `/-/health/ready/`, which is served by the server process and answers
+   before the API will accept the bootstrap token. Provisioning ran straight into `403` on its first
+   call and stopped, leaving every object after it uncreated. It now polls an **authenticated** API
+   call — the exact condition the next line depends on.
+
+ - **Two checks that passed for the wrong reason, found by asking what would make them fail.** The
+   forward-auth walk accepted any HTTP 200, and the outpost's own cookie-callback page answers 200,
+   so it reported every account reaching the dashboard while Authentik's own `check_access` was
+   refusing them. It now counts only a 200 from the protected path. Separately, the FileBrowser
+   password assertion was *inverted* when OIDC arrived: leaving it would have made "Phase 4 is done"
+   and "the harness passes" mutually exclusive.
+
+ - **Four traps that make identity look configured while it is not.** Each of these produces a stack
+   that reports healthy and a sign-in that fails, or worse, succeeds when it should not:
+
+   * **`default-provider-invalidation-flow` ships with no stage bindings.** A provider that names it —
+     which `OIDC.md` §4.4 requires — reaches the "you have been signed out" screen without `logout()`
+     ever running. The browser is told the session ended, the session is still valid, and the next
+     authorization request issues a fresh code without asking for credentials. Nothing on screen
+     distinguishes the two outcomes, so an application is simply found still signed in. The
+     provisioning binds the built-in `default-invalidation-logout` stage to that flow.
+   * **The embedded outpost needs its public URL.** With `authentik_host` and `authentik_host_browser`
+     both empty it builds the browser's redirect from the address it was *reached on* — behind Traefik,
+     the container's own `http://0.0.0.0:9000` — so the dashboard's forward-auth challenge sends the
+     browser to a host that does not exist. On the pinned instance the redirect follows
+     `authentik_host`, not `authentik_host_browser`, so both are set to the public URL.
+   * **A 200 is not proof of access.** The outpost serves its own pages on the protected host and they
+     answer 200 too. A forward-auth check that accepts any 200 reports a denied request as a successful
+     one; during development it did exactly that, and showed every account reaching the dashboard while
+     Authentik's own `check_access` was refusing them. The check now counts only a 200 from the
+     protected path itself.
+   * **Mailcow cannot be driven with `-f docker-compose.yml`.** Compose merges
+     `docker-compose.override.yml` only when it discovers the file itself; naming the compose file
+     explicitly drops the override, which is Workcenter's entire Mailcow integration — the `proxy`
+     network, the Traefik labels and the healthchecks. Mailcow comes up looking healthy and reachable
+     by nothing. Both compose files are now named explicitly.
+ - **Mailcow's own ports must not default to 80 and 443.** `mailcow.conf.example` recorded them as
+   interchangeable with Traefik's; they are not, because Traefik already owns both sockets on the host.
+   `HTTP_PORT=8080` and `HTTPS_PORT=8443` are what Mailcow's own Traefik guide uses and what the
+   override's `expose` and `traefik.http.services.mailcow.loadbalancer.server.port` both read, so the
+   Traefik service port cannot drift from the port nginx actually listens on.
+ - **`setup.sh` is written last, from the harness that already proves every step.** The build plan now
+   orders the work Identity (4) → file broker (5) → Playwright integration harness (6) → hardening (7) →
+   `setup.sh` (8), which leaves `setup.sh` as the final phase before the Phase 9 promotion. Until then
+   `scripts/e2e.sh` is the only provisioner, and it earns that role by standing the whole stack up and
+   checking it on every pull request; `setup.sh` is packaged from those proven steps rather than
+   maintained in parallel with the application, where each would invalidate the other's assumptions.
+   Phase references throughout the documentation were renumbered to match, and the milestones were
+   re-ordered with them (M4 identity … M8 one command).
  - **Framing is an ingress concern, and that is now the documented mechanism.** Zulip ships
    `X-Frame-Options: DENY` at server scope, exposes no Django setting or middleware to change it, and
    its own CSP never carries `frame-ancestors`. A browser that sees a `frame-ancestors` directive
@@ -350,7 +722,7 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    reports that the panes could not be reached (`design.md` §4.4, `architecture.md` AR-47).
  - The appearance mode and the language are remembered per browser (a `localStorage` mirror plus the
    `wc_mode` / `wc_lang` cookies) and are **not** yet stored in a server-side profile; that store
-   arrives with the broker's per-user data (roadmap Phase 6, `design.md` D-6.1).
+   arrives with the broker's per-user data (roadmap Phase 5, `design.md` D-6.1).
  - `setup.sh` gains `--brand`, which re-applies the branding on its own. Run it after
    `Mailcow/update.sh`: Mailcow tracks everything under `data/conf/sogo/` and merges with
    `-X theirs`, so an upgrade can revert the Mail pane's styling
@@ -375,6 +747,36 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    *file* is unaffected: it is still read and replaced whole through `/api/config/:filename` (#4).
 
 ---
+
+ - **The application icon now has transparent corners, and every size is derived from it.**
+   `icons/workcenter.png` was authored as a rounded square on white: the four corners held a white area
+   fading through off-white and grey into the artwork, with a single anti-aliased pixel where the arc met
+   the dark. Left opaque, Workcenter wore white corners on every dark surface it appeared on — the tab
+   strip, the dock, the launcher.
+
+   The corners are transparent now. The silhouette is a rounded rectangle filling the canvas with a
+   **235 px** corner radius, which is what the source's own edge profile measures: fitting a circle to
+   every point along the arc gives a median of 235.0 with a spread of 231–238, so the shape is
+   geometric rather than hand-drawn and can be reproduced from that number alone.
+
+   The edge is not merely clipped. The source is opaque, so its boundary pixels are the artwork blended
+   **with white** — `c = α·true + (1−α)·255`. Keeping `c` and adding an alpha channel would leave exactly
+   the grey fringe the change is meant to remove. Solving for `true` puts the icon's own dark purple in
+   the edge instead, so the boundary is dark at every opacity. That is safe here because the artwork's
+   perimeter is uniformly dark (48 samples, highest luminance 18), and the anti-aliased pixels come out
+   with a mean RGB of `(33, 33, 37)`.
+
+   Everything else is generated from that one file — `favicon.ico` (16/32/48/64), the three
+   `favicon-NxN.png`, the six `workcenter-pwa_*.png` the manifest names, and the 512²
+   `workcenter-logo.png` the build's PWA configuration names. The Dashy-era icons are gone from both
+   `public/` and `dist/`; `dist/` is a build artifact and is restored by a rebuild.
+
+ - **Mailcow's admin page is a local credential, not an OIDC surface — and it had no password.** It
+   authenticates against Mailcow's own `admin` table, which the integration deliberately keeps separate
+   from mailboxes: the SSO identity `admin@wc.test` is a *mailbox*, and enabling Generic-OIDC does not
+   touch the local administrator login. Mailcow generates that account a password nobody knows, so from
+   the outside the page is simply unreachable — indistinguishable from a wrong password. The harness now
+   sets it and prints it **under its own heading**, so it cannot be mistaken for the SSO identity.
 
 ### Bugfixes
  - **`scripts/e2e.sh --down` could leave a Workcenter server running.** The script stopped only the
@@ -654,6 +1056,137 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    tolerate the absent case, which the comparison already treats as "not stored", so a first run
    installs the certificate into every profile it finds.
 
+ - **`setup-testing.sh --remove` did not put the machine back the way it found it.** The flag already
+   existed and is documented; what it did not do was remove the host entry an **older version** of the
+   script wrote, because that version wrote the mapping **without markers** and the removal only matched
+   the marked block. On a machine that had run one, `--remove` deleted the block, reported success, and
+   left the older five-name line behind — resolving a subset of the deployment for ever, with `auth.` and
+   `traefik.` among the missing, which are the two identity cannot work without.
+
+   Removal now matches **both** shapes: the marked block, and any line whose first field is a loopback
+   address and which names one of the deployment's seven hostnames. Matching on fields rather than
+   substrings is what keeps a neighbouring hostname such as `notworkcenter.local`, or a comment that
+   merely mentions the name, out of it. The same stripper is used by `--hosts`, so the writer replaces a
+   stale line rather than adding a second mapping beside it.
+
+   The count it reports now matches the lines it actually removed — it said three while taking four.
+
+ - **The root-required message printed a command that does not exist.** `require_root` concatenated the
+   script name and the arguments with no separator, so anyone who ran it without `sudo` was told to run
+   `sudo ./scripts/setup-testing.sh--remove`.
+
+ - **`--down` left container-owned state behind, and printed an error about it.** The manifest pass — the
+   first removal loop, the one that deletes everything a run recorded — used a bare `rm -rf` while every
+   other removal went through `remove_generated_tree`, which falls back to deleting inside a throwaway
+   container. So directories a container owns came back as an error the host cannot act on:
+
+   ```
+   rm: cannot remove '.../Authentik/data/postgres': Permission denied
+   ```
+
+   This is not exotic state. Measured on a live stack, five generated directories cannot be removed by the
+   host at all:
+
+   | Path | Owner | Mode |
+   | --- | --- | --- |
+   | `Authentik/data/postgres` | 65534 | `drwx------` |
+   | `Zulip/database` | 65534 | `drwx------` |
+   | `Zulip/rabbitmq`, `Zulip/redis` | 65534 | `drwxr-xr-x` |
+   | `OnlyOffice/data` | 65534 | `drwxr-xr-x` |
+
+   The contract in `Testing.md` — "nothing about removing generated state needs privilege" — was already
+   implemented; one loop simply did not use it. It does now, and the teardown runs clean with no privilege
+   and no error output.
+
+ - **The readiness gate listed the built-in objects it had seen fail, not the ones provisioning needs — and
+   the run found the gap.** A fresh deployment stopped with:
+
+   ```
+   ✔ scope mappings: groups, email-verified, profile, mailcow_template (4 created)
+   ✖ Authentik has no built-in scope mapping 'goauthentik.io/providers/oauth2/scope-openid'
+   ```
+
+   Authentik's built-ins — the flows, the scope mappings and the signing key — are created by the **worker**
+   applying blueprints, and not all at once: the blueprint carrying the scope mappings lands after the one
+   carrying the flows. The gate waited for the two flows and stopped there, so it opened inside the window
+   between them and provisioning died on the next thing it asked for. A gate that enumerates the failures
+   it happens to have seen is a gate that fails again on the next one.
+
+   The objects are now declared once, in `AUTHENTIK_READY_FLOWS` and `AUTHENTIK_READY_SCOPE_MAPPINGS`, and
+   **both** the gate and `authentik_ensure_oauth2_provider` read those lists — so they cannot disagree about
+   what has to exist. The signing key was ungated for the same reason and is now checked too.
+
+   This was latent rather than newly introduced: the old gate passed whenever the worker won the race, which
+   it usually did. It is a race, not a regression from the Mailcow or icon work — and the fix is verified
+   against the exact failure, because the new gate now holds where the old one opened:
+
+   ```
+   ℹ   still waiting for: scope goauthentik.io/providers/oauth2/scope-openid   (×6)
+   ✔ Authentik provisioned (23 created)
+   ✔ every automated check passed
+   ```
+
+ - **Mailcow's SSO was broken by one missing field, and the provider could never have seen it.** With the
+   certificate fixed, the callback died in Mailcow's own code:
+
+   ```
+   An unknown error occured: TypeError
+   array_search(): Argument #2 ($haystack) must be of type array, null given
+   /web/inc/functions.inc.php:2916
+   ```
+
+   That line is `array_search($info['mailcow_template'], $iam_settings['mappers'])`, and `mappers` was
+   null because the identity-provider configuration never sent it. Mailcow maps the **value of the
+   `mailcow_template` claim** onto a mailbox template by position — `mappers` holds the claim values,
+   `templates` the template names, and it writes neither unless the two have equal length. Configuring
+   `["default"] ↔ ["Default"]` is the whole fix.
+
+   This is why the provider-side checks all passed while the application answered every real sign-in with
+   a blank page: the token was perfect, and the application threw before it ever looked at one.
+
+ - **Mailcow's SSO failure was a certificate, and Mailcow said so only in its database.** The exchange
+   died with
+
+   ```
+   cURL error 60: SSL certificate problem: unable to get local issuer certificate
+   for https://auth.example.com/application/o/token/
+   ```
+
+   — recorded in Mailcow's own `logs` table, never on stdout, which is why the UI could only ever say
+   "login failed". The cause is that **PHP does not read `CURL_CA_BUNDLE`**. That variable is honoured by
+   libcurl's tooling and by the Go and Python clients elsewhere in this stack, so setting it for Mailcow
+   looked right and did nothing. PHP's curl extension takes its trust anchor from the `curl.cainfo`
+   **ini** setting, so the mount that matters is an ini file in `/usr/local/etc/php/conf.d/`. The
+   exchange now works; `CURL_CA_BUNDLE` is kept for the non-PHP curl paths, with a note that it is not
+   what does the work.
+
+ - **Both remaining pane failures had the same root cause, and it was not identity: the applications were
+   provisioned at the wrong address.** The identity fixtures live at `@wc.test` (`Testing.md` §7.1) and
+   the deployment's own address is a *different* one, so every application was provisioned for an account
+   that never signs in.
+
+   * **Mailcow** matched no mailbox and answered `Login failed` — with nothing in its own log, because
+     from its side a login arrived for an address it does not host. The `wc.test` domain is now added,
+     the mailbox **is** the identity provider's address, and `login_provisioning` ("Auto-create users on
+     login") is on, which is what the integration guide requires for anyone without a mailbox yet.
+   * **Zulip** had no realm owner among the accounts that can sign in. `admin@wc.test` is now a realm
+     owner and `user@wc.test` a member.
+
+   The Authentik side was corrected to the published integration as well: `email_verified` and
+   `mailcow_template` are read from **user attributes** rather than hardcoded, and the test users now
+   carry them — which is also what Zulip's `email_verified` check needs (OIDC.md §4.5, Trap 1).
+
+ - **Zulip's sign-up gate was asking a question that had already been answered.** `invite_required`
+   defaults to true, so a user who authenticated *perfectly* was stopped at "You need an invitation to
+   join this organization." The gate that decides who may sign in is Authentik's **application binding** —
+   only `workspaceusers` reaches the provider at all — so Zulip's own gate refuses, one layer too late,
+   people the provider just admitted, with no way for the user to answer it. It is now off, handing the
+   decision to the layer that owns it.
+
+   Zulip has **no group-claim gate** — `invite_required` and the email-domain restriction are the only
+   two, and neither reads a claim — so there is nothing to configure that would restrict membership by
+   `groups`. Authentik decides, Zulip admits.
+
 ### Documentation
  - **Documentation organized by subject.** Four documents live at the repository root —
    [`Readme.md`](./Readme.md), [`Agents.md`](./Agents.md), [`roadmap.md`](./roadmap.md) and
@@ -684,7 +1217,7 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    six — each with its route, the source chooser it starts from, the exact upstream mechanism, the audit
    flow name, and its own test cases. **Chat → Mail (F6) had no specification at all before this change:**
    it is now defined end to end (read the upload from Zulip with the user's own key, build the MIME message,
-   `APPEND` it to Drafts, report the draft) and covered in the test matrix. `roadmap.md` (F1–F6, Phase 6, the
+   `APPEND` it to Drafts, report the draft) and covered in the test matrix. `roadmap.md` (F1–F6, Phase 5, the
    milestone and U-13), `design.md` (D-8 and the design principles), `architecture.md`, `Readme.md`,
    `Testing.md`, `production.md`, `integration.md` and `contributions.md` were brought to the same six-flow
    set in this change; the documentation now presents the matrix as it was always meant to be, and this
@@ -694,7 +1227,7 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    exact upstream call per application and when a frame must be reloaded — including the OnlyOffice editor,
    whose presence cannot be detected from a URL and is therefore recorded as a limitation rather than hidden
    — the security model (threat table, SSRF and path-traversal rules, secret handling, rate limits, the
-   refused designs), the test matrix and the Phase 6 exit criteria, operations, and a traceability table
+   refused designs), the test matrix and the Phase 5 exit criteria, operations, and a traceability table
    mapping every section to the `AR-*`/`IN-*`/`D-*`/`U-*` requirements it implements. It is registered in the
    documentation index and cross-referenced from `architecture.md` §4 and `Testing.md` §5.
  - Corrected three upstream facts the broker research re-verified: the pinned Mailcow ships **SOGo 5.12.11**,

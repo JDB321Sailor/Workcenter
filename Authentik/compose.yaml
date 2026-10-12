@@ -1,0 +1,232 @@
+# Workcenter — Authentik, the identity provider (roadmap.md Phase 4.1, I-AK-1).
+#
+# Authentik is the only identity provider in the stack (roadmap.md A-1): the shell
+# and the broker validate tokens against it, each application is an OIDC client of
+# it, and the Traefik dashboard sits behind its forward-auth outpost. It is
+# deployed here rather than adopted so a fresh host has one path to a working
+# sign-in.
+#
+# Everything it persists is a bind mount under this folder (P-14, P-15), and
+# nothing is published to the host: Traefik is the only ingress and the only place
+# TLS is decided (production.md §7).
+#
+# The root composition `include:`s this file, and Compose loads an included file
+# with its own project directory, so every relative path below resolves against
+# `Authentik/`.
+#
+# This file is the shape `docs/architecture/integration.md` §7.2 specifies. It is
+# written out rather than copied from upstream because Authentik's own repository
+# stopped publishing a compose file on `main` (IN-7.1).
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — the only stateful dependency (IN-7.2).
+  #
+  # The service names in this file are all prefixed `authentik-` on purpose. The
+  # root composition `include:`s every application into ONE Compose project, and a
+  # service name is the project-wide key: an unprefixed `redis` or `postgresql`
+  # here would *merge* with Zulip's `redis` and `database` rather than sit beside
+  # them, producing one container with two sets of volumes and secrets. The prefix
+  # also makes the server's in-cluster name `authentik-server`, which is the
+  # hostname `TRAEFIK_FORWARDAUTH_ADDRESS` uses (IN-7.8).
+  # ---------------------------------------------------------------------------
+  authentik-postgresql:
+    # Pinned to the major line the integration documents (integration.md §7.2).
+    image: docker.io/library/postgres:16-alpine
+    container_name: authentik-postgresql
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      # The same value Authentik reads as AUTHENTIK_POSTGRESQL__PASSWORD, so the
+      # two can never disagree. Required: an empty password stops the container
+      # instead of leaving the database open.
+      POSTGRES_PASSWORD: ${PG_PASS:?set PG_PASS in Authentik/.env}
+      POSTGRES_USER: authentik
+      POSTGRES_DB: authentik
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      # `internal` only: the database is reached by service name from the server
+      # and the worker, and by nothing else (architecture.md §7.1).
+      - internal
+    healthcheck:
+      # pg_isready is in the image and answers before the database accepts
+      # connections, so the server's depends_on has a real gate to wait on
+      # (IN-10.1: every service owns a healthcheck).
+      test: ['CMD-SHELL', 'pg_isready -U authentik -d authentik']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # First boot initialises the cluster, which takes longer than a restart.
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ---------------------------------------------------------------------------
+  # Redis — **removed**. There is no service here on purpose.
+  # ---------------------------------------------------------------------------
+  # Authentik dropped Redis in 2025.10 and deleted the `AUTHENTIK_REDIS__*` settings
+  # with it; the cache and the task queue both run in PostgreSQL now. The service was
+  # deleted rather than kept unused, because a running Redis that nothing reads is
+  # the kind of thing an operator later "fixes" by pointing a setting at it. Nothing
+  # in this file, `Authentik/.env.example` or the provisioning library refers to it.
+  #
+  # The `data/redis` directory the old service bind-mounted is no longer created;
+  # an existing one is inert and safe to delete.
+
+  # ---------------------------------------------------------------------------
+  # Server — the web UI, the OIDC endpoints and the API the provisioning uses.
+  # ---------------------------------------------------------------------------
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2026.8.3}
+    container_name: authentik-server
+    command: server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment: &authentik-env
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:?set PG_PASS in Authentik/.env}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?set AUTHENTIK_SECRET_KEY in Authentik/.env}
+      # Bootstrap values are read on the first boot only; later runs leave an
+      # existing `akadmin` alone, which is what makes the container idempotent.
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL:-}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-}
+      # The API token the provisioning authenticates with (production.md §5.5.3,
+      # access path 1). Empty disables the API for a fresh instance, so a
+      # deployment that wants automation must set it.
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
+      # IN-7.4: without this Authentik builds its issuer URLs from the internal
+      # http:// request and every client rejects the `iss` claim it publishes.
+      #
+      # 2026.8 also **drops forwarded headers** (`X-Forwarded-Proto/Host/For`,
+      # `Forwarded`, `X-Real-IP`) unless the direct peer is inside this list, and
+      # setting the key *replaces* the upstream default rather than adding to it —
+      # so the whole RFC 1918 range is named here, not only the proxy's subnet.
+      # Getting it wrong presents as HTTPS being seen as HTTP: mixed-content
+      # blocking and an authentication loop, not an error message.
+      AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS: ${AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS:-172.16.0.0/12}
+      # New in 2026.8 and *bootstrap-only*: the external URL the instance is served
+      # on, scheme and host with no path. Upstream states it becomes required in
+      # 2026.11, so it is set now rather than at the release that refuses to start
+      # without it. It is what the flows use to build absolute links.
+      AUTHENTIK_WEB__BASE_URL: ${AUTHENTIK_URL:-https://auth.example.com}
+    volumes:
+      # IN-7.3 names the supported spellings; these are Authentik's own documented
+      # state directories on the 2026.8 train.
+      #
+      # `/data`, not `/media`: file storage moved under a single `/data` mount in
+      # 2025.12 and is served from `/files` rather than `/media`. The host layout is
+      # unchanged — the image's own `/media -> /data/media` compatibility symlink
+      # keeps the old path working, and `Authentik/data/media` is still where the
+      # uploaded application icons and generated assets land.
+      - ./data:/data
+      - ./data/certs:/certs
+      - ./data/templates:/templates
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    networks:
+      # `proxy` so Traefik can reach the UI and the outpost endpoints (IN-7.8),
+      # `internal` for the database and the cache.
+      - proxy
+      - internal
+    healthcheck:
+      # IN-7.7. This is the image's **own** `HEALTHCHECK`, repeated so it can be
+      # seen and tuned here: `ak healthcheck`, with no argument. Upstream's help
+      # text advertises a positional `<mode>`, but the 2026.8.3 build rejects every
+      # value for it — `server`, `worker`, `allinone` and `proxy` all answer
+      # `Unrecognized argument` — while the bare command exits 0. Passing a mode
+      # therefore marks a perfectly healthy container unhealthy, which is how a
+      # stack that was serving fine reported `FailingStreak: 26`.
+      #
+      # The probe goes over the image's own unix socket, so it does not depend on
+      # the listen address, and it fails until migrations and the worker handshake
+      # have finished — the gate the rest of the stack waits on (IN-3.6).
+      test: ['CMD', 'ak', 'healthcheck']
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      # Upstream's own start period is 120s; migrations run on the first boot of a
+      # new database and take minutes, so Workcenter keeps the longer budget.
+      start_period: 180s
+    labels:
+      - traefik.enable=true
+      # P-18: without this label Traefik picks one of the container's two networks
+      # at random, which is the usual cause of a 502.
+      - traefik.docker.network=proxy
+
+      # --- The identity UI and the OIDC endpoints ---------------------------
+      - traefik.http.routers.authentik.rule=Host(`${AUTHENTIK_HOST:?set AUTHENTIK_HOST in .env}`)
+      - traefik.http.routers.authentik.entrypoints=websecure
+      - traefik.http.routers.authentik.tls=true
+      - traefik.http.routers.authentik.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}
+      - traefik.http.routers.authentik.service=authentik
+      # Authentik listens on 9000 (IN-7.3 points at AUTHENTIK_LISTEN__HTTP, whose
+      # default this is).
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
+
+      # --- The forward-auth outpost, on the hosts it protects ---------------
+      # IN-7.8: forward auth needs a second router for `/outpost.goauthentik.io/`
+      # at a HIGHER priority than the protected application's own router. The
+      # browser is on the protected host when Authentik redirects it to
+      # `/outpost.goauthentik.io/start`, so that path has to resolve there and not
+      # only on the identity host. The middleware itself lives in
+      # Traefik/dynamic/middlewares.yml and points straight at
+      # `http://authentik-server:9000/outpost.goauthentik.io/auth/traefik`.
+      - traefik.http.routers.authentik-outpost.rule=Host(`${TRAEFIK_HOST:?set TRAEFIK_HOST in .env}`) && PathPrefix(`/outpost.goauthentik.io/`)
+      - traefik.http.routers.authentik-outpost.priority=100
+      - traefik.http.routers.authentik-outpost.entrypoints=websecure
+      - traefik.http.routers.authentik-outpost.tls=true
+      - traefik.http.routers.authentik-outpost.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-le}
+      - traefik.http.routers.authentik-outpost.service=authentik
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ---------------------------------------------------------------------------
+  # Worker — background tasks: outpost sync, event handling, the LDAP source.
+  # ---------------------------------------------------------------------------
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2026.8.3}
+    container_name: authentik-worker
+    command: worker
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # The same block as the server: one definition, `&authentik-env` above, so the
+    # two processes can never disagree about the database or the secret key.
+    environment: *authentik-env
+    volumes:
+      - ./data:/data
+      - ./data/certs:/certs
+      - ./data/templates:/templates
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      # IN-7.7: the image's own probe again — see the server's note on why the
+      # advertised `<mode>` argument must not be passed. A worker that has lost the
+      # database fails here rather than silently stopping the outpost sync, which is
+      # also what applies the blueprints that create the built-in flows.
+      test: ['CMD', 'ak', 'healthcheck']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'

@@ -212,6 +212,26 @@ services:
       # primary mechanism (IN-5.13) — and this is the belt-and-braces setting
       # roadmap I-ZU-7 asks for, in case anything in front ever rewrites Host.
       SETTING_USE_X_FORWARDED_HOST: ${SETTING_USE_X_FORWARDED_HOST}
+      # **Zulip proxies its own outbound HTTP, and the identity provider is not an
+      # image.** `/etc/supervisor/conf.d/zulip/zulip.conf` starts the Django process
+      # with `HTTP_proxy`/`HTTPS_proxy` pointing at Zulip's bundled go-camo image
+      # proxy on port 4750. go-camo refuses anything that is not an image fetch, so
+      # provider discovery — which Zulip performs on the way to building the
+      # authorization URL — fails with
+      #
+      #   ProxyError: Unable to connect to proxy
+      #   (Tunnel connection failed: 407 Request rejected by proxy)
+      #
+      # and `/login/` answers **500** instead of showing the sign-in page. Verified
+      # on the pinned image: the identical request returns 200 with the identity host
+      # in `no_proxy` and a `ProxyError` without it.
+      #
+      # Both spellings, because the readers differ — `requests` reads `no_proxy`,
+      # `urllib` reads `NO_PROXY`. This belongs in the **base** composition rather
+      # than the test profile: the camo proxy is Zulip's own design, so every
+      # deployment reaching an identity provider through it needs the same bypass.
+      NO_PROXY: "${AUTHENTIK_HOST:-auth.example.com},localhost,127.0.0.1"
+      no_proxy: "${AUTHENTIK_HOST:-auth.example.com},localhost,127.0.0.1"
       # NOTE: SETTING_CSRF_TRUSTED_ORIGINS is deliberately absent.
       # CSRF_TRUSTED_ORIGINS is not a Zulip production setting — it exists only
       # in Zulip's development settings (IN-5.13, OIDC.md O-6.12), so writing it

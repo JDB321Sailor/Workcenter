@@ -19,9 +19,10 @@ services:
   traefik:
     # The docs pin `traefik:v3` (integration.md §2, architecture.md §7.1). P-27 needs at least
     # v3.6 (`traefik.docker.allownonrunning`) and P-26 describes v3.7.3 behaviour, so the pin
-    # here is the newest v3 minor — v3.7, the minor under active support upstream. Patch releases
-    # still arrive within the minor; set TRAEFIK_TAG only to move the pin deliberately.
-    image: "traefik:${TRAEFIK_TAG:-v3.7}"
+    # is the newest v3 release — v3.7.14, the current patch of the minor under active support
+    # upstream. A full `x.y.z` and not the floating `v3.7`: a patch released tomorrow must not
+    # reach a running deployment without anyone deciding it should. Set TRAEFIK_TAG to move it.
+    image: "traefik:${TRAEFIK_TAG:-v3.7.14}"
     container_name: traefik
     restart: unless-stopped
     security_opt:
@@ -55,7 +56,7 @@ services:
       - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
     ports:
       # Local/test profile: the loopback interface and nothing else (Testing.md §6.3), which is
-      # what makes the unauthenticated phase safe to run before identity exists (Phase 5).
+      # what makes the unauthenticated phase safe to run before identity exists (Phase 4).
       #
       # A production host removes the restriction through an override file, never by editing this
       # one — P-16 keeps host-specific files as gitignored *.local.yaml:

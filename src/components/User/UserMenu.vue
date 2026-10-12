@@ -153,7 +153,6 @@ export default {
     /* Admin links point at the deployment's own surfaces, from the configured
        addresses, and never at a hard-coded host (design.md D-6.4). */
     adminLinks() {
-      const urls = appUrls(this.appConfig);
       return [
         {
           id: 'traefik',
@@ -165,7 +164,7 @@ export default {
           id: 'mailcow',
           label: this.$t('user.links.mail-admin'),
           mark: 'mailcow',
-          url: urls.mail,
+          url: this.mailAdminUrl,
         },
         {
           id: 'authentik',
@@ -177,14 +176,33 @@ export default {
     },
     /* Traefik and Authentik are derived from the deployment's addresses: the
        dashboard replaces the Workcenter host's first label with `traefik`, the
-       identity provider is the configured OIDC issuer. */
+       identity provider is the configured OIDC issuer.
+
+       The path is not decoration. Traefik answers the dashboard on `/dashboard/`
+       and `/api`, and the ingress routes only those two prefixes — a request for
+       the bare host matches **no router** and gets a 404, which is
+       indistinguishable from the dashboard being down. This link used to be the
+       bare host, so it always 404'd. */
     traefikUrl() {
       try {
         const host = new URL(this.appConfig?.applications?.files?.url || window.location.origin);
         const labels = host.hostname.split('.');
         if (labels.length < 2) return '';
         labels[0] = 'traefik';
-        return `${host.protocol}//${labels.join('.')}`;
+        return `${host.protocol}//${labels.join('.')}/dashboard/`;
+      } catch {
+        return '';
+      }
+    },
+    /* The Mailcow **admin page**, which is a different surface from the Mail pane.
+       The pane points at SOGo (`/SOGo`, the user's own mail); this points at
+       `/admin`, where the deployment is administered. Both are on the mail host,
+       so its origin is all that is needed. */
+    mailAdminUrl() {
+      const mail = appUrls(this.appConfig).mail;
+      if (!mail) return '';
+      try {
+        return `${new URL(mail).origin}/admin`;
       } catch {
         return '';
       }

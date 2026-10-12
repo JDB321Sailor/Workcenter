@@ -173,8 +173,13 @@ describe('the user menu', () => {
     const links = panel.findAll('.wc-user__link');
     expect(links).toHaveLength(3); // the admin links, from the configured addresses
     expect(links.map((l) => l.attributes('href'))).toEqual([
-      'https://traefik.example.com',
-      'https://mail.example.com/SOGo',
+      /* The dashboard path is required, not cosmetic: the ingress routes
+         `/dashboard` and `/api` on that host and nothing else, so the bare host is
+         a 404 — which reads exactly like the dashboard being down. */
+      'https://traefik.example.com/dashboard/',
+      /* The Mailcow **admin page**, not the Mail pane: the pane is SOGo, which is
+         the user's own mail rather than the deployment's administration. */
+      'https://mail.example.com/admin',
       'https://auth.example.com',
     ]);
     expect(panel.text()).toContain('user.sign-out');

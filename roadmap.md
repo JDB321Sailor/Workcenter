@@ -583,6 +583,12 @@ These files are the specification of the product and are maintained as part of i
 Phases are ordered so that each one ends in something runnable. Each phase lists its
 **deliverables**, its **exit criteria** and its **dependencies**.
 
+The order also keeps one provisioner, not two. Phases 4–6 build the application and the
+`e2e.sh` harness that stands it up and verifies it on a real host; **Phase 8 then writes
+`setup.sh` from that proven harness** rather than in parallel with it. `setup.sh` is the last
+build phase before the promotion in Phase 9, so the application is functional and repeatably
+tested before the installer that automates it is written.
+
 ---
 
 ### Phase 0 — Repository foundation
@@ -670,105 +676,119 @@ Phases are ordered so that each one ends in something runnable. Each phase lists
 
 ---
 
-### Phase 4 — `setup.sh`
-
-**Goal:** one script from bare host to running stack.
-
-Implement exactly the contract in [`production.md`](./docs/deployment/production.md):
-
-| Step | Work |
-| --- | --- |
-| 4.1 | Folder check/create for `Filebrowser`, `Zulip`, `Mailcow` (and `OnlyOffice`, `Authentik`, `Traefik` on demand) |
-| 4.2 | Per-application file provisioning: download Mailcow with its own tooling; fetch/compose the best source for FileBrowser and Zulip; generate `.env` files and secrets |
-| 4.3 | Traefik detection: if not running, create `Traefik/` and add it to the stack |
-| 4.4 | Prompt for the base URL and derive the six hostnames; write them into every `.env` and config |
-| 4.5 | Skip the `.env`/OIDC checks for anything the script just created, and go straight to the Authentik deployment question |
-| 4.6 | OIDC branch logic exactly as specified in [`OIDC.md`](./docs/authentication/OIDC.md): if not configured, ask whether the user has already created the Authentik applications/providers; if yes, create `Authentik/` and prompt for every OIDC variable into the right `.env` files; if no (default), detect a running Authentik, offer to deploy one, and either stop with the exact guidance message or continue |
-| 4.7 | Final bring-up: `docker compose up -d`, then poll until every service is healthy, printing a per-service report |
-| 4.8 | Branding (`U-22`): write the FileBrowser styling keys, the SOGo stylesheet and script hook, and the Mailcow custom CSS before bring-up; apply the Zulip realm name, icon, both logos and the dark default afterwards; print the one manual Mailcow logo step. Support `--brand` to re-apply it alone |
-| 4.9 | Idempotency tests: run `setup.sh` three times and assert convergence, branding included |
-
-**Exit criteria:** from a clean checkout on a bare host, `setup.sh` produces a running stack; the OIDC prompts match `OIDC.md` word for word; a second run makes no destructive change; and all three applications carry the Workcenter name, logo and palette.
-
-**Depends on:** Phase 3.
-
----
-
-### Phase 5 — Identity: Authentik everywhere
+### Phase 4 — Identity: Authentik everywhere
 
 **Goal:** one login, one group model, all four surfaces.
 
 | Step | Work |
 | --- | --- |
-| 5.1 | `Authentik/compose.yaml` with pinned tag, Postgres, Redis, bootstrap env |
-| 5.2 | `OIDC.md` walkthrough: `groups` scope mapping, the four OIDC providers, applications, redirect URIs, signing keys, `workspaceusers`, `workspaceadmin` |
-| 5.3 | Wire Workcenter's own OIDC client (from Dashy) to the `workcenter` provider, including `adminGroup: workspaceadmin` |
-| 5.4 | Wire FileBrowser `auth.methods.oidc` and prove `adminGroup` works |
-| 5.5 | Wire Zulip's `GenericOpenIdConnectBackend` and prove login + admin role |
-| 5.6 | Configure Mailcow **Generic-OIDC** and switch mailboxes to the OIDC identity source; deploy the Authentik **LDAP outpost** and wire Mailcow's LDAP identity provider for mail-protocol credentials; document app passwords as the fallback |
-| 5.7 | Add the Authentik forward-auth middleware for `traefik.example.com`, restricted to `workspaceadmin` |
-| 5.8 | Implement single logout |
+| 4.1 | `Authentik/compose.yaml` with pinned tag, Postgres, Redis, bootstrap env |
+| 4.2 | `OIDC.md` walkthrough: `groups` scope mapping, the four OIDC providers, applications, redirect URIs, signing keys, `workspaceusers`, `workspaceadmin` |
+| 4.3 | Wire Workcenter's own OIDC client (from Dashy) to the `workcenter` provider, including `adminGroup: workspaceadmin` |
+| 4.4 | Wire FileBrowser `auth.methods.oidc` and prove `adminGroup` works |
+| 4.5 | Wire Zulip's `GenericOpenIdConnectBackend` and prove login + admin role |
+| 4.6 | Configure Mailcow **Generic-OIDC** and switch mailboxes to the OIDC identity source; deploy the Authentik **LDAP outpost** and wire Mailcow's LDAP identity provider for mail-protocol credentials; document app passwords as the fallback |
+| 4.7 | Add the Authentik forward-auth middleware for `traefik.example.com`, restricted to `workspaceadmin` |
+| 4.8 | Implement single logout |
 
 **Exit criteria:** a `workspaceusers` member signs in once and reaches all three panes; a `workspaceadmin` member additionally reaches the Traefik dashboard; removing a user from `workspaceusers` locks them out everywhere.
 
-**Depends on:** Phases 3–4.
+**Depends on:** Phase 3.
 
 ---
 
-### Phase 6 — The file broker
+### Phase 5 — The file broker
 
 **Goal:** the six cross-application flows work.
 
 | Step | Work |
 | --- | --- |
-| 6.1 | Stand up the broker service (Node/TypeScript, same repo, same image as the shell) with OIDC-protected routes |
-| 6.2 | Implement the FileBrowser adapter: resolve user source root, list, read, write atomically, hash, de-duplicate |
-| 6.3 | Implement the Mail adapter: IMAP(S) fetch of MIME parts; attachment listing; SMTP submission for attach-from-files |
-| 6.4 | Implement the Zulip adapter: `POST /api/v1/user_uploads` (+ `/api/v1/tus` for large files), attachment fetch by `uri`, message insertion |
-| 6.5 | Implement the transfer engine: streaming, max size, cancellation, atomic rename, audit log |
-| 6.6 | Wire the six UI entry points in the shell: the Mail attachment panel (F1, F5), the chat attachment chooser (F3, F6) and the file picker (F2, F4) |
-| 6.7 | Progress and notification UI, plus the **Open** deep link into the destination |
-| 6.8 | Authorisation tests: user A can never touch user B's files or mailbox |
+| 5.1 | Stand up the broker service (Node/TypeScript, same repo, same image as the shell) with OIDC-protected routes |
+| 5.2 | Implement the FileBrowser adapter: resolve user source root, list, read, write atomically, hash, de-duplicate |
+| 5.3 | Implement the Mail adapter: IMAP(S) fetch of MIME parts; attachment listing; SMTP submission for attach-from-files |
+| 5.4 | Implement the Zulip adapter: `POST /api/v1/user_uploads` (+ `/api/v1/tus` for large files), attachment fetch by `uri`, message insertion |
+| 5.5 | Implement the transfer engine: streaming, max size, cancellation, atomic rename, audit log |
+| 5.6 | Wire the six UI entry points in the shell: the Mail attachment panel (F1, F5), the chat attachment chooser (F3, F6) and the file picker (F2, F4) |
+| 5.7 | Progress and notification UI, plus the **Open** deep link into the destination |
+| 5.8 | Authorisation tests: user A can never touch user B's files or mailbox |
 
 **Exit criteria:** all six flows (F1–F6) complete inside the page, with progress, notifications, correct filenames, no residue on failure, and a clean audit trail.
 
-**Depends on:** Phases 2, 3, 5.
+**Depends on:** Phases 2, 3, 4.
 
 ---
 
-### Phase 7 — The Playwright integration harness
+### Phase 6 — The Playwright integration harness
 
 **Goal:** the whole stack is verifiable automatically on every merge into `Dev`.
 
 | Step | Work |
 | --- | --- |
-| 7.1 | Deterministic test profile: fixed test users, fixed groups, seeded files, a seeded mail message and a seeded Zulip channel |
-| 7.2 | `docker compose -f compose.test.yaml up -d` harness that brings the full stack up with test defaults |
-| 7.3 | Playwright specs for: OIDC login, application switching, sidebar swap, deep links, theme persistence, each of the six transfers, the switcher status indicators, the pane failure card |
-| 7.4 | Seeded-fixture mode that stubs the external mail/chat edges so the suite runs without outbound network |
-| 7.5 | CI workflow `e2e.yml` triggered on pull requests into `Dev`; required check |
-| 7.6 | Scheduled nightly run and artifact upload (traces, screenshots, videos, service logs) |
+| 6.1 | Deterministic test profile: fixed test users, fixed groups, seeded files, a seeded mail message and a seeded Zulip channel |
+| 6.2 | `docker compose -f compose.test.yaml up -d` harness that brings the full stack up with test defaults |
+| 6.3 | Playwright specs for: OIDC login, application switching, sidebar swap, deep links, theme persistence, each of the six transfers, the switcher status indicators, the pane failure card |
+| 6.4 | Seeded-fixture mode that stubs the external mail/chat edges so the suite runs without outbound network |
+| 6.5 | CI workflow `e2e.yml` triggered on pull requests into `Dev`; required check |
+| 6.6 | Scheduled nightly run and artifact upload (traces, screenshots, videos, service logs) |
 
 **Exit criteria:** a deliberately broken integration fails the suite with an actionable artifact; a clean merge passes; runtime is bounded and documented.
 
-**Depends on:** Phases 2, 5, 6. Detailed in [`Testing.md`](./docs/development/Testing.md).
+**Depends on:** Phases 2, 4, 5. Detailed in [`Testing.md`](./docs/development/Testing.md).
 
 ---
 
-### Phase 8 — Hardening, observability and operations
+### Phase 7 — Hardening, observability and operations
 
 | Step | Work |
 | --- | --- |
-| 8.1 | Internal TLS option between backend services (D-7), including CA distribution |
-| 8.2 | Security pass: CSP and frame-ancestors per pane, container hardening, secret handling, dependency audit |
-| 8.3 | Backup/restore documentation and scripts for every stateful component |
-| 8.4 | Upgrade documentation: Workcenter, FileBrowser Quantum, Zulip, Mailcow (via `update.sh`), OnlyOffice, Authentik |
-| 8.5 | Log aggregation guidance and healthcheck-driven alerting |
-| 8.6 | Resource sizing and troubleshooting runbooks in `production.md` |
+| 7.1 | Internal TLS option between backend services (D-7), including CA distribution |
+| 7.2 | Security pass: CSP and frame-ancestors per pane, container hardening, secret handling, dependency audit |
+| 7.3 | Backup/restore documentation and scripts for every stateful component |
+| 7.4 | Upgrade documentation: Workcenter, FileBrowser Quantum, Zulip, Mailcow (via `update.sh`), OnlyOffice, Authentik |
+| 7.5 | Log aggregation guidance and healthcheck-driven alerting |
+| 7.6 | Resource sizing and troubleshooting runbooks in `production.md` |
 
 **Exit criteria:** a security review with no unresolved high findings; a restore drill succeeds from documented backup steps only.
 
-**Depends on:** Phase 5.
+**Depends on:** Phase 4.
+
+---
+
+### Phase 8 — `setup.sh`
+
+**Goal:** one reviewed script that takes a bare host to a running stack, assembled from the harness that
+already proves every step.
+
+This is the **last build phase before promotion**, and that position is the point. Until Phase 6, the only
+thing that knows how to stand the stack up is `scripts/e2e.sh`, and it earns that knowledge by being run
+against a real host on every merge. Writing `setup.sh` earlier would mean maintaining two provisioners in
+parallel, each invalidated whenever the other's assumptions moved — and the harness already needed
+extensive rework to reach a working environment. So the harness is the reference implementation and this
+phase packages it: focus stays on a working application with repeatable testing, and `setup.sh` is built
+once from steps that are already known to work.
+
+Implement exactly the contract in [`production.md`](./docs/deployment/production.md):
+
+| Step | Work |
+| --- | --- |
+| 8.1 | Folder check/create for `Filebrowser`, `Zulip`, `Mailcow` (and `OnlyOffice`, `Authentik`, `Traefik` on demand), reusing the harness's layout |
+| 8.2 | Per-application file provisioning: download Mailcow with its own tooling; fetch/compose the best source for FileBrowser and Zulip; generate `.env` files and secrets |
+| 8.3 | Traefik detection: adopt a running instance, or create `Traefik/` and add it to the stack |
+| 8.4 | Ask whether to use the Workcenter default hostnames or custom ones, then write the six hostnames into every `.env` and config |
+| 8.5 | Skip the configuration checks for anything the script just created |
+| 8.6 | Identity: detect a running Authentik or deploy one, then create or reconcile every group, scope mapping, provider, application, outpost membership and icon through the Authentik API, falling back to the manual prompt when the instance cannot be reached — exactly as specified in [`production.md` §5.5](./docs/deployment/production.md#55-stage-e--oidc-and-identity-provider) |
+| 8.7 | Bring-up: `docker compose up -d`, then poll until every service is healthy, printing a per-service report |
+| 8.8 | Mailcow post-boot configuration through the Mailcow API — identity provider, administrator, domain and mailbox — as specified in [`production.md` §5.7](./docs/deployment/production.md#57-stage-g--mailcow-post-boot-configuration) |
+| 8.9 | Branding (`U-22`): write the FileBrowser styling keys, the SOGo stylesheet and script hook, and the Mailcow custom CSS before bring-up; apply the Zulip realm name, icon, both logos and the dark default afterwards; print the one manual Mailcow logo step. Support `--brand` to re-apply it alone |
+| 8.10 | First-run and idempotency tests: run `setup.sh` once from a bare host and assert the single-run result, then run it three times and assert convergence, branding included |
+
+**Exit criteria:** from a clean checkout on a bare host, **one** `./setup.sh` produces a running,
+TLS-terminated, OIDC-protected stack; a second run makes no destructive change; all three applications
+carry the Workcenter name, logo and palette; and every provisioning step it performs is one the Phase 6
+harness already exercises on every pull request.
+
+**Depends on:** Phases 3–7 — Phase 6 in particular, whose harness is the reference for every provisioning
+step, and Phase 7, whose hardening pass decides the defaults `setup.sh` writes.
 
 ---
 
@@ -796,11 +816,11 @@ Implement exactly the contract in [`production.md`](./docs/deployment/production
 | **M1 — Workspace only** | 1 | A Workcenter-derived app with one view and no legacy surface | G1 |
 | **M2 — Shell** | 2 | Switcher + three swappable sidebars + persistent panes | G1, G2, G8 |
 | **M3 — Stack up** | 3 | All services healthy behind Traefik on subdomains | G4, G12 |
-| **M4 — One command** | 4 | Bare host → running stack with `setup.sh` | G4 |
-| **M5 — One identity** | 5 | Single Authentik login across all four surfaces, group-driven admin | G5, G10 |
-| **M6 — File movement** | 6 | All six transfer flows complete in-page | **G3** |
-| **M7 — Verified** | 7 | Playwright suite green on every PR into `Dev` | G7 |
-| **M8 — Operable** | 8 | Backup, restore, upgrade, internal TLS, security review | G9, G10 |
+| **M4 — One identity** | 4 | Single Authentik login across all four surfaces, group-driven admin | G5, G10 |
+| **M5 — File movement** | 5 | All six transfer flows complete in-page | **G3** |
+| **M6 — Verified** | 6 | Playwright suite green on every PR into `Dev` | G7 |
+| **M7 — Operable** | 7 | Backup, restore, upgrade, internal TLS, security review | G9, G10 |
+| **M8 — One command** | 8 | Bare host → running stack with `setup.sh` | G4 |
 | **M9 — 1.0** | 9 | Public release, Quick Start reproducible by a stranger | G4, G6 |
 
 ---
@@ -846,13 +866,13 @@ Workcenter 1.0 will **not**:
 
 These are tracked as decisions to close, not as blockers:
 
-1. **Broker runtime** — Node/TypeScript sharing the shell's image (favoured: one language, one build) versus a separate Go service (favoured by FileBrowser Quantum's stack). Decide in Phase 6.1.
-2. **SOGo attach-from-files** — whether to attach via SMTP submission or via SOGo's own compose upload endpoint; depends on what SOGo exposes in the deployed version. Decide in Phase 6.3.
+1. **Broker runtime** — Node/TypeScript sharing the shell's image (favoured: one language, one build) versus a separate Go service (favoured by FileBrowser Quantum's stack). Decide in Phase 5.1.
+2. **SOGo attach-from-files** — whether to attach via SMTP submission or via SOGo's own compose upload endpoint; depends on what SOGo exposes in the deployed version. Decide in Phase 5.3.
 3. **Sidebar rendering depth** — how much of each application's sidebar Workcenter re-implements natively versus surfaces by deep-linking into the embedded app. Decide in Phase 2.4–2.6.
 4. **Zulip admin sync** — group sync from the `zulip_groups` claim requires Zulip 13+; if the pinned Zulip is older, `setup.sh` must assert admin via `manage.py`. Confirm against the pinned version.
 5. **Mailcow health signal** — Mailcow's compose defines no `healthcheck:` blocks, so Workcenter's override must add them; decide whether the canonical signal is those healthchecks, the Mailcow API (`/api/v1/get/status/containers` with `API_KEY` + `API_ALLOW_FROM`), or both. Decide in Phase 3.7.
-6. **Mail credential path for the broker** — Mailcow LDAP (Authentik LDAP outpost) versus per-user app passwords for IMAP/SMTP. LDAP is cleaner for a single identity source; app passwords are simpler and need no outpost. Decide in Phase 6.3.
-7. **Internal TLS scope** — which service-to-service links actually need TLS versus which stay on the Docker network. Decide in Phase 8.1.
+6. **Mail credential path for the broker** — Mailcow LDAP (Authentik LDAP outpost) versus per-user app passwords for IMAP/SMTP. LDAP is cleaner for a single identity source; app passwords are simpler and need no outpost. Decide in Phase 5.3.
+7. **Internal TLS scope** — which service-to-service links actually need TLS versus which stay on the Docker network. Decide in Phase 7.1.
 
 ---
 

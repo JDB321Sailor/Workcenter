@@ -33,3 +33,9 @@ appConfig:
       adminGroup: workspaceadmin
       scope: openid profile email groups
       enableSilentRenew: true
+      # Where Authentik returns the browser once it has ended the session, so
+      # signing out lands the user back at the shell's own sign-in page rather
+      # than on the provider's logged-out screen. Sign-out is one action: it
+      # clears the local session and then ends the provider's, which is what
+      # signs out every application that supports RP-initiated logout (A-7).
+      postLogoutRedirectUri: https://example.com

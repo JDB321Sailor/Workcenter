@@ -1036,7 +1036,7 @@ pane looks wrong.
 
 | Application | How |
 | --- | --- |
-| FileBrowser Quantum | Change `FILEBROWSER_IMAGE` in `.env` to the new pinned tag (`gtstef/filebrowser:2.0.9-beta`), then `docker compose up -d filebrowser`. Review the upstream changelog for config-schema changes — v2 decoding is strict, so a new required key breaks startup loudly |
+| FileBrowser Quantum | Change `FILEBROWSER_IMAGE` in `.env` to the new pinned tag (`gtstef/filebrowser:2.0.0-stable`), then `docker compose up -d filebrowser`. Review the upstream changelog for config-schema changes — v2 decoding is strict, so a new required key breaks startup loudly |
 | Zulip | Change `ZULIP_IMAGE` in `Zulip/.env`, `docker compose up -d`. Nothing is built, so there is no image to rebuild; follow docker-zulip's upgrade notes and keep the secrets |
 | OnlyOffice | Change `ONLYOFFICE_IMAGE`, then `docker compose up -d onlyoffice` |
 | Authentik | Change `AUTHENTIK_TAG`, then `docker compose up -d`. Migrations run automatically on first start; watch the `server` logs |
