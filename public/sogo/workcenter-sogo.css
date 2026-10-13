@@ -1,0 +1,251 @@
+/* ---------------------------------------------------------------------------
+ * Workcenter — the SOGo palette (Mailcow / SOGo 5.12)
+ *
+ * WHAT THIS IS
+ *   The stylesheet `Mailcow/sogo-custom/workcenter-theme.js` links, and the only
+ *   place SOGo's appearance is changed. SOGo 5.12 ships one light theme, no dark
+ *   mode and no appearance setting, so the palette is supplied from outside it.
+ *
+ * WHY IT IS SERVED BY THE SHELL
+ *   The shell owns the palette (design.md D-T3/D-T4: FileBrowser Quantum is the
+ *   appearance standard). Serving it from the shell means the Mail pane can be
+ *   restyled without redeploying Mailcow, and the hook only ever *adds* a
+ *   stylesheet — if this file is unreachable SOGo paints its own theme and
+ *   nothing breaks.
+ *
+ * HOW IT SELECTS
+ *   `html[data-wc-mode='dark']` / `html[data-wc-mode='light']`, set before first
+ *   paint by the hook from the shell's `wc_mode` cookie. With the attribute
+ *   absent — no cookie, no shell — nothing here matches.
+ *
+ * THE SELECTORS ARE SOGo'S OWN, NOT INVENTED
+ *   Read out of the stylesheets SOGo 5.12 actually serves
+ *   (`/SOGo.woa/WebServerResources/css/{styles,theme-default}.css`): the app is
+ *   AngularJS Material, so its surfaces are `md-*` elements, and its views are
+ *   switched by `[ui-view=…]`. `#loginScreen`/`#loginCell`/`#loginContent` are
+ *   the sign-in view. Every rule below names one of those.
+ *
+ * WHAT IT DOES NOT DO
+ *   It never hides, moves, disables or re-labels a control; restyling is allowed
+ *   and re-purposing is a defect (broker.md BR-6.3). It touches no mail content
+ *   and no credential field. Values are Workcenter tokens restated as literals,
+ *   because this file is served to a page with no access to the shell's own
+ *   custom properties.
+ * ------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+ * Tokens — the shell's palette (src/styles/workcenter/_tokens.scss)
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode='dark'] {
+  --sogo-surface: #141d24;
+  --sogo-surface-raised: #20292f;
+  --sogo-surface-sunken: #3a4147;
+  --sogo-text: rgb(255 255 255 / 87%);
+  --sogo-text-muted: rgb(255 255 255 / 60%);
+  --sogo-border: rgb(255 255 255 / 12%);
+  --sogo-accent: #2fb8a8; /* the Mail accent — this is the Mail pane */
+  --sogo-accent-ink: #0b1021;
+  --sogo-focus: #64b5f6;
+}
+
+html[data-wc-mode='light'] {
+  --sogo-surface: #f5f5f5;
+  --sogo-surface-raised: #ebebeb;
+  --sogo-surface-sunken: #d3d3d3;
+  --sogo-text: #546e7a;
+  --sogo-text-muted: #616161;
+  --sogo-border: #c9c9c9;
+  --sogo-accent: #2fb8a8;
+  --sogo-accent-ink: #ffffff;
+  --sogo-focus: #2196f3;
+}
+
+/* ---------------------------------------------------------------------------
+ * The page and every Material surface
+ *
+ * `md-content`, `md-card`, `[md-whiteframe]` and `md-dialog` are what SOGo
+ * paints `#fff`/`#fafafa`; `md-content` in particular is the scrollable body of
+ * every view. Specificity is settled with `!important` because SOGo's own rules
+ * carry the `.md-default-theme` class, which would otherwise win.
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode] body,
+html[data-wc-mode] md-content,
+html[data-wc-mode] md-card,
+html[data-wc-mode] [md-whiteframe],
+html[data-wc-mode] md-whiteframe,
+html[data-wc-mode] md-dialog,
+html[data-wc-mode] md-dialog md-dialog-content,
+html[data-wc-mode] md-list,
+html[data-wc-mode] md-list-item,
+html[data-wc-mode] .md-list-item-inner,
+html[data-wc-mode] md-menu-content,
+html[data-wc-mode] .md-open-menu-container,
+html[data-wc-mode] md-select-menu,
+html[data-wc-mode] md-input-container,
+html[data-wc-mode] .view-detail md-card,
+html[data-wc-mode] .sg-form-section,
+html[data-wc-mode] .sg-progress-circular-floating {
+  background-color: var(--sogo-surface) !important;
+  color: var(--sogo-text) !important;
+}
+
+html[data-wc-mode] md-card,
+html[data-wc-mode] [md-whiteframe],
+html[data-wc-mode] md-whiteframe,
+html[data-wc-mode] md-dialog,
+html[data-wc-mode] md-menu-content,
+html[data-wc-mode] .md-open-menu-container,
+html[data-wc-mode] .sg-form-section,
+html[data-wc-mode] .view-detail md-card,
+html[data-wc-mode] .sg-progress-circular-floating {
+  background-color: var(--sogo-surface-raised) !important;
+}
+
+/* The scroll mask Material draws over a scrolling surface — `#fafafa` by
+   default, which is the pale band that appears against a dark list. */
+html[data-wc-mode] .md-scroll-mask > .md-scroll-mask-bar {
+  background-color: var(--sogo-surface-raised) !important;
+  border-color: var(--sogo-border) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * The sign-in view
+ *
+ * `#fafafa` on `[ui-view=login] md-content #loginContent`, on a `#loginScreen`
+ * that is otherwise the browser's white. Reached after the provider session
+ * expires, which is exactly when a white page inside a dark shell reads as
+ * broken rather than as a sign-in.
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode] #loginScreen,
+html[data-wc-mode] #loginCell,
+html[data-wc-mode] [ui-view='login'] md-content,
+html[data-wc-mode] [ui-view='login'] md-content #loginContent {
+  background-color: var(--sogo-surface) !important;
+  color: var(--sogo-text) !important;
+}
+
+html[data-wc-mode] #loginContent md-card,
+html[data-wc-mode] #loginContent [md-whiteframe] {
+  background-color: var(--sogo-surface-raised) !important;
+  border: 1px solid var(--sogo-border) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Toolbars, text and links
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode] md-toolbar,
+html[data-wc-mode] md-toolbar.md-default-theme,
+html[data-wc-mode] .md-toolbar-tools,
+html[data-wc-mode] [ui-view='calendars'] md-toolbar.daysView,
+html[data-wc-mode] [ui-view='calendars'] md-toolbar.monthView {
+  background-color: var(--sogo-surface-raised) !important;
+  color: var(--sogo-text) !important;
+  border-color: var(--sogo-border) !important;
+}
+
+html[data-wc-mode] a,
+html[data-wc-mode] .sg-link {
+  color: var(--sogo-accent) !important;
+}
+
+html[data-wc-mode] .sg-text-muted,
+html[data-wc-mode] .sg-label,
+html[data-wc-mode] .sg-hint,
+html[data-wc-mode] .sg-attachment-size,
+html[data-wc-mode] .sg-calendar-date {
+  color: var(--sogo-text-muted) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Controls
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode] input,
+html[data-wc-mode] textarea,
+html[data-wc-mode] select,
+html[data-wc-mode] md-input-container input,
+html[data-wc-mode] md-input-container textarea,
+html[data-wc-mode] .md-input {
+  background-color: var(--sogo-surface) !important;
+  border-color: var(--sogo-border) !important;
+  color: var(--sogo-text) !important;
+}
+
+html[data-wc-mode] input::placeholder,
+html[data-wc-mode] textarea::placeholder {
+  color: var(--sogo-text-muted) !important;
+}
+
+html[data-wc-mode] .md-button,
+html[data-wc-mode] .md-icon-button,
+html[data-wc-mode] .sg-icon-button,
+html[data-wc-mode] md-button,
+html[data-wc-mode] .md-fab {
+  color: var(--sogo-text) !important;
+  border-color: var(--sogo-border) !important;
+}
+
+html[data-wc-mode] .md-button.md-primary,
+html[data-wc-mode] md-button.md-primary,
+html[data-wc-mode] .md-button.md-raised.md-primary {
+  background-color: var(--sogo-accent) !important;
+  color: var(--sogo-accent-ink) !important;
+}
+
+/* Keyboard focus has to stay visible in both modes. */
+html[data-wc-mode] :focus-visible {
+  outline: 2px solid var(--sogo-focus) !important;
+  outline-offset: 2px;
+}
+
+/* Selected rows: the mail list, the folder tree. Carried by the Mail accent, as
+   the pane's own identity does. */
+html[data-wc-mode] .md-2-line.md-selected,
+html[data-wc-mode] .md-3-line.md-selected,
+html[data-wc-mode] md-list-item.md-selected,
+html[data-wc-mode] [ui-view='mail'] .sg-list-item.selected {
+  background-color: var(--sogo-accent) !important;
+  color: var(--sogo-accent-ink) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Chrome
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode] table,
+html[data-wc-mode] thead,
+html[data-wc-mode] tbody,
+html[data-wc-mode] tr,
+html[data-wc-mode] td,
+html[data-wc-mode] th {
+  background-color: var(--sogo-surface) !important;
+  color: var(--sogo-text) !important;
+  border-color: var(--sogo-border) !important;
+}
+
+html[data-wc-mode] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[data-wc-mode] ::-webkit-scrollbar-track {
+  background: var(--sogo-surface);
+}
+
+html[data-wc-mode] ::-webkit-scrollbar-thumb {
+  background: var(--sogo-surface-sunken);
+  border-radius: 5px;
+}
+
+/* ---------------------------------------------------------------------------
+ * The one surface that is NOT restyled
+ *
+ * A message body carries the sender's own HTML. Recolouring it would be
+ * re-purposing content rather than the application's chrome (BR-6.3), and a
+ * dark background behind a message written for white would be unreadable. It is
+ * explicitly returned to SOGo's own default.
+ * ------------------------------------------------------------------------- */
+html[data-wc-mode] .sg-message-body,
+html[data-wc-mode] iframe.sg-message-body,
+html[data-wc-mode] .sg-message-body * {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}

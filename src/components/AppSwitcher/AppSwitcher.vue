@@ -43,6 +43,22 @@
           @activate="activateIndicator"
         />
       </div>
+      <!--
+        One options menu per application, directly beneath its own indicator, so
+        each column of the rail reads: icon, status, options. The menu controls
+        *that* application's frame — reload it, open it in a real tab, copy where
+        it is, or ask what its health check last said (design.md D-7).
+      -->
+      <div class="wc-switcher__menu-row" role="group" :aria-label="$t('switcher.menu.group')">
+        <AppMenuButton
+          v-for="app in apps"
+          :key="app.id"
+          :app="app"
+          :url="urlFor(app.id)"
+          @reload="reloadPane"
+          @show-health="showPaneHealth"
+        />
+      </div>
       <span v-if="!collapsed" class="wc-switcher__status-label" aria-hidden="true">{{ $t('status.label') }}</span>
     </div>
   </div>
@@ -50,9 +66,11 @@
 
 <script>
 import AppSwitchButton from '@/components/AppSwitcher/AppSwitchButton.vue';
+import AppMenuButton from '@/components/AppSwitcher/AppMenuButton.vue';
 import StatusIndicator from '@/components/AppSwitcher/StatusIndicator.vue';
 import { APP_LIST } from '@/utils/apps/registry';
 import { appUrl } from '@/utils/apps/urls';
+import { getPaneAdapter } from '@/utils/Theming';
 import HealthService, { HEALTH } from '@/utils/health/HealthService';
 
 export default {
@@ -66,6 +84,7 @@ export default {
   emits: ['select', 'unavailable', 'focus-pane'],
   components: {
     AppSwitchButton,
+    AppMenuButton,
     StatusIndicator,
   },
   data() {
@@ -98,6 +117,24 @@ export default {
   methods: {
     healthFor(appId) {
       return this.healthService.forApp(appId);
+    },
+    /* Where the application currently is, falling back to its configured
+       address. The pane knows its own reported path — FileBrowser reports one as
+       the user moves — so Open in new tab and Copy link land on the view the
+       user is actually looking at rather than the application's front door. */
+    urlFor(appId) {
+      return getPaneAdapter(appId)?.url?.() || appUrl(this.appConfig, appId);
+    },
+    /* Reload one application's frame, wherever the user is inside it. The pane
+       registers this through the shell's adapter, so the switcher never reaches
+       into a frame itself (design.md D-T6). */
+    reloadPane(appId) {
+      getPaneAdapter(appId)?.refresh();
+    },
+    /* Reveal that application's health detail, which the pane owns because the
+       pane is what a health check is about. */
+    showPaneHealth(appId) {
+      getPaneAdapter(appId)?.toggleHealth?.();
     },
     /* Alt+1/2/3 reaches the three applications from anywhere in the shell
        (design.md D-2, U-12). Keys pressed inside a pane's iframe belong to that
@@ -191,6 +228,16 @@ export default {
   display: flex;
   align-items: center;
   width: 100%;
+}
+
+/* One options trigger per application, aligned under that application's
+   indicator. The row is deliberately quiet: three dots at rest, and the menu
+   only when asked for. */
+.wc-switcher__menu-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 0.1rem;
 }
 
 .wc-switcher__status-label {

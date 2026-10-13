@@ -4,7 +4,6 @@ import {
 import { shallowMount, mount } from '@vue/test-utils';
 import AppPane from '@/components/Panes/AppPane.vue';
 import PaneHost from '@/components/Panes/PaneHost.vue';
-import PaneOverflowMenu from '@/components/Panes/PaneOverflowMenu.vue';
 import { getApp } from '@/utils/apps/registry';
 import HealthService, { HEALTH } from '@/utils/health/HealthService';
 import { unregisterAllPanes } from '@/utils/Theming';
@@ -27,7 +26,7 @@ const mountPane = (props = {}, { shallow = true } = {}) => {
     },
     global: {
       mocks: { $t: (key, opts) => (opts ? `${key}` : key) },
-      stubs: shallow ? { PaneErrorCard: true, PaneOverflowMenu: true } : {},
+      stubs: shallow ? { PaneErrorCard: true } : {},
     },
   });
 };
@@ -169,33 +168,5 @@ describe('PaneHost', () => {
     const active = panes.filter((pane) => pane.props('isActive'));
     expect(active).toHaveLength(1);
     expect(active[0].props('app').id).toBe('chat');
-  });
-});
-
-describe('the pane overflow menu', () => {
-  it('offers reload, open in a new tab and copy link, and hides health from a non-admin', async () => {
-    const w = mount(PaneOverflowMenu, {
-      props: { url: 'https://filebrowser.example.com', appName: 'Files' },
-      global: { mocks: { $t: (k) => k, $toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) } },
-    });
-    await w.find('.wc-pane-menu__trigger').trigger('click');
-    const text = w.text();
-    expect(text).toContain('pane.overflow.reload');
-    expect(text).toContain('pane.overflow.open');
-    expect(text).toContain('pane.overflow.copy');
-    expect(text).not.toContain('pane.overflow.health');
-  });
-
-  it('is reachable by keyboard and closes on Escape, restoring focus', async () => {
-    const w = mount(PaneOverflowMenu, {
-      props: { url: 'https://filebrowser.example.com', appName: 'Files' },
-      global: { mocks: { $t: (k) => k, $toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) } },
-    });
-    const trigger = w.find('.wc-pane-menu__trigger');
-    expect(trigger.attributes('aria-expanded')).toBe('false');
-    await trigger.trigger('click');
-    expect(trigger.attributes('aria-expanded')).toBe('true');
-    await w.find('.wc-pane-menu').trigger('keydown.esc');
-    expect(trigger.attributes('aria-expanded')).toBe('false');
   });
 });

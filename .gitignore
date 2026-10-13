@@ -21,12 +21,24 @@ compose.override.yaml
 **/data/
 **/logs/
 acme.json
-# Mailcow's own checkout, once its tooling has cloned it into Mailcow/. Its
-# nested .git would otherwise make this repository treat Mailcow/ as an embedded
-# repository. Workcenter's own files there stay tracked.
-/Mailcow/.git/
-/Mailcow/docker-compose.yml
-/Mailcow/mailcow.conf
+# Mailcow's own checkout, once its tooling has cloned it into Mailcow/. The tree
+# is upstream's, not this project's, so the clone is ignored whole rather than
+# file by file — a list of names has to be maintained against every upstream
+# release, and the one thing it must never do is let the clone's contents be
+# committed as though Workcenter had written them. Its nested .git would
+# additionally make this repository treat Mailcow/ as an embedded repository.
+#
+# `/*` and not `/`: Mailcow/ itself has to stay traversable, because a negation
+# can only re-include a path whose parent directories are not themselves excluded.
+/Mailcow/*
+# The three files Workcenter authors for the deployment, and the only ones that
+# belong in this repository. `sogo-custom/` is Workcenter's own directory — the
+# clone does not carry it — so the directory is re-included along with the file,
+# since re-including the file alone is not enough to reach it.
+!/Mailcow/docker-compose.override.yml
+!/Mailcow/mailcow.conf.example
+!/Mailcow/sogo-custom/
+!/Mailcow/sogo-custom/workcenter-theme.js
 # Application runtime state that the deployment folders bind-mount.
 OnlyOffice/lib/
 OnlyOffice/db/
@@ -131,3 +143,10 @@ yarn-error.log*
 # Generated per run by scripts/e2e.sh: the local test CA mounted into Mailcow's
 # php-fpm, which is where the OIDC exchange happens. Never committed.
 Mailcow/docker-compose.test.yml
+
+# The developer's pull-request guidance and PR exclusion files which are ignored
+# as a directory. The directory is deliberately used to exclude all contents from
+# a PR. Within the gitignore folder is the PR-guide.md, which names the repository,
+# the base branch and authentication, and contains everything needed to push to
+# this project. Nothing inside gitignore-PR belongs in history or online repository.
+gitignore-PR/

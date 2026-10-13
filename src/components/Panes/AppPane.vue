@@ -47,16 +47,8 @@
       @retry="retry"
     />
 
-    <!-- The overflow menu is available in every state, including a failed one,
-         so the user always has a way out. Design.md D-7. -->
-    <PaneOverflowMenu
-      :url="paneUrl"
-      :appName="app.name"
-      @reload="reloadPane"
-      @show-health="showHealth = !showHealth"
-    />
-
-    <!-- Admin-only health detail, revealed from the overflow menu. -->
+    <!-- Admin-only health detail. Revealed from the application's own menu in
+         the switcher, which is where a control acting on the frame now lives. -->
     <dl v-if="showHealth" class="wc-pane__health">
       <dt>{{ $t('status.tooltip.check') }}</dt>
       <dd>{{ health.check || $t('status.tooltip.never-checked') }}</dd>
@@ -69,7 +61,6 @@
 <script>
 import AppMark from '@/components/AppMark.vue';
 import PaneErrorCard from '@/components/Panes/PaneErrorCard.vue';
-import PaneOverflowMenu from '@/components/Panes/PaneOverflowMenu.vue';
 import HealthService, { HEALTH } from '@/utils/health/HealthService';
 import { registerPane } from '@/utils/Theming';
 import { sanitizeUrl } from '@/utils/Sanitizer';
@@ -98,7 +89,6 @@ export default {
   components: {
     AppMark,
     PaneErrorCard,
-    PaneOverflowMenu,
   },
   data() {
     return {
@@ -209,6 +199,12 @@ export default {
       origin: this.origin,
       getWindow: () => this.$refs.frame?.contentWindow || null,
       refresh: () => this.refreshAtReportedPath(),
+      /* Where the frame currently is, so the switcher can open or copy it
+         without reaching into a cross-origin document. */
+      url: () => this.paneUrl,
+      /* The admin health panel is the pane's, because a health check is about
+         the pane; the switcher's menu is what asks for it. */
+      toggleHealth: () => { this.showHealth = !this.showHealth; },
     });
   },
   beforeUnmount() {
