@@ -140,7 +140,17 @@
   "switcher": {
     "label": "Applications",
     "unavailable": "{app} is not configured. Set its address in appConfig.applications.",
-    "shortcut-hint": "Alt+1 Files, Alt+2 Chat, Alt+3 Mail"
+    "shortcut-hint": "Alt+1 Files, Alt+2 Chat, Alt+3 Mail",
+    "menu": {
+      "label": "Options for {app}",
+      "group": "Application options",
+      "reload": "Reload",
+      "open": "Open in new tab",
+      "copy": "Copy link to this view",
+      "copied": "Link copied",
+      "copy-failed": "Could not copy the link",
+      "health": "Show health detail"
+    }
   },
   "status": {
     "label": "Status",
@@ -162,15 +172,6 @@
     "retry": "Retry",
     "open-new-tab": "Open in new tab",
     "loading-hint": "This is taking longer than usual. The application may be starting up.",
-    "overflow": {
-      "label": "Pane options",
-      "reload": "Reload pane",
-      "open": "Open in new tab",
-      "copy": "Copy link to this view",
-      "copied": "Link copied",
-      "copy-failed": "Could not copy the link",
-      "health": "Show health detail"
-    },
     "reason": {
       "unavailable": {
         "title": "{app} is not responding",

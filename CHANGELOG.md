@@ -778,6 +778,17 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    the outside the page is simply unreachable — indistinguishable from a wrong password. The harness now
    sets it and prints it **under its own heading**, so it cannot be mistaken for the SSO identity.
 
+ - **The pane's floating options button is gone; the menu lives in the app switcher.** A control that
+   acted on the frame — reload, open in a tab, copy the link, show health — was drawn over the pane at
+   its top-right corner, which is where an embedded application puts its own toolbar. It read as part
+   of the page and covered it. It is removed rather than hidden: the component, its stylesheet, its
+   locale keys and its tests are deleted, and the behaviour is rebuilt under each application in the
+   switcher, behind three dots below that application's status indicator. The dots are drawn in CSS
+   rather than set in an icon font, because they are the control's only affordance and Font Awesome is
+   a network dependency. The menu is teleported to the body: the rail is `overflow: hidden` and
+   narrower than the menu, so an absolutely positioned popover inside it was clipped, and no z-index
+   can escape a clipping ancestor.
+
 ### Bugfixes
  - **`scripts/e2e.sh --down` could leave a Workcenter server running.** The script stopped only the
    pid it had recorded, so a server started by hand, or by a run whose pid file had since been
@@ -1186,6 +1197,25 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    Zulip has **no group-claim gate** — `invite_required` and the email-domain restriction are the only
    two, and neither reads a claim — so there is nothing to configure that would restrict membership by
    `groups`. Authentik decides, Zulip admits.
+
+
+ - **Mailcow's SOGo is themed to the Workcenter palette, and the step is the harness's.** SOGo 5.12
+   ships one light theme, so a Mail pane inside a dark shell was a bright white rectangle in the middle
+   of the workspace. The mechanism is the only UI-extension hook SOGo has — a file listed in
+   `SOGoUIAdditionalJSFiles` that links a stylesheet and selects `html[data-wc-mode]` from the shell's
+   `wc_mode` cookie. `scripts/e2e.sh` substitutes that hook's two tokens, checks the stylesheet is
+   actually served, registers the hook, and restarts `sogo-mailcow` — because `bootstrap-sogo.sh`
+   republishes SOGo's web resources only at container start, so without the restart the registration is
+   correct and nothing appears. This is the same work `setup.sh --brand` will do in production.
+
+   The hook lives in `Mailcow/sogo-custom/`, outside Mailcow's git tree, so `update.sh` cannot touch it.
+   The registration is inside Mailcow's tracked `data/conf/sogo/`, which `update.sh` merges with
+   `-X theirs` — which is why the step re-applies it on every run rather than once (IN-6.25).
+
+   The stylesheet's selectors are SOGo's own, read out of the stylesheets SOGo actually serves rather
+   than invented: it is AngularJS Material, so its surfaces are `md-*` elements, its views switch on
+   `[ui-view=…]`, and the sign-in view is `#loginScreen`/`#loginContent`. Message bodies are
+   deliberately excluded — recolouring a sender's HTML is re-purposing content, not chrome (BR-6.3).
 
 ### Documentation
  - **Documentation organized by subject.** Four documents live at the repository root —

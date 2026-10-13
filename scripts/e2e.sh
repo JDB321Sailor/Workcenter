@@ -1021,6 +1021,171 @@ ensure_mailcow_identity() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# SOGo's appearance
+#
+# SOGo 5.12 ships one light theme, no dark mode and no appearance setting, so the
+# Workcenter palette has to be *supplied*. The mechanism is the only UI-extension
+# hook SOGo has: a JavaScript file listed in its own `SOGoUIAdditionalJSFiles`,
+# which links the stylesheet and selects the mode (integration.md IN-6.22/IN-6.23,
+# roadmap I-MC-11/I-MC-12).
+#
+# This step is the same work `setup.sh --brand` will do in production, which is
+# the point of doing it here: the harness is where it is proved that the step
+# works, and the two must not drift into two different deployments.
+#
+# Three things, and the third is the one that is easy to miss:
+#
+#   1. **Substitute the hook's two tokens.** They are placeholders in the tracked
+#      file, so an un-substituted hook is inert by design — it must never guess an
+#      origin. The substituted copy is generated, never written over the tracked
+#      one, so `git status` stays clean and the file's provenance is obvious.
+#   2. **Register it.** `SOGoUIAdditionalJSFiles` is an SOGo default, so it lives
+#      in Mailcow's own `sogo.conf` — and the documented preference is to append
+#      to `data/conf/sogo/custom-sogo.js`, which that list already loads: no
+#      configuration key is edited and no tracked file changes.
+#   3. **Restart `sogo-mailcow`.** `bootstrap-sogo.sh` rsyncs SOGo's web resources
+#      into nginx's volume **at container start**, so until it restarts the hook
+#      is not in the tree nginx serves and the change appears to have done nothing
+#      (IN-6.26, P-32).
+#
+# Surviving a Mailcow update: the hook itself lives in `Mailcow/sogo-custom/`,
+# outside Mailcow's git tree, so `update.sh` cannot touch it. The registration is
+# inside `data/conf/sogo/`, which Mailcow *does* track and merges with `-X theirs`
+# — so it is re-applied by every run, which is what makes this idempotent rather
+# than fragile (IN-6.25).
+ensure_sogo_appearance() {
+  step 'SOGo appearance'
+  local dir="${ROOT_DIR}/Mailcow"
+  local source="${ROOT_DIR}/Mailcow/sogo-custom/workcenter-theme.js"
+  local stylesheet="${BASE_URL}/sogo/workcenter-sogo.css"
+  local custom_sogo="${dir}/data/conf/sogo/custom-sogo.js"
+  local begin='/* >>> workcenter appearance >>> */'
+  local end='/* <<< workcenter appearance <<< */'
+
+  if [[ ! -f "${source}" ]]; then
+    warn "the SOGo appearance hook is missing: ${source#"${ROOT_DIR}/"}"
+    return 0
+  fi
+  if [[ "${DO_DRY_RUN}" -eq 1 ]]; then
+    printf '   would install the SOGo appearance hook and register it\n'
+    return 0
+  fi
+
+  # 1. The substituted hook. `WORKCENTER_ORIGIN` is the only accepted sender of a
+  #    mode message, so it is the shell's own origin and nothing else.
+  #
+  #    Substituted **in place**, because that is the path
+  #    `Mailcow/docker-compose.override.yml` mounts — a copy elsewhere would be
+  #    generated, recorded and then never read. It is a *modification*, not a
+  #    creation, so it uses `record_backup`: `--down` puts the tracked file back
+  #    exactly as it was, and the placeholders return with it.
+  record_backup "${source}"
+  if grep -q '__WORKCENTER_ORIGIN__' "${source}"; then
+    sed -i -e "s|__WORKCENTER_ORIGIN__|${BASE_URL}|g" \
+           -e "s|__WORKCENTER_STYLESHEET_URL__|${stylesheet}|g" "${source}"
+  elif ! grep -qF "${stylesheet}" "${source}"; then
+    # A re-run after the domain changed: re-substitute from the tracked original
+    # is not possible once the tokens are gone, so the stylesheet URL is rewritten
+    # between its own quotes instead.
+    sed -i -e "s|var STYLESHEET_URL = '[^']*'|var STYLESHEET_URL = '${stylesheet}'|" "${source}"
+    sed -i -e "s|var WORKCENTER_ORIGIN = '[^']*'|var WORKCENTER_ORIGIN = '${BASE_URL}'|" "${source}"
+  fi
+  if grep -q '__WORKCENTER_' "${source}"; then
+    fail 'the SOGo appearance hook still holds placeholders after substitution'
+    return 1
+  fi
+  ok "SOGo appearance hook configured for ${BASE_URL}"
+
+  # 2. The stylesheet has to exist where the hook points, or the pane silently
+  #    keeps SOGo's own appearance. The shell serves `public/` verbatim.
+  local css_rel="public/sogo/workcenter-sogo.css"
+  if [[ ! -f "${ROOT_DIR}/${css_rel}" ]]; then
+    fail "the SOGo stylesheet is missing: ${css_rel}"
+    return 1
+  fi
+  if curl -sS -o /dev/null -w '%{http_code}' "${CURL_BASE[@]}" \
+      --resolve "${WORKCENTER_HOST}:443:127.0.0.1" "${stylesheet}" 2>/dev/null | grep -qx '200'; then
+    ok "SOGo stylesheet served: ${stylesheet}"
+  else
+    warn "the shell does not serve ${stylesheet} yet: the pane will keep SOGo's own theme"
+  fi
+
+  # 3. Register it in `SOGoUIAdditionalJSFiles`.
+  #
+  #    This is the option that works, and the other one does not: the comment in
+  #    `docker-compose.override.yml` offers appending to `custom-sogo.js`, which
+  #    that list already loads — but SOGo 5.12 **bundles** the listed files into
+  #    one content-hashed `/cache/<hash>.js` at start, and a file appended to
+  #    `custom-sogo.js` after that bundle exists is never picked up. Measured: the
+  #    served bundle contained neither Mailcow's own `mc_logout` hook nor anything
+  #    of Workcenter's, and the page referenced the same hash before and after the
+  #    restart. Adding the file to the list itself puts it in the bundle.
+  #
+  #    The list is an SOGo default in `data/conf/sogo/sogo.conf` — inside Mailcow's
+  #    tracked tree, which `update.sh` merges with `-X theirs`. That is why this
+  #    runs on every invocation rather than once: the registration is expected to
+  #    be lost by an upgrade, and re-applying it is what makes the step idempotent
+  #    instead of fragile (IN-6.25).
+  local sogo_conf="${dir}/data/conf/sogo/sogo.conf"
+  local entry='js/workcenter-theme.js'
+  if [[ ! -f "${sogo_conf}" ]]; then
+    warn "SOGo's own configuration is missing: ${sogo_conf#"${ROOT_DIR}/"}"
+    return 0
+  fi
+  if grep -qF "${entry}" "${sogo_conf}"; then
+    info "the SOGo appearance hook is already in SOGoUIAdditionalJSFiles"
+  else
+    record_backup "${sogo_conf}"
+    local conf_tmp
+    conf_tmp="$(mktemp)"
+    # Insert the entry before the list's closing paren, keeping the existing
+    # entries and the trailing comma style.
+    awk -v entry="${entry}" '
+      BEGIN { inlist = 0; prev = "" }
+      /SOGoUIAdditionalJSFiles[[:space:]]*=[[:space:]]*\(/ { inlist = 1; print; next }
+      inlist && /^[[:space:]]*[,)]/ {
+        # The final entry of the list carries no trailing comma, so the new one
+        # cannot simply be appended: without this the previous entry loses its
+        # separator and SOGo refuses the whole configuration.
+        if (prev != "" && prev !~ /,[[:space:]]*$/) print prev ","
+        else if (prev != "") print prev
+        print "      " entry
+        inlist = 0
+        print
+        next
+      }
+      inlist { if (prev != "") print prev; prev = $0; next }
+      { print }
+    ' "${sogo_conf}" >"${conf_tmp}"
+    if grep -qF "${entry}" "${conf_tmp}" && cat "${conf_tmp}" >"${sogo_conf}" 2>/dev/null; then
+      ok "SOGo appearance hook registered in SOGoUIAdditionalJSFiles"
+    else
+      warn "could not register the SOGo appearance hook in ${sogo_conf}"
+    fi
+    rm -f "${conf_tmp}"
+  fi
+
+  # 4. Restart SOGo so bootstrap-sogo.sh republishes the web resources. Without
+  #    this the registration is correct and nothing appears, which reads as a
+  #    broken theme rather than a missing restart.
+  if compose_sogo restart >/dev/null 2>&1; then
+    ok 'sogo-mailcow restarted: the hook is in the tree nginx serves'
+  else
+    warn 'could not restart sogo-mailcow; the appearance change will not appear'
+  fi
+}
+
+# Mailcow runs as its own Compose project, so its services are not in the
+# workcenter project the harness otherwise drives.
+compose_sogo() {
+  local -a files=(--file "${ROOT_DIR}/Mailcow/docker-compose.yml"
+    --file "${ROOT_DIR}/Mailcow/docker-compose.override.yml")
+  [[ -f "${ROOT_DIR}/Mailcow/docker-compose.test.yml" ]] \
+    && files+=(--file "${ROOT_DIR}/Mailcow/docker-compose.test.yml")
+  (cd "${ROOT_DIR}/Mailcow" && docker compose --project-name mailcow "${files[@]}" "$@")
+}
+
 ensure_mount_points() {
   step 'Mount points'
   local dirs=(
@@ -3831,6 +3996,10 @@ main() {
   # is fatal (IN-3.6). What is left here is Mailcow, which is an OIDC client like
   # the others but runs its own project and its own database.
   ensure_mailcow_identity
+  # The same work `setup.sh --brand` will do in production: SOGo 5.12 has no
+  # theme setting, so the Workcenter palette is supplied through the one UI
+  # hook it has (IN-6.22, I-MC-11).
+  ensure_sogo_appearance
   # Before the checks, because several of them read the Chat host: an organization
   # is what makes that host serve anything at all (IN-5.30), and the test admin
   # belongs to it (IN-5.31).
