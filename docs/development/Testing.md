@@ -468,6 +468,44 @@ as public DNS would.
 | `stat` of the source directory **inside both** the Workcenter and Filebrowser containers | The shared-disk contract ([`integration.md` IN-9.6](../architecture/integration.md), [`broker.md` §5.3](../architecture/broker.md)): the same device and inode, not two directories that merely look alike |
 | The image's OCI title label | The built image carries the metadata the registry and the deployment expect |
 
+#### The Mail pane's appearance, and how it is verified
+
+SOGo 5.12 has no dark mode and no appearance setting, so the Workcenter palette is
+**supplied**: `Mailcow/sogo-custom/workcenter-theme.js` reads the shell's `wc_mode`
+cookie, sets `data-wc-mode` on `<html>` before first paint, and links
+`public/sogo/workcenter-sogo.css`, which is served by the shell. The hook is
+mounted into SOGo's web resources by `Mailcow/docker-compose.override.yml` and
+registered in `SOGoUIAdditionalJSFiles` in `Mailcow/data/conf/sogo/sogo.conf`.
+
+`scripts/e2e.sh` performs that whole step — substitute the hook's two tokens, check
+the stylesheet is served, register the hook, restart `sogo-mailcow` — and then
+checks it, on every run, in `check_sogo_theme`. The check is **structural**, and
+that is a deliberate choice rather than a shortcut:
+
+| What it checks | What it proves |
+| --- | --- |
+| The hook is served and its tokens are substituted | An un-substituted hook is inert by design, so this is the difference between "deployed" and "deployed and doing something" |
+| The stylesheet is served and declares **both** modes | The shell has both; the Mail pane must not be the one pane that ignores the choice |
+| The hook is registered in `SOGoUIAdditionalJSFiles` | SOGo loads it at all — measured, the alternative the compose override offers (appending to `custom-sogo.js`) does nothing |
+| Every selector the stylesheet uses still exists in SOGo's own `styles.css` | **The one that catches a SOGo upgrade.** A theme is a set of overrides, and an override whose selector no longer matches fails silently and looks exactly like success |
+
+**Why the check does not fetch the page and look for the hook.** It cannot, and
+the reason is worth recording so nobody tries again. `/cache/<hash>.js` is
+Mailcow's own AngularJS build: nginx's `try_files` falls through to `resource.php`
+in **php-fpm**, which returns `/tmp/<basename>`. That bundle is not produced by
+SOGo, does not carry `SOGoUIAdditionalJSFiles` — Mailcow's own `mc_logout` is
+absent from it too — and is byte-identical across restarts. The additional JS files
+load in the **authenticated** application, so an unauthenticated request for
+`/SOGo/` carries exactly one script and can never show the hook.
+
+The Mail pane's sign-in is separately proven end to end: the harness walks the
+whole OIDC round trip from Mailcow's own entry point and asserts the landing URL is
+`/SOGo/so/<address>/Mail/view`, so the session belongs to the account that asked
+for it (`--sso-entry`, below).
+
+**Out of scope.** Mailcow's own sign-in page and its administration pages are not
+themed. The Mail *pane* is SOGo, and SOGo's pages are the only in-scope surfaces.
+
 #### Teardown, and what it leaves
 
 `--down` stops the compose stack (containers, networks and volumes, by project label), stops Mailcow in

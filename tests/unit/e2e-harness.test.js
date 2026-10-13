@@ -671,3 +671,41 @@ describe('the provisioning library', () => {
     expect(library).toContain("local client_type='confidential'");
   });
 });
+
+describe('the SOGo theme check', () => {
+  it('asserts the hook, the stylesheet, the registration and the selectors', () => {
+    /* A theme is a set of CSS overrides, and an override whose selector no longer
+       matches fails silently and looks exactly like success. The selectors were
+       read out of the stylesheets SOGo 5.12 serves; this asserts that the check
+       still compares them against SOGo rather than trusting the list. */
+    expect(script).toMatch(/check_sogo_theme\(\)/);
+    expect(script).toMatch(/SOGo theme: the hook is served and configured/);
+    expect(script).toMatch(/SOGo theme: the stylesheet declares both modes/);
+    expect(script).toMatch(/SOGo theme: the hook is registered in SOGoUIAdditionalJSFiles/);
+    expect(script).toMatch(/SOGo theme: every selector the stylesheet uses still exists in SOGo/);
+    expect(script).toMatch(/for selector in 'md-content' 'md-dialog' 'md-toolbar' 'md-button' 'ui-view'/);
+  });
+
+  it('does not look for the hook in the bundle SOGo does not put it in', () => {
+    /* Measured, and it is the trap this check exists to avoid: `/cache/<hash>.js`
+       is Mailcow's own AngularJS build, served by nginx's `try_files` falling
+       through to `resource.php` in **php-fpm**, which returns `/tmp/<basename>`.
+       It is not produced by SOGo, it does not carry `SOGoUIAdditionalJSFiles` —
+       Mailcow's own `mc_logout` is absent from it too — and it is byte-identical
+       across restarts. The additional JS files load in the authenticated app, so
+       an unauthenticated fetch of `/SOGo/` can never show the hook. */
+    /* Bounded from the comment block above the function to its own closing brace,
+       so the slice cannot drift into the functions after it. */
+    const start = script.indexOf('# Does the theme still apply?');
+    const from = script.indexOf('check_sogo_theme() {', start);
+    const to = script.indexOf('\n}\n', from);
+    const check = script.slice(start, to);
+    expect(from).toBeGreaterThan(-1);
+    expect(to).toBeGreaterThan(from);
+    /* The comment above the function *names* `/cache/` — that is the explanation
+       of the trap. What must not is the code: no fetch may target it. */
+    const code = check.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+    expect(code).not.toMatch(/\/cache\//);
+    expect(check).toMatch(/the hook loads matters/);
+  });
+});

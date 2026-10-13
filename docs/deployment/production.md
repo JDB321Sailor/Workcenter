@@ -505,8 +505,49 @@ are in [`integration.md`](../architecture/integration.md).
 | Application | Written |
 | --- | --- |
 | FileBrowser Quantum | `frontend.name`, `frontend.favicon`, `frontend.loginIcon`, `frontend.styling.lightBackground`, `frontend.styling.darkBackground`, `frontend.styling.customCSS`, `userDefaults.ui.darkMode: true`, `userDefaults.ui.themeColor` in `Filebrowser/config.yaml`, plus the stylesheet it points at |
-| SOGo | `Mailcow/data/conf/sogo/workcenter-sogo.css` (the Workcenter palette in both modes), a delimited Workcenter block appended to `Mailcow/data/conf/sogo/custom-sogo.js`, the mount for the stylesheet in `Mailcow/docker-compose.override.yml`, and `custom-fulllogo.svg` / `custom-shortlogo.svg` |
+| SOGo | `public/sogo/workcenter-sogo.css` (the Workcenter palette in both modes, **served by the shell**), the two tokens substituted into `Mailcow/sogo-custom/workcenter-theme.js`, that hook mounted into SOGo's web resources by `Mailcow/docker-compose.override.yml`, the hook added to `SOGoUIAdditionalJSFiles` in `Mailcow/data/conf/sogo/sogo.conf`, and `custom-fulllogo.svg` / `custom-shortlogo.svg` |
 | Mailcow UI | `Mailcow/data/web/css/build/0081-custom-mailcow.css` and `$UI_THEME` in `Mailcow/data/web/inc/vars.local.inc.php` |
+
+#### SOGo: what the row above means, and the two traps in it
+
+SOGo 5.12 ships one light theme, no dark mode and no appearance setting, so the
+Workcenter palette is **supplied** from outside it. The mechanism is the only
+UI-extension hook SOGo has: a JavaScript file listed in `SOGoUIAdditionalJSFiles`
+that links the stylesheet and selects on `html[data-wc-mode]`, which it reads from
+the shell's `wc_mode` cookie. `scripts/e2e.sh` performs the whole step and is the
+worked reference for it; `setup.sh --brand` must do the same four things:
+
+1. substitute `__WORKCENTER_ORIGIN__` and `__WORKCENTER_STYLESHEET_URL__` in the
+   hook, in place — that path is what the compose override mounts, so a copy
+   elsewhere is generated, recorded and never read;
+2. confirm the stylesheet is actually served by the shell;
+3. add `js/workcenter-theme.js` to `SOGoUIAdditionalJSFiles`;
+4. restart `sogo-mailcow`, because `bootstrap-sogo.sh` republishes SOGo's web
+   resources only at container start.
+
+**Two approaches that look right and are not.** Both were tried and measured, and
+neither is a matter of taste:
+
+* **Appending a block to `Mailcow/data/conf/sogo/custom-sogo.js` does nothing.**
+  That file *is* on `SOGoUIAdditionalJSFiles`, so it reads as the obvious place,
+  and the comment in `Mailcow/docker-compose.override.yml` offers it. It has no
+  effect on the page.
+* **Do not look for the hook in `/cache/<hash>.js`.** That bundle is Mailcow's own
+  AngularJS build: nginx's `try_files` falls through to `resource.php` in
+  **php-fpm**, which returns `/tmp/<basename>`. It is not produced by SOGo, it
+  does not carry `SOGoUIAdditionalJSFiles` — Mailcow's own `mc_logout` is absent
+  from it too — and it is byte-identical across restarts.
+
+**Where the hook does load** is the authenticated SOGo application, not the sign-in
+page. An unauthenticated fetch of `/SOGo/` carries exactly one script and will
+never show the hook; that is why the harness verifies the hook, the stylesheet and
+the registration structurally rather than by fetching the page.
+
+**Surviving a Mailcow upgrade.** The hook lives in `Mailcow/sogo-custom/`, outside
+Mailcow's git tree, so `update.sh` cannot touch it. The registration is inside
+Mailcow's tracked `data/conf/sogo/`, which `update.sh` merges with `-X theirs` —
+so re-apply it after an upgrade. Re-applying is idempotent, which is why both the
+harness step and `setup.sh --brand` run it on every invocation rather than once.
 
 **Applied after health (APIs):**
 

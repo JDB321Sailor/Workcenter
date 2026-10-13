@@ -1176,6 +1176,110 @@ ensure_sogo_appearance() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# Does the theme still apply?
+#
+# The step above deploys the hook; this is what proves it is still wired to a
+# stylesheet SOGo can actually use, and it runs on every invocation.
+#
+# **Where the hook loads matters, and it is not the login page.** SOGo's
+# `SOGoUIAdditionalJSFiles` are loaded by the authenticated application, so a
+# request for `/SOGo/` proves nothing about them — measured: the unauthenticated
+# page carries exactly one script, a content-hashed `/cache/<hash>.js`, and that
+# bundle is Mailcow's own AngularJS build. It is served by nginx's
+# `try_files` falling through to `resource.php` in **php-fpm**, which returns
+# `/tmp/<basename>` — so it is not produced by SOGo at all, and it contains
+# neither Workcenter's hook nor Mailcow's own `mc_logout`. Checking for the hook
+# there would always fail; checking it structurally is what is honest.
+#
+# What is checked here is therefore that the three things the theme needs are
+# still in place, plus the one thing a SOGo upgrade would silently break:
+#
+#   1. the hook is served, and its tokens are substituted — an un-substituted
+#      hook is inert by design, so this is the difference between "deployed" and
+#      "deployed and doing something";
+#   2. the stylesheet is served by the shell and declares **both** modes, because
+#      the shell has both and the Mail pane is the one pane that would not follow;
+#   3. the registration is present, so SOGo loads the hook at all;
+#   4. **the stylesheet still names classes SOGo actually uses.** The selectors
+#      were read out of SOGo's own stylesheets; a SOGo upgrade that renames them
+#      would leave the theme matching nothing and reporting success. This is the
+#      check that fails when the theme quietly stops working.
+check_sogo_theme() {
+  step 'SOGo theme'
+  local hook_url="https://${MAIL_HOST}/SOGo.woa/WebServerResources/js/workcenter-theme.js"
+  local css_url="${BASE_URL}/sogo/workcenter-sogo.css"
+  local failures=0
+
+  # 1. The hook, served and substituted.
+  local hook
+  hook="$(curl -sS "${CURL_BASE[@]}" --resolve "${MAIL_HOST}:443:127.0.0.1" "${hook_url}" 2>/dev/null || true)"
+  if [[ -z "${hook}" ]]; then
+    fail "the SOGo appearance hook is not served at ${hook_url}"
+    failures=$((failures + 1))
+  elif grep -q '__WORKCENTER_' <<<"${hook}"; then
+    fail 'the SOGo appearance hook still holds placeholders: it is inert'
+    failures=$((failures + 1))
+  elif ! grep -qF "${BASE_URL}" <<<"${hook}"; then
+    fail "the SOGo appearance hook does not name ${BASE_URL} as the shell"
+    failures=$((failures + 1))
+  else
+    ok "SOGo theme: the hook is served and configured"
+  fi
+
+  # 2. The stylesheet, served, both modes, and pointing at the hook's origin.
+  local css
+  css="$(curl -sS "${CURL_BASE[@]}" --resolve "${WORKCENTER_HOST}:443:127.0.0.1" "${css_url}" 2>/dev/null || true)"
+  if [[ -z "${css}" ]]; then
+    fail "the SOGo stylesheet is not served at ${css_url}"
+    failures=$((failures + 1))
+  else
+    local missing=''
+    grep -qF "html[data-wc-mode='dark']" <<<"${css}" || missing='dark'
+    grep -qF "html[data-wc-mode='light']" <<<"${css}" || missing="${missing} light"
+    if [[ -n "${missing}" ]]; then
+      fail "the SOGo stylesheet does not define:${missing}"
+      failures=$((failures + 1))
+    else
+      ok 'SOGo theme: the stylesheet declares both modes'
+    fi
+  fi
+
+  # 3. The registration.
+  local sogo_conf="${ROOT_DIR}/Mailcow/data/conf/sogo/sogo.conf"
+  if grep -qF 'js/workcenter-theme.js' "${sogo_conf}" 2>/dev/null; then
+    ok 'SOGo theme: the hook is registered in SOGoUIAdditionalJSFiles'
+  else
+    fail "the SOGo appearance hook is not registered in ${sogo_conf#"${ROOT_DIR}/"}"
+    failures=$((failures + 1))
+  fi
+
+  # 4. The selectors still exist in SOGo's own stylesheets. This is the one that
+  #    catches a SOGo upgrade, and it is why the class list is asserted rather
+  #    than assumed: the theme is a set of overrides, and an override whose
+  #    selector no longer matches fails silently and looks like success.
+  local sogo_css
+  sogo_css="$(curl -sS "${CURL_BASE[@]}" --resolve "${MAIL_HOST}:443:127.0.0.1" \
+    "https://${MAIL_HOST}/SOGo.woa/WebServerResources/css/styles.css" 2>/dev/null || true)"
+  if [[ -z "${sogo_css}" ]]; then
+    warn 'SOGo’s own stylesheet could not be read: the selector check was skipped'
+  else
+    local selector absent=''
+    for selector in 'md-content' 'md-dialog' 'md-toolbar' 'md-button' 'ui-view'; do
+      grep -qF "${selector}" <<<"${css}" || absent="${absent} ${selector}(ours)"
+      grep -qF "${selector}" <<<"${sogo_css}" || absent="${absent} ${selector}(SOGo)"
+    done
+    if [[ -n "${absent}" ]]; then
+      fail "the SOGo stylesheet and SOGo disagree about:${absent}"
+      failures=$((failures + 1))
+    else
+      ok 'SOGo theme: every selector the stylesheet uses still exists in SOGo'
+    fi
+  fi
+
+  return $(( failures > 0 ? 1 : 0 ))
+}
+
 # Mailcow runs as its own Compose project, so its services are not in the
 # workcenter project the harness otherwise drives.
 compose_sogo() {
@@ -3321,6 +3425,13 @@ for e in (\"'"${AUTHENTIK_TEST_ADMIN_EMAIL}"'\", \"'"${AUTHENTIK_TEST_USER_EMAIL
   else
     fail "Mail SSO: ${AUTHENTIK_TEST_ADMIN_EMAIL} did not complete the sign-in at ${MAIL_HOST}"
     fail "  the application served: $(jq -r '.landed // "nothing"' <<<"${mail_result}" 2>/dev/null || echo 'no result')"
+    CHECK_FAILURES=$((CHECK_FAILURES + 1))
+  fi
+
+  # The Mail pane's appearance, checked on every run. It belongs with the identity
+  # checks because it is the same question they ask — does the Mail pane actually
+  # work inside the shell — asked about the palette rather than the session.
+  if ! check_sogo_theme; then
     CHECK_FAILURES=$((CHECK_FAILURES + 1))
   fi
 
