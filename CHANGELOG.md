@@ -41,10 +41,44 @@ as described in [`contributions.md`](./docs/development/contributions.md).
 5. Never edit a released section. Released history is immutable; corrections are
    made in a new patch release.
 
+
 ### Example entry
 
+One example per section, so the shape of an entry is visible without opening a released
+section. **These are not real changes.** Each is written in the voice a real entry uses — what
+changed, and what a reader would notice — and each says outright that it is an example. Real
+entries go in `## [Unreleased]` below, never here.
+
 ```markdown
+### Security
+ - A vulnerability was discovered in this example security issue within the code. The example code was updated to remove this non-existent issue from the example text, while real security entries are entered into the changelog for documenting the security improvement.
+
+### New Features
+ - This example feature was added to show how a New Features entry reads. The example feature does not exist and adds nothing to Workcenter; a real entry here describes something an operator can actually turn on.
+
+### Improvements
+ - This example improvement describes a change to something that already worked. It is here to show the tone of an Improvements entry — a real one names what got better, and for whom.
+
+### Notes
+ - This example note records something an operator has to know rather than something that changed: a behaviour to expect, a default worth checking, or a step an upgrade needs. A real note is where a breaking change is announced.
+
+### Bugfixes
+ - This example defect was found and corrected in the example code, which does not exist. A real entry names the symptom a person would have seen, because that is what someone searching the changelog for their problem will recognise.
+
+### Documentation
+ - This example documentation change updates a page that had gone out of date. A real entry names the document, and what a reader will now find there that they did not before.
+
+### Deployment
+ - This example deployment change alters a compose file, a port, a volume or an image pin. A real entry says what an existing deployment has to do about it, not only what the file now says.
+
+### Dependencies
+ - This example dependency bump moves a pinned upstream image to a newer release. A real entry names the old pin and the new one, so a deployment can tell whether it is affected without opening the diff.
+
+```
+
 ## [Unreleased]
+
+### Security
 
 ### New Features
  - The Workcenter shell. The rail now carries an application switcher with one status indicator
@@ -66,207 +100,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
  - Configuration: `appConfig.applications` carries one address per application, validated by the
    schema. `appConfig.sections` is accepted but ignored, so an existing configuration still
    validates.
-
-### Improvements
- - **Every application pin moved to its current stable release, and the whole stack was re-verified
-   against them.** Traefik `v3.7` → `v3.7.14` (a full patch tag, so a release that ships tomorrow is a
-   decision rather than a surprise), Authentik `2024.12.3` → `2026.8.3`, FileBrowser Quantum
-   `2.0.9-beta` → `2.0.0-stable`, ONLYOFFICE Docs `8.2.2` → `9.4.0`. Zulip was already current at
-   `12.3-0`, which is also the pin `docker-zulip`'s own compose carries — including its four supporting
-   images, which are compatibility-bound to that release rather than free choices.
-
-   **FileBrowser moves to the stable series, and the version number goes *down*.** Upstream publishes
-   betas and stables side by side and the beta numbers run ahead (`2.0.9-beta`, `2.1.1-beta`) without
-   being newer releases; the stable line is cut on its own branch. `v2.0.0-stable` was published
-   2026-10-09, after `2.0.10-beta`, and is what `stable` and `latest` resolve to. Anyone reading the pin
-   as a downgrade should read [IN-3.1](docs/architecture/integration.md#3-filebrowser-quantum-files)
-   first.
-
-   Each upgrade was verified by running the harness against it, not by reading release notes: all 15
-   identity checks pass, every pane is routed, and the provisioning library creates every object on the
-   new API.
-
- - **The test environment needs no `sudo` at all, and `scripts/e2e.sh` refuses it.** A harness that
-   asks for root teaches people to run it as root, and then everything it generates belongs to root
-   and the *next* run needs root to replace its own files. The three things that genuinely need
-   privilege are one-time machine setup and now live in a separate script:
-
-   ```bash
-   sudo ./scripts/setup-testing.sh              # /etc/hosts, the trust store, file ownership
-   sudo ./scripts/setup-testing.sh --remove     # undo the first two
-   ```
-
-   `scripts/e2e.sh` fails immediately when it is run as root or under `sudo`, and `--hosts` and
-   `--trust-cert` now *report* whether the machine is ready for a browser instead of changing system
-   state. Nothing was lost: the checks reach the stack with `curl --resolve` and the CA in the
-   checkout, so a machine that has never run the setup script still gets every automated check.
-
-   Removing state that containers own no longer needs privilege either. A bind mount makes a
-   container's writes the *container's* uid on the host — Authentik's PostgreSQL data directory is
-   uid 65534 mode 0700 — so `--down` runs the removal in a throwaway container, which is root in its
-   own namespace and needs nothing from the host. The image is one the stack already deploys, so a
-   cleanup downloads nothing.
-
- - The switcher is a proper `tablist`, each pane is its `tabpanel`, and the indicators sit in a
-   labelled group that announces changes politely. The active application is signalled by an
-   accent underline, an accent icon and label, `aria-selected` and the roving `tabindex`, never by
-   colour alone.
- - Panes load when first shown rather than all at once, and a frame that never fires load is
-   reported after thirty seconds instead of spinning.
-
-### Removals
- - `src/components/Workspace/` — the sidebar that rendered the `sections` list, and the
-   URL-keyed iframe host it fed. The registry replaces both.
- - `src/components/LinkItems/ItemIcon.vue`, the last consumer of which was that sidebar.
- - Workcenter stripped down to the Workspace view. Workcenter now renders a single view: the
-   sidebar plus the embedded content surface. The Default view, the Minimal view and the
-   config-download view are deleted, along with the widget engine, the status and ping
-   monitoring subsystem, the tile grid and the in-app configuration editor.
- - The multi-tasking host is now the only content host, renamed from
-   `MultiTaskingWebComtent.vue` to `PaneHost.vue`, and its duplicate component name is
-   corrected.
- - The router has one view and four routes: `/`, `/files`, `/chat` and `/mail`, so each
-   application pane is deep-linkable. Unknown paths render the view rather than a second page.
- - The product is branded Workcenter throughout: package identity, document title, root
-   element, locales, Docker labels and image metadata, and every user-visible string.
-
-### Improvements
- - Branch model made explicit and enforced. Every pull request targets `Dev`; `Dev` is
-   promoted into `Beta` when production testing is ready, and `Beta` is promoted into
-   `Stable` when beta testing completes. A `Pull-request base branch` job in `ci.yml`
-   fails any pull request whose base is not `Dev`, unless its title starts with
-   `chore(release): promote`.
- - `PageStrcture/` is renamed to `PageStructure/`, correcting an inherited typo.
- - Prefixing is settled: Workcenter's own CSS classes, element ids and toast containers use
-   the `workcenter-` prefix.
- - SPA fallback: a GET for any non-asset path now renders the shell with **200** instead of
-   404. A request that looks like a missing static asset still reports 404, and non-GET
-   methods still fall through to 404.
- - `user-data/conf.yml` is rewritten as the Workcenter example: one section per integrated
-   application, plus the admin surfaces, with an Authentik OIDC block.
-
-### Notes
-
-
-
- - **`--down` reported the operator's own `.env` as a leftover.** `.env` is the one generated file an
-   operator is invited to edit, so its existence proves nothing; it is a leftover only when a manifest
-   says a run created it. The check was bare existence, so every teardown of a checkout the harness had
-   ever bootstrapped warned about a file whose recording manifest belonged to a run directory long since
-   deleted. It now consults the manifests and says which case it is:
-
-   ```
-   ℹ .env was not created by a run: kept
-   ```
-
-
-
- - **A test now fails when an icon the application asks for is not there.**
-   `public/manifest.json`, `index.html` and `vite.config.mjs` each name icon files by path, and nothing
-   between them and a 404 checked that the path resolved: a missing favicon is a blank tab icon, and a
-   missing manifest icon is a browser that quietly declines to install the app. The files *were* deleted
-   while every reference stayed behind, and nothing failed — not the build, not the suite, not the
-   console. `tests/unit/app-icons.test.js` checks that each named icon exists, that it is the size its
-   manifest entry claims (an overstated size installs a blurry app icon), and that it carries an alpha
-   channel, which is what an icon still holding its white corners would not.
-
-
- - **The harness now signs in the way an application starts it, and asserts where it lands.**
-   `oidc-login.mjs` gained `--sso-entry`, `--expect` and `--print-body`: it begins at the application's
-   own sign-in link, carries the session cookie the application stored its `state` in, runs the provider's
-   flow, and follows the callback back. A verifier that starts at the provider exercises neither half of
-   that, which is exactly the gap that let this ship.
-
-   The assertion is the **landing URL**, not the status code. Mailcow sends a signed-in user to
-   `/SOGo/so/<address>/Mail/view`, so the address appearing there is proof the session belongs to that
-   account; "we got a 200" is equally satisfied by the application's own login page, which is what the
-   failure looked like. The run now reports:
-
-   ```
-   ✔ Mail SSO: admin@wc.test landed inside SOGo (/SOGo/so/admin@wc.test/Mail/view)
-   ✔ Mail SSO: user@wc.test landed in their own mailbox
-   ```
-
-
-
- - **Both admin links in the user menu pointed at the wrong thing.** The dashboard link was the bare
-   `traefik.` host, and the ingress routes only `/dashboard` and `/api` there — so it matched no router
-   and returned a **404**, which reads exactly like the dashboard being down. It now carries
-   `/dashboard/`. The Mail link labelled "Mail admin" pointed at the **Mail pane** (`/SOGo`, the user's
-   own mail) rather than `/admin`, where the deployment is actually administered; it now derives the
-   mail host and appends `/admin`.
-
- - **`--force-recreate` was applied to the project instead of to the services it is about, and the cost
-   was measurable.** `up -d` already recreates any service whose *configuration* changed — image,
-   environment, labels, mounts. The flag exists for the one case it cannot detect: a mounted file whose
-   **contents** changed under an identical configuration, which is the secret case. Applied to
-   everything, it also recreated **Traefik and all three Authentik services**, none of which read a
-   per-run secret — their own values are persistent and were written before they first started.
-
-   Ten seconds, measured. Worse, recreating Traefik changes its address on `proxy`, which fired the
-   harness's own re-point branch and left **Zulip started three times in one run**: created,
-   force-recreated, then recreated again for the new proxy address. It is now scoped to the six services
-   that actually read a per-run secret (`zulip`, `database`, `memcached`, `rabbitmq`, `redis`, and
-   `workcenter` for the bind-mounted `zuliprc` — a bind-mounted *file* is resolved when the container is
-   created, so a regenerated secret is a new inode a running shell cannot see).
-
-   Zulip now starts twice, Traefik and Authentik never go down, and no re-point happens.
-
- - **The application stack is announced as its own stage.** The containers coming up are a different
-   operational area from the identity provider being configured, and the output used to read as though
-   they were still part of the provisioning: Authentik's last line was followed immediately by
-   `Container traefik Creating`. There is now a section title and a line saying what is being started, in
-   the same form as every other stage.
-
-
-
- - **`compose exec` inside a `while read` loop eats the loop.** Both new provisioning loops are fed by a
-   heredoc, and `compose exec` **inherits the loop's stdin** and consumes it: the first account is created
-   and the loop then ends — silently, with no error and no second identity. Every such call now redirects
-   `</dev/null`. It was found by counting the accounts rather than trusting the output.
-
- - Workcenter has not published a release, a Docker image or a GHCR package. Documentation
-   that referred to one, or to the upstream project's image, now says so explicitly.
- - The client environment prefix is `WORKCENTER_`. The inherited `DASHY_` prefix was removed:
-   nothing consumed it, and keeping it would document a prefix this project does not read.
-
-### Removals
- - Views: `Home.vue`, `Minimal.vue`, `DownloadConfig.vue`.
- - Component trees: `MinimalView/`, `Widgets/` (96 components), `InteractiveEditor/`,
-   `Charts/`, the tile-grid `LinkItems/` components, and the settings tree
-   (`ViewSwitcher`, `OptionsPanel`, `SettingsContainer`, `SearchBar`, `LayoutSelector`,
-   `ItemSizeSelector`, `NavLinksSwitcher`, `LocalConfigWarning`, `CustomThemeMaker`,
-   `ConfigLauncher`, `ThemeSelector`).
- - The dead admin config-editor chain in `Configuration/` and the mixins it used
-   (`ConfigSaving`, `ItemMixin`, `ThemingMixin`, `MasonryItem`, `WidgetMixin`,
-   `ChartingMixin`, `GlancesMixin`, `NextcloudMixin`).
- - `utils/CloudBackup.js` and the hosted sync endpoint it called, `utils/CheckPageVisibility.js`,
-   `utils/CheckItemVisibility.js`, and the dead stylesheets (`schema-editor.scss`,
-   `weather-icons.scss`, `styles/widgets/`, the `workcenter-docs` theme).
- - Server: the `/status-check`, `/ping-check` and `/status-ping` endpoints, and the
-   update checker that compared against another product's release feed.
- - Configuration schema: `startingView`, `enableMultiTasking`, `widgetsAlwaysUseProxy`,
-   `colCount`, `layout`, every `statusCheck*` and `pingCheck*` option,
-   `section.widgets`, `section.filteredItems`, `displayData.hideFromHomepage`,
-   and the legacy Keycloak-only visibility rules.
- - Hosting artefacts: `CNAME`, `netlify.toml`, `render.yaml`, `Dockerfile-postgresql`.
- - Documentation for removed features, and the provider guides for identity providers
-   Workcenter does not use.
- - Locales: the namespaces whose only consumers were removed features, and every key that
-   no remaining code references.
- - Dependencies: `pingman` and its Docker `iputils-ping`/`setcap` steps.
- - Download a SOGo attachment straight into the user's FileBrowser Quantum source (#142).
- - Upload a FileBrowser Quantum file into a Zulip message without leaving Workcenter (#151).
-
-### Notes
- - `WORKCENTER_ZULIP_API_KEY` is now required in `.env`; see `OIDC.md` for the
-   provisioning steps (#151).
-```
-
----
-
-## [Unreleased]
-### New Features
  - **Identity: Authentik everywhere.** One login now reaches all four surfaces, and the group model
    decides what it reaches. `Authentik/` deploys Authentik itself (server, worker, PostgreSQL, Redis,
    pinned to `2024.12.3`), and `scripts/lib/authentik.sh` provisions everything `OIDC.md` §4.1 lists
@@ -284,12 +117,10 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    the protocol level: an administrator signs in to every application and the dashboard, a
    `workspaceusers` member signs in to every application and is **refused** the dashboard, and an
    account in no group is refused everywhere.
-
  - **Single sign-out.** `workspaceadmin` is not a separate account anywhere: signing out of Workcenter
    ends the local session and then Authentik's, which is what signs out every application that follows
    the provider session (A-7). FileBrowser carries the provider's `logoutRedirectUrl` and the shell
    carries `postLogoutRedirectUri`, so the browser lands back at the shell's own sign-in page.
-
  - **The Zulip organization is provisioned with the deployment.** A Zulip server has no organization
    until one is created, and with none every page on the Chat host answers 404 "There is no Zulip
    organization at <host>" — the Chat pane rendered a Zulip error page and the broker's chat
@@ -368,6 +199,62 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    the manual checklist for the current phase gate (`Testing.md`).
 
 ### Improvements
+ - **Every application pin moved to its current stable release, and the whole stack was re-verified
+   against them.** Traefik `v3.7` → `v3.7.14` (a full patch tag, so a release that ships tomorrow is a
+   decision rather than a surprise), Authentik `2024.12.3` → `2026.8.3`, FileBrowser Quantum
+   `2.0.9-beta` → `2.0.0-stable`, ONLYOFFICE Docs `8.2.2` → `9.4.0`. Zulip was already current at
+   `12.3-0`, which is also the pin `docker-zulip`'s own compose carries — including its four supporting
+   images, which are compatibility-bound to that release rather than free choices.
+
+   **FileBrowser moves to the stable series, and the version number goes *down*.** Upstream publishes
+   betas and stables side by side and the beta numbers run ahead (`2.0.9-beta`, `2.1.1-beta`) without
+   being newer releases; the stable line is cut on its own branch. `v2.0.0-stable` was published
+   2026-10-09, after `2.0.10-beta`, and is what `stable` and `latest` resolve to. Anyone reading the pin
+   as a downgrade should read [IN-3.1](docs/architecture/integration.md#3-filebrowser-quantum-files)
+   first.
+
+   Each upgrade was verified by running the harness against it, not by reading release notes: all 15
+   identity checks pass, every pane is routed, and the provisioning library creates every object on the
+   new API.
+ - **The test environment needs no `sudo` at all, and `scripts/e2e.sh` refuses it.** A harness that
+   asks for root teaches people to run it as root, and then everything it generates belongs to root
+   and the *next* run needs root to replace its own files. The three things that genuinely need
+   privilege are one-time machine setup and now live in a separate script:
+
+   ```bash
+   sudo ./scripts/setup-testing.sh              # /etc/hosts, the trust store, file ownership
+   sudo ./scripts/setup-testing.sh --remove     # undo the first two
+   ```
+
+   `scripts/e2e.sh` fails immediately when it is run as root or under `sudo`, and `--hosts` and
+   `--trust-cert` now *report* whether the machine is ready for a browser instead of changing system
+   state. Nothing was lost: the checks reach the stack with `curl --resolve` and the CA in the
+   checkout, so a machine that has never run the setup script still gets every automated check.
+
+   Removing state that containers own no longer needs privilege either. A bind mount makes a
+   container's writes the *container's* uid on the host — Authentik's PostgreSQL data directory is
+   uid 65534 mode 0700 — so `--down` runs the removal in a throwaway container, which is root in its
+   own namespace and needs nothing from the host. The image is one the stack already deploys, so a
+   cleanup downloads nothing.
+ - The switcher is a proper `tablist`, each pane is its `tabpanel`, and the indicators sit in a
+   labelled group that announces changes politely. The active application is signalled by an
+   accent underline, an accent icon and label, `aria-selected` and the roving `tabindex`, never by
+   colour alone.
+ - Panes load when first shown rather than all at once, and a frame that never fires load is
+   reported after thirty seconds instead of spinning.
+ - Branch model made explicit and enforced. Every pull request targets `Dev`; `Dev` is
+   promoted into `Beta` when production testing is ready, and `Beta` is promoted into
+   `Stable` when beta testing completes. A `Pull-request base branch` job in `ci.yml`
+   fails any pull request whose base is not `Dev`, unless its title starts with
+   `chore(release): promote`.
+ - `PageStrcture/` is renamed to `PageStructure/`, correcting an inherited typo.
+ - Prefixing is settled: Workcenter's own CSS classes, element ids and toast containers use
+   the `workcenter-` prefix.
+ - SPA fallback: a GET for any non-asset path now renders the shell with **200** instead of
+   404. A request that looks like a missing static asset still reports 404, and non-GET
+   methods still fall through to 404.
+ - `user-data/conf.yml` is rewritten as the Workcenter example: one section per integrated
+   application, plus the admin surfaces, with an Authentik OIDC block.
  - **`scripts/e2e.sh` now tests the real deployment.** It validates its dependencies (docker, the compose
    v2 plugin at 2.20+ because the stack uses `include:`, and a reachable daemon, each failure naming what
    to install), generates `.env` and the local certificate when they are absent, **pulls only the images
@@ -445,15 +332,121 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    Zulip authenticates by email and refuses anything shorter than eight characters, so the login is
    `admin@<shell host>` with the password `admin1234` (IN-3.26, IN-5.31, `Testing.md` §6.5).
 
-### Removals
+### Notes
+ - `src/components/Workspace/` — the sidebar that rendered the `sections` list, and the
+   URL-keyed iframe host it fed. The registry replaces both.
+ - `src/components/LinkItems/ItemIcon.vue`, the last consumer of which was that sidebar.
+ - Workcenter stripped down to the Workspace view. Workcenter now renders a single view: the
+   sidebar plus the embedded content surface. The Default view, the Minimal view and the
+   config-download view are deleted, along with the widget engine, the status and ping
+   monitoring subsystem, the tile grid and the in-app configuration editor.
+ - The multi-tasking host is now the only content host, renamed from
+   `MultiTaskingWebComtent.vue` to `PaneHost.vue`, and its duplicate component name is
+   corrected.
+ - The router has one view and four routes: `/`, `/files`, `/chat` and `/mail`, so each
+   application pane is deep-linkable. Unknown paths render the view rather than a second page.
+ - The product is branded Workcenter throughout: package identity, document title, root
+   element, locales, Docker labels and image metadata, and every user-visible string.
+ - **`--down` reported the operator's own `.env` as a leftover.** `.env` is the one generated file an
+   operator is invited to edit, so its existence proves nothing; it is a leftover only when a manifest
+   says a run created it. The check was bare existence, so every teardown of a checkout the harness had
+   ever bootstrapped warned about a file whose recording manifest belonged to a run directory long since
+   deleted. It now consults the manifests and says which case it is:
+
+   ```
+   ℹ .env was not created by a run: kept
+   ```
+ - **A test now fails when an icon the application asks for is not there.**
+   `public/manifest.json`, `index.html` and `vite.config.mjs` each name icon files by path, and nothing
+   between them and a 404 checked that the path resolved: a missing favicon is a blank tab icon, and a
+   missing manifest icon is a browser that quietly declines to install the app. The files *were* deleted
+   while every reference stayed behind, and nothing failed — not the build, not the suite, not the
+   console. `tests/unit/app-icons.test.js` checks that each named icon exists, that it is the size its
+   manifest entry claims (an overstated size installs a blurry app icon), and that it carries an alpha
+   channel, which is what an icon still holding its white corners would not.
+ - **The harness now signs in the way an application starts it, and asserts where it lands.**
+   `oidc-login.mjs` gained `--sso-entry`, `--expect` and `--print-body`: it begins at the application's
+   own sign-in link, carries the session cookie the application stored its `state` in, runs the provider's
+   flow, and follows the callback back. A verifier that starts at the provider exercises neither half of
+   that, which is exactly the gap that let this ship.
+
+   The assertion is the **landing URL**, not the status code. Mailcow sends a signed-in user to
+   `/SOGo/so/<address>/Mail/view`, so the address appearing there is proof the session belongs to that
+   account; "we got a 200" is equally satisfied by the application's own login page, which is what the
+   failure looked like. The run now reports:
+
+   ```
+   ✔ Mail SSO: admin@wc.test landed inside SOGo (/SOGo/so/admin@wc.test/Mail/view)
+   ✔ Mail SSO: user@wc.test landed in their own mailbox
+   ```
+ - **Both admin links in the user menu pointed at the wrong thing.** The dashboard link was the bare
+   `traefik.` host, and the ingress routes only `/dashboard` and `/api` there — so it matched no router
+   and returned a **404**, which reads exactly like the dashboard being down. It now carries
+   `/dashboard/`. The Mail link labelled "Mail admin" pointed at the **Mail pane** (`/SOGo`, the user's
+   own mail) rather than `/admin`, where the deployment is actually administered; it now derives the
+   mail host and appends `/admin`.
+ - **`--force-recreate` was applied to the project instead of to the services it is about, and the cost
+   was measurable.** `up -d` already recreates any service whose *configuration* changed — image,
+   environment, labels, mounts. The flag exists for the one case it cannot detect: a mounted file whose
+   **contents** changed under an identical configuration, which is the secret case. Applied to
+   everything, it also recreated **Traefik and all three Authentik services**, none of which read a
+   per-run secret — their own values are persistent and were written before they first started.
+
+   Ten seconds, measured. Worse, recreating Traefik changes its address on `proxy`, which fired the
+   harness's own re-point branch and left **Zulip started three times in one run**: created,
+   force-recreated, then recreated again for the new proxy address. It is now scoped to the six services
+   that actually read a per-run secret (`zulip`, `database`, `memcached`, `rabbitmq`, `redis`, and
+   `workcenter` for the bind-mounted `zuliprc` — a bind-mounted *file* is resolved when the container is
+   created, so a regenerated secret is a new inode a running shell cannot see).
+
+   Zulip now starts twice, Traefik and Authentik never go down, and no re-point happens.
+ - **The application stack is announced as its own stage.** The containers coming up are a different
+   operational area from the identity provider being configured, and the output used to read as though
+   they were still part of the provisioning: Authentik's last line was followed immediately by
+   `Container traefik Creating`. There is now a section title and a line saying what is being started, in
+   the same form as every other stage.
+ - **`compose exec` inside a `while read` loop eats the loop.** Both new provisioning loops are fed by a
+   heredoc, and `compose exec` **inherits the loop's stdin** and consumes it: the first account is created
+   and the loop then ends — silently, with no error and no second identity. Every such call now redirects
+   `</dev/null`. It was found by counting the accounts rather than trusting the output.
+ - Workcenter has not published a release, a Docker image or a GHCR package. Documentation
+   that referred to one, or to the upstream project's image, now says so explicitly.
+ - The client environment prefix is `WORKCENTER_`. The inherited `DASHY_` prefix was removed:
+   nothing consumed it, and keeping it would document a prefix this project does not read.
+ - Views: `Home.vue`, `Minimal.vue`, `DownloadConfig.vue`.
+ - Component trees: `MinimalView/`, `Widgets/` (96 components), `InteractiveEditor/`,
+   `Charts/`, the tile-grid `LinkItems/` components, and the settings tree
+   (`ViewSwitcher`, `OptionsPanel`, `SettingsContainer`, `SearchBar`, `LayoutSelector`,
+   `ItemSizeSelector`, `NavLinksSwitcher`, `LocalConfigWarning`, `CustomThemeMaker`,
+   `ConfigLauncher`, `ThemeSelector`).
+ - The dead admin config-editor chain in `Configuration/` and the mixins it used
+   (`ConfigSaving`, `ItemMixin`, `ThemingMixin`, `MasonryItem`, `WidgetMixin`,
+   `ChartingMixin`, `GlancesMixin`, `NextcloudMixin`).
+ - `utils/CloudBackup.js` and the hosted sync endpoint it called, `utils/CheckPageVisibility.js`,
+   `utils/CheckItemVisibility.js`, and the dead stylesheets (`schema-editor.scss`,
+   `weather-icons.scss`, `styles/widgets/`, the `workcenter-docs` theme).
+ - Server: the `/status-check`, `/ping-check` and `/status-ping` endpoints, and the
+   update checker that compared against another product's release feed.
+ - Configuration schema: `startingView`, `enableMultiTasking`, `widgetsAlwaysUseProxy`,
+   `colCount`, `layout`, every `statusCheck*` and `pingCheck*` option,
+   `section.widgets`, `section.filteredItems`, `displayData.hideFromHomepage`,
+   and the legacy Keycloak-only visibility rules.
+ - Hosting artefacts: `CNAME`, `netlify.toml`, `render.yaml`, `Dockerfile-postgresql`.
+ - Documentation for removed features, and the provider guides for identity providers
+   Workcenter does not use.
+ - Locales: the namespaces whose only consumers were removed features, and every key that
+   no remaining code references.
+ - Dependencies: `pingman` and its Docker `iputils-ping`/`setcap` steps.
+ - Download a SOGo attachment straight into the user's FileBrowser Quantum source (#142).
+ - Upload a FileBrowser Quantum file into a Zulip message without leaving Workcenter (#151).
+ - `WORKCENTER_ZULIP_API_KEY` is now required in `.env`; see `OIDC.md` for the
+   provisioning steps (#151).
  - **The derived Zulip image.** Zulip now runs the pinned upstream image unmodified. `Zulip/Dockerfile`,
    `Zulip/custom_zulip_files/`, `Zulip/compose.override.yaml` and `Zulip/.dockerignore` are gone, along
    with the `workcenter-zulip:<version>-0` tag, the `ZULIP_UPSTREAM_IMAGE` variable, the
    `WORKCENTER_ORIGIN` build argument and the harness's build, overlay-verification and retagging
    stages. The Chat pane is framed by the ingress instead (see `Notes`), so there is no second image to
    build, pin, retag, cache or rebuild on an upgrade — and no deviation from upstream to track.
-
-### Notes
  - **Three applications could not sign anyone in, for three unrelated reasons, and every automated check
    passed.** The missing check was the same in all three cases: nothing drove an **application's own
    sign-in entry**, so a green run proved only that the *provider* issues a good token.
@@ -479,7 +472,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
 
    `scripts/e2e.sh` now drives each application's sign-in entry and requires a redirect to the authorize
    endpoint carrying that application's `client_id`. That one check would have caught all three.
-
  - **The browser sign-in path is now exercised rather than assumed.** Two defects, found in sequence,
    both invisible to anything that talks to the provider directly:
 
@@ -496,7 +488,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    header; the harness asserts the token carries `openid` and that its `groups` claim is unique. It also
    gained `--print-tokens`, because telling "the provider issues a bad token" apart from "the application
    rejects a good one" needs the token in hand.
-
  - **The providers had no `openid` scope mapping, so a browser could not sign in — and every automated
    check passed anyway.** Authentik intersects the scopes a client asks for with the ones the provider
    is *configured* for and silently drops the rest:
@@ -522,7 +513,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    The fix is the built-in `openid` mapping, found by its `managed` id. The check that would have caught
    it is now in the verifier: it calls `/userinfo/` with an `Origin` header and requires both a `200`
    **and** the CORS header — neither of which a Node client enforces on its own.
-
  - **Two mappings writing one claim are concatenated, not merged.** Attaching the built-in `profile` to
    get the standard claims back produced
    `["workspaceusers","workspaceadmin","workspaceusers","workspaceadmin"]`, because on 2026.8 its
@@ -533,7 +523,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
 
    The cost is `preferred_username` and `name`, which the built-in `profile` carried: the shell reads
    `preferred_username || email || sub`, so the email address stands in for the display name.
-
  - **Mailcow is configured by Mailcow, and the test run leaves it exactly as it found it.** The harness
    used to start Mailcow and hope a `mailcow.conf` existed — and when one did not, the first failure was
    `failed to bind host port 127.0.0.1:8080`, which says nothing about the real cause. It now runs
@@ -546,7 +535,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    know: the seven hostnames `docker-compose.override.yml` interpolates, `TRUSTED_PROXIES` and
    `API_ALLOW_FROM` so Mailcow believes the address Traefik forwards, and an `API_KEY`, which is what
    makes the OIDC provisioning possible at all.
-
  - **The port collision was a timing bug, not a port choice.** Mailcow publishes its own web ports and an
    override cannot unpublish them (IN-6.4), so the harness now reserves free loopback ports — and the
    trap is *when* it asks. Mailcow is configured before Traefik starts, so 80 and 443 are genuinely free
@@ -554,7 +542,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    two ports the stack itself is about to bind, and the failure surfaces much later as
    `failed to bind host port`. Ports below 1024 are now refused outright, and Traefik's three are
    reserved by name.
-
  - **`--down` restores what a run overwrote, and nothing else.** A new backup manifest records the files
    a run modifies — Mailcow's configurator rewrites `mailcow.conf` in place — and `--down` puts them
    back, alongside the existing manifest of what a run created. A test run must leave the checkout as it
@@ -567,7 +554,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    `generate_config.sh` fails on `data/assets/ssl-example/key.pem`. The teardown also no longer depends
    on the configuration it is about to remove: Compose cannot parse the override without a readable
    `mailcow.conf`, so anything left behind is removed by project label instead.
-
  - **The setup script is the preflight, and it now runs first in both directions.** Two defects, one
    shape: the certificate the browser has to trust was *generated* by `scripts/e2e.sh` but *installed*
    by `scripts/setup-testing.sh`, so the setup script refused to do its job until the harness had run —
@@ -585,7 +571,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    machine that will never open the result. The harness exists so a person can open what it produces; a
    deploy nobody can open has not been verified, and finding that out after ten minutes of building is
    the failure the gate prevents.
-
  - **The stack is reached by hostname, not by `localhost` plus a port, and the browser prerequisites were two
    hostnames short.** Both halves of that sentence cost someone an afternoon, so both are recorded.
 
@@ -606,7 +591,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    resolve `auth.` never completes the redirect, and the only symptom is a page that never comes back.
    It now writes all seven, compares the block against what the deployment serves and **replaces** it
    when they differ.
-
  - **A clean deployment is not the same test as an incremental one, and four defects only appeared on
    a checkout that had been torn down and rebuilt.** All four are fixed; they are recorded because
    each one presents as something other than what it is.
@@ -634,20 +618,17 @@ as described in [`contributions.md`](./docs/development/contributions.md).
      step overrode the file: the provider was bootstrapped with one password while the console check
      read the other from the file. The only symptom was a sign-in that asked for the password again,
      forever. The file is now the single source of truth and is re-exported once it is final.
-
  - **A readiness probe that does not test the thing you are about to do is not a readiness probe.**
    `authentik_wait_ready` polled `/-/health/ready/`, which is served by the server process and answers
    before the API will accept the bootstrap token. Provisioning ran straight into `403` on its first
    call and stopped, leaving every object after it uncreated. It now polls an **authenticated** API
    call — the exact condition the next line depends on.
-
  - **Two checks that passed for the wrong reason, found by asking what would make them fail.** The
    forward-auth walk accepted any HTTP 200, and the outpost's own cookie-callback page answers 200,
    so it reported every account reaching the dashboard while Authentik's own `check_access` was
    refusing them. It now counts only a 200 from the protected path. Separately, the FileBrowser
    password assertion was *inverted* when OIDC arrived: leaving it would have made "Phase 4 is done"
    and "the harness passes" mutually exclusive.
-
  - **Four traps that make identity look configured while it is not.** Each of these produces a stack
    that reports healthy and a sign-in that fails, or worse, succeeds when it should not:
 
@@ -745,9 +726,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    `ConfigSchema.json` rejects the key in `conf.yml` (`additionalProperties: false`), so the API's
    key list and `docs/api.md` now name `pageInfo`, `appConfig` and `sections` only. A sub-page
    *file* is unaffected: it is still read and replaced whole through `/api/config/:filename` (#4).
-
----
-
  - **The application icon now has transparent corners, and every size is derived from it.**
    `icons/workcenter.png` was authored as a rounded square on white: the four corners held a white area
    fading through off-white and grey into the artwork, with a single anti-aliased pixel where the arc met
@@ -770,14 +748,12 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    `favicon-NxN.png`, the six `workcenter-pwa_*.png` the manifest names, and the 512²
    `workcenter-logo.png` the build's PWA configuration names. The Dashy-era icons are gone from both
    `public/` and `dist/`; `dist/` is a build artifact and is restored by a rebuild.
-
  - **Mailcow's admin page is a local credential, not an OIDC surface — and it had no password.** It
    authenticates against Mailcow's own `admin` table, which the integration deliberately keeps separate
    from mailboxes: the SSO identity `admin@wc.test` is a *mailbox*, and enabling Generic-OIDC does not
    touch the local administrator login. Mailcow generates that account a password nobody knows, so from
    the outside the page is simply unreachable — indistinguishable from a wrong password. The harness now
    sets it and prints it **under its own heading**, so it cannot be mistaken for the SSO identity.
-
  - **The pane's floating options button is gone; the menu lives in the app switcher.** A control that
    acted on the frame — reload, open in a tab, copy the link, show health — was drawn over the pane at
    its top-right corner, which is where an embedded application puts its own toolbar. It read as part
@@ -978,7 +954,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    (unless `--pin`) — it builds nothing, and it runs before the image step so a moved pin is what gets
    pulled. `--bump-zulip-pin` no longer rewrites a Dockerfile's build argument or a derived tag, and
    the overlay verification and tag-reconciliation steps are gone with the build.
-
  - **Every status indicator was grey, whatever the applications were doing.** `GET
    /api/broker/health` was answering correctly, but `HealthService.check()` read the payload from
    `res.apps` while `request.get` resolves to the axios-style envelope `{ data, status, statusText,
@@ -1066,7 +1041,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    The `certutil -D` that clears a previous entry failed the same way one line later. Both now
    tolerate the absent case, which the comparison already treats as "not stored", so a first run
    installs the certificate into every profile it finds.
-
  - **`setup-testing.sh --remove` did not put the machine back the way it found it.** The flag already
    existed and is documented; what it did not do was remove the host entry an **older version** of the
    script wrote, because that version wrote the mapping **without markers** and the removal only matched
@@ -1081,11 +1055,9 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    stale line rather than adding a second mapping beside it.
 
    The count it reports now matches the lines it actually removed — it said three while taking four.
-
  - **The root-required message printed a command that does not exist.** `require_root` concatenated the
    script name and the arguments with no separator, so anyone who ran it without `sudo` was told to run
    `sudo ./scripts/setup-testing.sh--remove`.
-
  - **`--down` left container-owned state behind, and printed an error about it.** The manifest pass — the
    first removal loop, the one that deletes everything a run recorded — used a bare `rm -rf` while every
    other removal went through `remove_generated_tree`, which falls back to deleting inside a throwaway
@@ -1108,7 +1080,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    The contract in `Testing.md` — "nothing about removing generated state needs privilege" — was already
    implemented; one loop simply did not use it. It does now, and the teardown runs clean with no privilege
    and no error output.
-
  - **The readiness gate listed the built-in objects it had seen fail, not the ones provisioning needs — and
    the run found the gap.** A fresh deployment stopped with:
 
@@ -1136,7 +1107,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    ✔ Authentik provisioned (23 created)
    ✔ every automated check passed
    ```
-
  - **Mailcow's SSO was broken by one missing field, and the provider could never have seen it.** With the
    certificate fixed, the callback died in Mailcow's own code:
 
@@ -1154,7 +1124,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
 
    This is why the provider-side checks all passed while the application answered every real sign-in with
    a blank page: the token was perfect, and the application threw before it ever looked at one.
-
  - **Mailcow's SSO failure was a certificate, and Mailcow said so only in its database.** The exchange
    died with
 
@@ -1170,7 +1139,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    **ini** setting, so the mount that matters is an ini file in `/usr/local/etc/php/conf.d/`. The
    exchange now works; `CURL_CA_BUNDLE` is kept for the non-PHP curl paths, with a note that it is not
    what does the work.
-
  - **Both remaining pane failures had the same root cause, and it was not identity: the applications were
    provisioned at the wrong address.** The identity fixtures live at `@wc.test` (`Testing.md` §7.1) and
    the deployment's own address is a *different* one, so every application was provisioned for an account
@@ -1186,7 +1154,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    The Authentik side was corrected to the published integration as well: `email_verified` and
    `mailcow_template` are read from **user attributes** rather than hardcoded, and the test users now
    carry them — which is also what Zulip's `email_verified` check needs (OIDC.md §4.5, Trap 1).
-
  - **Zulip's sign-up gate was asking a question that had already been answered.** `invite_required`
    defaults to true, so a user who authenticated *perfectly* was stopped at "You need an invitation to
    join this organization." The gate that decides who may sign in is Authentik's **application binding** —
@@ -1197,8 +1164,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    Zulip has **no group-claim gate** — `invite_required` and the email-domain restriction are the only
    two, and neither reads a claim — so there is nothing to configure that would restrict membership by
    `groups`. Authentik decides, Zulip admits.
-
-
  - **Mailcow's SOGo is themed to the Workcenter palette, and the step is the harness's.** SOGo 5.12
    ships one light theme, so a Mail pane inside a dark shell was a bright white rectangle in the middle
    of the workspace. The mechanism is the only UI-extension hook SOGo has — a file listed in
@@ -1216,6 +1181,27 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    than invented: it is AngularJS Material, so its surfaces are `md-*` elements, its views switch on
    `[ui-view=…]`, and the sign-in view is `#loginScreen`/`#loginContent`. Message bodies are
    deliberately excluded — recolouring a sender's HTML is re-purposing content, not chrome (BR-6.3).
+
+ - **The harness checks the Mail pane's appearance on every run.** A theme is a set of CSS overrides,
+   and an override whose selector no longer matches fails silently and looks exactly like success — so
+   `check_sogo_theme` asserts four things: the hook is served and its tokens substituted, the stylesheet
+   is served and declares both modes, the hook is registered, and **every selector the stylesheet uses
+   still exists in SOGo's own stylesheet**. The last is the one that catches a SOGo upgrade.
+
+   It does not fetch the page and look for the hook, and the reason is recorded so nobody tries again.
+   `/cache/<hash>.js` is Mailcow's own AngularJS build: nginx's `try_files` falls through to
+   `resource.php` in **php-fpm**, which returns `/tmp/<basename>`. That bundle is not produced by SOGo,
+   does not carry `SOGoUIAdditionalJSFiles` — Mailcow's own `mc_logout` is absent from it too — and is
+   byte-identical across restarts. The additional JS files load in the **authenticated** application, so
+   an unauthenticated request for `/SOGo/` carries one script and can never show the hook.
+
+ - **`production.md` described a SOGo integration that does not work.** Its "Written before bring-up"
+   table named `Mailcow/data/conf/sogo/workcenter-sogo.css`, a Workcenter block appended to
+   `custom-sogo.js`, and a mount for the stylesheet — none of which is what the implementation does, and
+   the `custom-sogo.js` append in particular has **no effect on the page**. The row now names the
+   stylesheet the shell serves, the substituted hook, the `SOGoUIAdditionalJSFiles` registration, and the
+   restart. The two approaches that look right and are not are written down beside it, with the
+   measurements that rule them out.
 
 ### Documentation
  - **Documentation organized by subject.** Four documents live at the repository root —
@@ -1323,7 +1309,6 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    design, agent, standards, contribution, OIDC, testing and production specifications.
  - Defined the single-pane Workcenter shell derived from the Dashy Workspace view
    (application switcher above a per-application sidebar).
-
  - Adopt FileBrowser Quantum's own light and dark palette as Workcenter's appearance standard, so
    the shell, the branding and the panes are derived from one source (`design.md` §4.3.1).
  - Record the per-application appearance, branding and language mechanisms against the pinned
@@ -1419,6 +1404,12 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    §6.5 documents the new harness stage, the framing check's precedence rule, and what `--hosts` now
    installs.
 
+ - **The Mail pane's appearance has a documented verification method.** `Testing.md` now records what
+   `check_sogo_theme` asserts and why each assertion is there, including why the check is structural
+   rather than a page fetch — the bundle it would have to look in is Mailcow's, not SOGo's. It also states
+   the scope: SOGo's pages are the only in-scope surfaces, and Mailcow's own sign-in and administration
+   pages are deliberately not themed.
+
 ### Deployment
  - `.editorconfig` and `.gitignore` covering every secret, runtime volume and generated artefact   the integrated applications produce, including `**/.env`, `**/secrets/`, `**/data/` and `acme.json`.
  - `.github/workflows/ci.yml` — the regular-test workflow, run on every pull request: install,
@@ -1444,6 +1435,10 @@ as described in [`contributions.md`](./docs/development/contributions.md).
    `compose.test.yaml` mounts it over the tracked file with the long-syntax form and
    `create_host_path: false`, so the operator's file is never modified and a missing generated file
    fails loudly instead of becoming an empty directory.
+
+### Dependencies
+
+---
 
 ## Release history
 
